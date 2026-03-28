@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.MotorInsuranceMapper">
+
+    <select id="selectAll" resultType="com.example.entity.MotorInsurance">
+        select * from motor_insurance
+        <where>
+            <if test="id != null">and ID = #{id}</if>
+            <if test="typeRisk != null">and Type_risk = #{typeRisk}</if>
+            <if test="area != null">and Area = #{area}</if>
+            <if test="distributionChannel != null">and Distribution_channel = #{distributionChannel}</if>
+            <if test="payment != null">and Payment = #{payment}</if>
+            <if test="typeFuel != null and typeFuel != ''">and Type_fuel = #{typeFuel}</if>
+            <if test="yearMatriculation != null">and Year_matriculation = #{yearMatriculation}</if>
+            <if test="secondDriver != null">and Second_driver = #{secondDriver}</if>
+        </where>
+        order by ID desc
+    </select>
+
+</mapper>
