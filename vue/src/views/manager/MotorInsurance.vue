@@ -37,7 +37,7 @@
           </el-table-column>
           <el-table-column prop="premium" label="净保费" width="100" />
           <el-table-column prop="costClaimsYear" label="索赔成本" width="100" />
-          <el-table-column prop="nClaimsYear" label="索赔次数" width="100" />
+          <el-table-column prop="nClaimsHistory" label="索赔次数" width="100" />
           <el-table-column prop="valueVehicle" label="车辆价值" width="100" />
           <el-table-column prop="power" label="马力" width="80" />
           <el-table-column prop="typeFuel" label="燃料类型" width="80">

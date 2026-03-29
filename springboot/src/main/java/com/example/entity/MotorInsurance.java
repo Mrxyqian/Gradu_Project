@@ -21,6 +21,7 @@ public class MotorInsurance {
     private BigDecimal premium;
     private BigDecimal costClaimsYear;
     private Integer nClaimsYear;
+    @JsonProperty("nClaimsHistory")
     private Integer nClaimsHistory;
     private BigDecimal rClaimsHistory;
     private Integer typeRisk;
