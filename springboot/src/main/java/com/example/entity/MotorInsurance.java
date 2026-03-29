@@ -1,6 +1,7 @@
 package com.example.entity;
 
 import java.math.BigDecimal;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class MotorInsurance {
     private Integer id;
@@ -29,6 +30,7 @@ public class MotorInsurance {
     private Integer power;
     private Integer cylinderCapacity;
     private BigDecimal valueVehicle;
+    @JsonProperty("nDoors")
     private Integer nDoors;
     private String typeFuel;
     private BigDecimal length;

@@ -1,0 +1,42 @@
+CREATE DATABASE gra_data;
+USE gra_data;
+
+CREATE TABLE claim_types (
+    ID INT NOT NULL COMMENT '内部识别号',
+    Cost_claims_year DECIMAL(10,2) NOT NULL COMMENT '当年总索赔成本',
+    Cost_claims_by_type DECIMAL(10,2) NOT NULL COMMENT '按类型划分的索赔成本',
+    Claims_type VARCHAR(50) NOT NULL COMMENT '索赔类型（9种）'
+);
+
+CREATE TABLE motor_insurance (
+    ID INT NOT NULL COMMENT '内部识别号',
+    Date_start_contract VARCHAR(10) NOT NULL COMMENT '合同开始日期 (DD/MM/YYYY)',
+    Date_last_renewal VARCHAR(10) NOT NULL COMMENT '最后一次续保日期 (DD/MM/YYYY)',
+    Date_next_renewal VARCHAR(10) NOT NULL COMMENT '下次续保日期 (DD/MM/YYYY)',
+    Date_birth VARCHAR(10) NOT NULL COMMENT '被保人生日 (DD/MM/YYYY)',
+    Date_driving_licence VARCHAR(10) NOT NULL COMMENT '驾照签发日期 (DD/MM/YYYY)',
+    Distribution_channel TINYINT NOT NULL COMMENT '分销渠道：0=代理人，1=保险经纪',
+    Seniority INT NOT NULL COMMENT '与保险公司合作的总年数',
+    Policies_in_force INT NOT NULL COMMENT '当前生效的保单数',
+    Max_policies INT NOT NULL COMMENT '历史最高保单数',
+    Max_products INT NOT NULL COMMENT '历史最高同时持有产品数',
+    Lapse INT NOT NULL COMMENT '本年度失效的保单数（非替换）',
+    Date_lapse VARCHAR(10) DEFAULT NULL COMMENT '合同终止日期 (DD/MM/YYYY)',
+    Payment TINYINT NOT NULL COMMENT '缴费方式：1=半年，0=年缴',
+    Premium DECIMAL(10,2) NOT NULL COMMENT '本年度净保费',
+    Cost_claims_year DECIMAL(10,2) NOT NULL COMMENT '本年度索赔总成本',
+    N_claims_year INT NOT NULL COMMENT '本年度索赔次数',
+    N_claims_history INT NOT NULL COMMENT '保单全部历史索赔次数',
+    R_Claims_history DECIMAL(6,2) NOT NULL COMMENT '索赔频率比（索赔次数/有效年数）',
+    Type_risk TINYINT NOT NULL COMMENT '风险类型：1=摩托车，2=货车，3=乘用车，4=农用车',
+    Area TINYINT NOT NULL COMMENT '地区：0=农村，1=城市（>30,000人）',
+    Second_driver TINYINT NOT NULL COMMENT '是否有第二驾驶员：1=是，0=否',
+    Year_matriculation INT NOT NULL COMMENT '车辆注册年份',
+    Power INT NOT NULL COMMENT '马力 (HP)',
+    Cylinder_capacity INT NOT NULL COMMENT '气缸排量 (cc)',
+    Value_vehicle DECIMAL(10,2) NOT NULL COMMENT '车辆市场价值（2019-12-31）',
+    N_doors INT NOT NULL COMMENT '车门数',
+    Type_fuel CHAR(1) NOT NULL COMMENT '燃料类型：P=汽油，D=柴油',
+    Length DECIMAL(5,2) DEFAULT NULL COMMENT '车长（米）',
+    Weight INT DEFAULT NULL COMMENT '车重（千克）'
+);

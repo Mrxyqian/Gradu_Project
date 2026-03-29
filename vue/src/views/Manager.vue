@@ -53,6 +53,10 @@
             <span>理赔统计</span>
           </el-menu-item>
           </el-sub-menu>
+          <el-menu-item index="/vehicleInfo">
+            <el-icon><Van /></el-icon>
+            <span>车辆信息管理</span>
+          </el-menu-item>
         </el-menu>
       </div>
 

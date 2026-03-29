@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.VehicleInfoMapper">
+
+    <select id="selectAll" resultType="com.example.entity.VehicleInfo">
+        select ID, Type_risk as typeRisk, Year_matriculation as yearMatriculation, Power, 
+               Cylinder_capacity as cylinderCapacity, Value_vehicle as valueVehicle, 
+               N_doors as nDoors, Type_fuel as typeFuel, Length, Weight
+        from motor_insurance
+        <where>
+            <if test="id != null">and ID = #{id}</if>
+            <if test="typeRisk != null">and Type_risk = #{typeRisk}</if>
+            <if test="typeFuel != null and typeFuel != ''">and Type_fuel = #{typeFuel}</if>
+            <if test="yearMatriculation != null">and Year_matriculation = #{yearMatriculation}</if>
+        </where>
+        order by ID desc
+    </select>
+
+</mapper>

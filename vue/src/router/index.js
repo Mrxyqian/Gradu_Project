@@ -14,6 +14,7 @@ const router = createRouter({
         { path: 'motorInsuranceStatistics', name: 'MotorInsuranceStatistics', component: () => import('@/views/manager/MotorInsuranceStatistics.vue')},
         { path: 'claimTypes', name: 'ClaimTypes', component: () => import('@/views/manager/ClaimTypes.vue')},
         { path: 'claimStatistics', name: 'ClaimStatistics', component: () => import('@/views/manager/ClaimStatistics.vue')},
+        { path: 'vehicleInfo', name: 'VehicleInfo', component: () => import('@/views/manager/VehicleInfo.vue')},
       ]
     },
   ]
