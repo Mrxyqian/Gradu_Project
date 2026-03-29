@@ -38,13 +38,9 @@
           <el-table-column prop="premium" label="净保费" width="100" />
           <el-table-column prop="costClaimsYear" label="索赔成本" width="100" />
           <el-table-column prop="nClaimsHistory" label="索赔次数" width="100" />
-          <el-table-column prop="valueVehicle" label="车辆价值" width="100" />
-          <el-table-column prop="power" label="马力" width="80" />
-          <el-table-column prop="typeFuel" label="燃料类型" width="80">
-            <template #default="scope">
-              {{ scope.row.typeFuel === 'P' ? '汽油' : '柴油' }}
-            </template>
-          </el-table-column>
+          <el-table-column prop="dateNextRenewal" label="下次续保日期" width="130" />
+          <el-table-column prop="seniority" label="关联总年数" width="100" />
+          <el-table-column prop="dateLapse" label="合同终止日期" width="130" />
           <el-table-column label="操作" width="180" fixed="right">
             <template #default="scope">
               <el-button type="primary" plain size="small" @click="handleEdit(scope.row)">编辑</el-button>
@@ -71,19 +67,19 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="合同开始日期" prop="dateStartContract">
-              <el-input v-model="data.form.dateStartContract" autocomplete="off" placeholder="DD/MM/YYYY" />
+              <el-input v-model="data.form.dateStartContract" autocomplete="off" placeholder="YYYY/MM/DD" />
             </el-form-item>
           </el-col>
         </el-row>
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="最后续保日期" prop="dateLastRenewal">
-              <el-input v-model="data.form.dateLastRenewal" autocomplete="off" placeholder="DD/MM/YYYY" />
+              <el-input v-model="data.form.dateLastRenewal" autocomplete="off" placeholder="YYYY/MM/DD" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="下次续保日期" prop="dateNextRenewal">
-              <el-input v-model="data.form.dateNextRenewal" autocomplete="off" placeholder="DD/MM/YYYY" />
+              <el-input v-model="data.form.dateNextRenewal" autocomplete="off" placeholder="YYYY/MM/DD" />
             </el-form-item>
           </el-col>
         </el-row>
@@ -133,29 +129,24 @@
         </el-row>
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="车辆价值" prop="valueVehicle">
-              <el-input-number v-model="data.form.valueVehicle" :precision="2" :step="1000" style="width: 100%" />
+            <el-form-item label="关联总年数" prop="seniority">
+              <el-input-number v-model="data.form.seniority" :min="0" style="width: 100%" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="马力" prop="power">
-              <el-input-number v-model="data.form.power" :min="0" style="width: 100%" />
+            <el-form-item label="合同终止日期" prop="dateLapse">
+              <el-input v-model="data.form.dateLapse" autocomplete="off" placeholder="YYYY/MM/DD" />
             </el-form-item>
           </el-col>
         </el-row>
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="燃料类型" prop="typeFuel">
-              <el-select v-model="data.form.typeFuel" style="width: 100%">
-                <el-option label="汽油" value="P"></el-option>
-                <el-option label="柴油" value="D"></el-option>
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
             <el-form-item label="车门数" prop="nDoors">
               <el-input-number v-model="data.form.nDoors" :min="0" style="width: 100%" />
             </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <div style="width:100%"></div>
           </el-col>
         </el-row>
         <el-row :gutter="20">
