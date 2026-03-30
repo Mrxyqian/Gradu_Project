@@ -23,8 +23,33 @@
 
       <div style="overflow-x: auto;">
         <el-table :data="data.tableData" style="width: 100%">
-          <el-table-column prop="id" label="ID" width="80" />
-          <el-table-column prop="dateStartContract" label="合同开始日期" width="120" />
+          <el-table-column prop="id" label="ID" width="80" fixed="left" />
+          <el-table-column prop="dateStartContract" label="合同开始日期" width="130" />
+          <el-table-column prop="dateLastRenewal" label="最后续保日期" width="130" />
+          <el-table-column prop="dateNextRenewal" label="下次续保日期" width="130" />
+          <el-table-column prop="distributionChannel" label="分销渠道" width="100">
+            <template #default="scope">
+              {{ scope.row.distributionChannel === 0 ? '代理人' : '保险经纪' }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="dateBirth" label="被保险人出生日期" width="140" />
+          <el-table-column prop="dateDrivingLicence" label="驾照签发日期" width="130" />
+          <el-table-column prop="seniority" label="关联总年数" width="100" />
+          <el-table-column prop="policiesInForce" label="有效保单数" width="100" />
+          <el-table-column prop="maxPolicies" label="历史最高保单数" width="130" />
+          <el-table-column prop="maxProducts" label="历史最高产品数" width="140" />
+          <el-table-column prop="lapse" label="失效保单数" width="110" />
+          <el-table-column prop="dateLapse" label="合同终止日期" width="130" />
+          <el-table-column prop="payment" label="缴费方式" width="100">
+            <template #default="scope">
+              {{ scope.row.payment === 0 ? '年缴' : '半年缴' }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="premium" label="净保费" width="100" />
+          <el-table-column prop="costClaimsYear" label="索赔成本" width="100" />
+          <el-table-column prop="nClaimsYear" label="本年度索赔次数" width="140" />
+          <el-table-column prop="nClaimsHistory" label="历史索赔次数" width="130" />
+          <el-table-column prop="rClaimsHistory" label="索赔频率比" width="120" />
           <el-table-column prop="typeRisk" label="风险类型" width="100">
             <template #default="scope">
               {{ getRiskTypeText(scope.row.typeRisk) }}
@@ -35,12 +60,11 @@
               {{ scope.row.area === 0 ? '农村' : '城市' }}
             </template>
           </el-table-column>
-          <el-table-column prop="premium" label="净保费" width="100" />
-          <el-table-column prop="costClaimsYear" label="索赔成本" width="100" />
-          <el-table-column prop="nClaimsHistory" label="索赔次数" width="100" />
-          <el-table-column prop="dateNextRenewal" label="下次续保日期" width="130" />
-          <el-table-column prop="seniority" label="关联总年数" width="100" />
-          <el-table-column prop="dateLapse" label="合同终止日期" width="130" />
+          <el-table-column prop="secondDriver" label="第二驾驶员" width="110">
+            <template #default="scope">
+              {{ scope.row.secondDriver === 0 ? '否' : '是' }}
+            </template>
+          </el-table-column>
           <el-table-column label="操作" width="180" fixed="right">
             <template #default="scope">
               <el-button type="primary" plain size="small" @click="handleEdit(scope.row)">编辑</el-button>
@@ -57,8 +81,8 @@
                      background layout="prev, pager, next" :total="data.total" />
     </div>
 
-    <el-dialog width="70%" v-model="data.formVisible" title="保单信息" destroy-on-close>
-      <el-form :model="data.form" :rules="rules" ref="formRef" label-width="130px" label-position="right" style="padding-right: 40px">
+    <el-dialog width="80%" v-model="data.formVisible" title="保单信息" destroy-on-close>
+      <el-form :model="data.form" :rules="rules" ref="formRef" label-width="150px" label-position="right" style="padding-right: 40px">
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="ID" prop="id">
@@ -67,38 +91,84 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="合同开始日期" prop="dateStartContract">
-              <el-input v-model="data.form.dateStartContract" autocomplete="off" placeholder="YYYY/MM/DD" />
+              <el-input v-model="data.form.dateStartContract" autocomplete="off" placeholder="DD/MM/YYYY" />
             </el-form-item>
           </el-col>
         </el-row>
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="最后续保日期" prop="dateLastRenewal">
-              <el-input v-model="data.form.dateLastRenewal" autocomplete="off" placeholder="YYYY/MM/DD" />
+              <el-input v-model="data.form.dateLastRenewal" autocomplete="off" placeholder="DD/MM/YYYY" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="下次续保日期" prop="dateNextRenewal">
-              <el-input v-model="data.form.dateNextRenewal" autocomplete="off" placeholder="YYYY/MM/DD" />
+              <el-input v-model="data.form.dateNextRenewal" autocomplete="off" placeholder="DD/MM/YYYY" />
             </el-form-item>
           </el-col>
         </el-row>
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="风险类型" prop="typeRisk">
-              <el-select v-model="data.form.typeRisk" style="width: 100%">
-                <el-option label="摩托车" :value="1"></el-option>
-                <el-option label="货车" :value="2"></el-option>
-                <el-option label="乘用车" :value="3"></el-option>
-                <el-option label="农用车" :value="4"></el-option>
+            <el-form-item label="分销渠道" prop="distributionChannel">
+              <el-select v-model="data.form.distributionChannel" style="width: 100%">
+                <el-option label="代理人" :value="0"></el-option>
+                <el-option label="保险经纪" :value="1"></el-option>
               </el-select>
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="地区" prop="area">
-              <el-select v-model="data.form.area" style="width: 100%">
-                <el-option label="农村" :value="0"></el-option>
-                <el-option label="城市" :value="1"></el-option>
+            <el-form-item label="被保险人出生日期" prop="dateBirth">
+              <el-input v-model="data.form.dateBirth" autocomplete="off" placeholder="DD/MM/YYYY" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="驾照签发日期" prop="dateDrivingLicence">
+              <el-input v-model="data.form.dateDrivingLicence" autocomplete="off" placeholder="DD/MM/YYYY" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="关联总年数" prop="seniority">
+              <el-input-number v-model="data.form.seniority" :min="0" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="有效保单数" prop="policiesInForce">
+              <el-input-number v-model="data.form.policiesInForce" :min="0" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="历史最高保单数" prop="maxPolicies">
+              <el-input-number v-model="data.form.maxPolicies" :min="0" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="历史最高产品数" prop="maxProducts">
+              <el-input-number v-model="data.form.maxProducts" :min="0" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="失效保单数" prop="lapse">
+              <el-input-number v-model="data.form.lapse" :min="0" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="合同终止日期" prop="dateLapse">
+              <el-input v-model="data.form.dateLapse" autocomplete="off" placeholder="DD/MM/YYYY" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="缴费方式" prop="payment">
+              <el-select v-model="data.form.payment" style="width: 100%">
+                <el-option label="年缴" :value="0"></el-option>
+                <el-option label="半年缴" :value="1"></el-option>
               </el-select>
             </el-form-item>
           </el-col>
@@ -117,7 +187,7 @@
         </el-row>
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="索赔次数" prop="nClaimsYear">
+            <el-form-item label="本年度索赔次数" prop="nClaimsYear">
               <el-input-number v-model="data.form.nClaimsYear" :min="0" style="width: 100%" />
             </el-form-item>
           </el-col>
@@ -129,48 +199,28 @@
         </el-row>
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="关联总年数" prop="seniority">
-              <el-input-number v-model="data.form.seniority" :min="0" style="width: 100%" />
+            <el-form-item label="索赔频率比" prop="rClaimsHistory">
+              <el-input-number v-model="data.form.rClaimsHistory" :precision="2" :min="0" style="width: 100%" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="合同终止日期" prop="dateLapse">
-              <el-input v-model="data.form.dateLapse" autocomplete="off" placeholder="YYYY/MM/DD" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="车门数" prop="nDoors">
-              <el-input-number v-model="data.form.nDoors" :min="0" style="width: 100%" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <div style="width:100%"></div>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="分销渠道" prop="distributionChannel">
-              <el-select v-model="data.form.distributionChannel" style="width: 100%">
-                <el-option label="代理人" :value="0"></el-option>
-                <el-option label="保险经纪" :value="1"></el-option>
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="缴费方式" prop="payment">
-              <el-select v-model="data.form.payment" style="width: 100%">
-                <el-option label="年缴" :value="0"></el-option>
-                <el-option label="半年缴" :value="1"></el-option>
+            <el-form-item label="风险类型" prop="typeRisk">
+              <el-select v-model="data.form.typeRisk" style="width: 100%">
+                <el-option label="摩托车" :value="1"></el-option>
+                <el-option label="货车" :value="2"></el-option>
+                <el-option label="乘用车" :value="3"></el-option>
+                <el-option label="农用车" :value="4"></el-option>
               </el-select>
             </el-form-item>
           </el-col>
         </el-row>
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="车辆注册年份" prop="yearMatriculation">
-              <el-input-number v-model="data.form.yearMatriculation" :min="1900" :max="2030" style="width: 100%" />
+            <el-form-item label="地区" prop="area">
+              <el-select v-model="data.form.area" style="width: 100%">
+                <el-option label="农村" :value="0"></el-option>
+                <el-option label="城市" :value="1"></el-option>
+              </el-select>
             </el-form-item>
           </el-col>
           <el-col :span="12">

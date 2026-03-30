@@ -1,6 +1,5 @@
 package com.example.service;
 
-import com.example.common.DateUtil;
 import com.example.entity.MotorInsurance;
 import com.example.mapper.MotorInsuranceMapper;
 import com.github.pagehelper.PageHelper;
@@ -17,50 +16,7 @@ public class MotorInsuranceService {
     @Resource
     private MotorInsuranceMapper motorInsuranceMapper;
 
-    private void convertDatesToDBFormat(MotorInsurance motorInsurance) {
-        if (motorInsurance.getDateStartContract() != null) {
-            motorInsurance.setDateStartContract(DateUtil.convertYYYYMMDDToDDMMYYYY(motorInsurance.getDateStartContract()));
-        }
-        if (motorInsurance.getDateLastRenewal() != null) {
-            motorInsurance.setDateLastRenewal(DateUtil.convertYYYYMMDDToDDMMYYYY(motorInsurance.getDateLastRenewal()));
-        }
-        if (motorInsurance.getDateNextRenewal() != null) {
-            motorInsurance.setDateNextRenewal(DateUtil.convertYYYYMMDDToDDMMYYYY(motorInsurance.getDateNextRenewal()));
-        }
-        if (motorInsurance.getDateBirth() != null) {
-            motorInsurance.setDateBirth(DateUtil.convertYYYYMMDDToDDMMYYYY(motorInsurance.getDateBirth()));
-        }
-        if (motorInsurance.getDateDrivingLicence() != null) {
-            motorInsurance.setDateDrivingLicence(DateUtil.convertYYYYMMDDToDDMMYYYY(motorInsurance.getDateDrivingLicence()));
-        }
-        if (motorInsurance.getDateLapse() != null) {
-            motorInsurance.setDateLapse(DateUtil.convertYYYYMMDDToDDMMYYYY(motorInsurance.getDateLapse()));
-        }
-    }
-
-    private void convertDatesToDisplayFormat(MotorInsurance motorInsurance) {
-        if (motorInsurance.getDateStartContract() != null) {
-            motorInsurance.setDateStartContract(DateUtil.convertDDMMYYYYToYYYYMMDD(motorInsurance.getDateStartContract()));
-        }
-        if (motorInsurance.getDateLastRenewal() != null) {
-            motorInsurance.setDateLastRenewal(DateUtil.convertDDMMYYYYToYYYYMMDD(motorInsurance.getDateLastRenewal()));
-        }
-        if (motorInsurance.getDateNextRenewal() != null) {
-            motorInsurance.setDateNextRenewal(DateUtil.convertDDMMYYYYToYYYYMMDD(motorInsurance.getDateNextRenewal()));
-        }
-        if (motorInsurance.getDateBirth() != null) {
-            motorInsurance.setDateBirth(DateUtil.convertDDMMYYYYToYYYYMMDD(motorInsurance.getDateBirth()));
-        }
-        if (motorInsurance.getDateDrivingLicence() != null) {
-            motorInsurance.setDateDrivingLicence(DateUtil.convertDDMMYYYYToYYYYMMDD(motorInsurance.getDateDrivingLicence()));
-        }
-        if (motorInsurance.getDateLapse() != null) {
-            motorInsurance.setDateLapse(DateUtil.convertDDMMYYYYToYYYYMMDD(motorInsurance.getDateLapse()));
-        }
-    }
-
     public void add(MotorInsurance motorInsurance) {
-        convertDatesToDBFormat(motorInsurance);
         motorInsuranceMapper.insert(motorInsurance);
     }
 
@@ -69,24 +25,16 @@ public class MotorInsuranceService {
     }
 
     public void updateById(MotorInsurance motorInsurance) {
-        convertDatesToDBFormat(motorInsurance);
         motorInsuranceMapper.updateById(motorInsurance);
     }
 
     public MotorInsurance selectById(Integer id) {
-        MotorInsurance motorInsurance = motorInsuranceMapper.selectById(id);
-        if (motorInsurance != null) {
-            convertDatesToDisplayFormat(motorInsurance);
-        }
-        return motorInsurance;
+        return motorInsuranceMapper.selectById(id);
     }
 
     public PageInfo<MotorInsurance> selectPage(Integer pageNum, Integer pageSize, MotorInsurance motorInsurance) {
         PageHelper.startPage(pageNum, pageSize);
         List<MotorInsurance> motorInsuranceList = motorInsuranceMapper.selectAll(motorInsurance);
-        for (MotorInsurance mi : motorInsuranceList) {
-            convertDatesToDisplayFormat(mi);
-        }
         return PageInfo.of(motorInsuranceList);
     }
 
