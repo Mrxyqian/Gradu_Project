@@ -91,19 +91,19 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="合同开始日期" prop="dateStartContract">
-              <el-input v-model="data.form.dateStartContract" autocomplete="off" placeholder="DD/MM/YYYY" />
+              <el-input v-model="data.form.dateStartContract" autocomplete="off" placeholder="YYYY/MM/DD" />
             </el-form-item>
           </el-col>
         </el-row>
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="最后续保日期" prop="dateLastRenewal">
-              <el-input v-model="data.form.dateLastRenewal" autocomplete="off" placeholder="DD/MM/YYYY" />
+              <el-input v-model="data.form.dateLastRenewal" autocomplete="off" placeholder="YYYY/MM/DD" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="下次续保日期" prop="dateNextRenewal">
-              <el-input v-model="data.form.dateNextRenewal" autocomplete="off" placeholder="DD/MM/YYYY" />
+              <el-input v-model="data.form.dateNextRenewal" autocomplete="off" placeholder="YYYY/MM/DD" />
             </el-form-item>
           </el-col>
         </el-row>
@@ -118,14 +118,14 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="被保险人出生日期" prop="dateBirth">
-              <el-input v-model="data.form.dateBirth" autocomplete="off" placeholder="DD/MM/YYYY" />
+              <el-input v-model="data.form.dateBirth" autocomplete="off" placeholder="YYYY/MM/DD" />
             </el-form-item>
           </el-col>
         </el-row>
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="驾照签发日期" prop="dateDrivingLicence">
-              <el-input v-model="data.form.dateDrivingLicence" autocomplete="off" placeholder="DD/MM/YYYY" />
+              <el-input v-model="data.form.dateDrivingLicence" autocomplete="off" placeholder="YYYY/MM/DD" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -161,7 +161,7 @@
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="合同终止日期" prop="dateLapse">
-              <el-input v-model="data.form.dateLapse" autocomplete="off" placeholder="DD/MM/YYYY" />
+              <el-input v-model="data.form.dateLapse" autocomplete="off" placeholder="YYYY/MM/DD" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
