@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.InsurPredMapper">
+
+    <select id="selectAll" resultType="com.example.entity.InsurPred">
+        select * from insur_pred
+        <where>
+            <if test="predId != null">and pred_id = #{predId}</if>
+            <if test="id != null">and ID = #{id}</if>
+            <if test="riskLevel != null and riskLevel != ''">and risk_level = #{riskLevel}</if>
+        </where>
+        order by pred_id desc
+    </select>
+
+    <select id="countByBusinessIds" resultType="map">
+        select ID as id, count(*) as count
+        from insur_pred
+        where ID in
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        group by ID
+    </select>
+
+</mapper>

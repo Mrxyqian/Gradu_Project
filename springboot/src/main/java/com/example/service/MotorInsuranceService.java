@@ -81,6 +81,14 @@ public class MotorInsuranceService {
         return motorInsurance;
     }
 
+    public List<MotorInsurance> selectByIds(List<Integer> ids) {
+        List<MotorInsurance> motorInsuranceList = motorInsuranceMapper.selectByIds(ids);
+        for (MotorInsurance motorInsurance : motorInsuranceList) {
+            convertDatesToDisplayFormat(motorInsurance);
+        }
+        return motorInsuranceList;
+    }
+
     public PageInfo<MotorInsurance> selectPage(Integer pageNum, Integer pageSize, MotorInsurance motorInsurance) {
         PageHelper.startPage(pageNum, pageSize);
         List<MotorInsurance> motorInsuranceList = motorInsuranceMapper.selectAll(motorInsurance);

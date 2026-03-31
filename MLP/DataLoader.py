@@ -45,14 +45,51 @@ TARGET_REG = "Cost_claims_year"  # 回归：理赔金额
 
 REFERENCE_DATE = pd.Timestamp("2020-01-01")  # 用于计算"距今天数"
 
+# 原始输入字段（推理阶段用于补全缺失列、对齐训练字段）
+RAW_FEATURE_COLS = [
+    "Date_start_contract",
+    "Date_last_renewal",
+    "Date_next_renewal",
+    "Distribution_channel",
+    "Date_birth",
+    "Date_driving_licence",
+    "Seniority",
+    "Policies_in_force",
+    "Max_policies",
+    "Max_products",
+    "Lapse",
+    "Payment",
+    "Premium",
+    "N_claims_history",
+    "R_Claims_history",
+    "Type_risk",
+    "Area",
+    "Second_driver",
+    "Year_matriculation",
+    "Power",
+    "Cylinder_capacity",
+    "Value_vehicle",
+    "N_doors",
+    "Type_fuel",
+    "Length",
+    "Weight",
+]
+
 
 # ─────────────────────────────────────────────
 # 2. 特征工程函数
 # ─────────────────────────────────────────────
 
 def parse_date(series: pd.Series) -> pd.Series:
-    """DD/MM/YYYY → Timestamp，解析失败置 NaT"""
-    return pd.to_datetime(series, format="%d/%m/%Y", errors="coerce")
+    """兼容训练集与业务系统的多种日期格式，解析失败置 NaT"""
+    parsed = pd.to_datetime(series, format="%d/%m/%Y", errors="coerce")
+    if parsed.isna().any():
+        missing_mask = parsed.isna()
+        parsed.loc[missing_mask] = pd.to_datetime(series[missing_mask], format="%Y/%m/%d", errors="coerce")
+    if parsed.isna().any():
+        missing_mask = parsed.isna()
+        parsed.loc[missing_mask] = pd.to_datetime(series[missing_mask], format="%Y-%m-%d", errors="coerce")
+    return parsed
 
 
 def date_to_days(series: pd.Series, ref: pd.Timestamp = REFERENCE_DATE) -> pd.Series:
@@ -150,6 +187,107 @@ def clean_and_engineer(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.Series, pd.Se
             df[col] = df[col].clip(upper=upper)
 
     return df, y_clf, y_reg
+
+
+def build_inference_reference(df_raw: pd.DataFrame) -> dict:
+    """
+    基于训练原始数据构建在线推理所需的参考信息：
+      - 训练后的特征顺序
+      - 各特征缺失填充值
+      - 原始类别 / 缺失补全默认值
+    """
+    df_raw = df_raw.copy()
+    feature_df, _, _ = clean_and_engineer(df_raw)
+
+    length_medians = (
+        df_raw.groupby("Type_risk")["Length"]
+        .median()
+        .dropna()
+        .to_dict()
+        if "Type_risk" in df_raw.columns and "Length" in df_raw.columns
+        else {}
+    )
+
+    raw_type_fuel = df_raw["Type_fuel"] if "Type_fuel" in df_raw.columns else pd.Series(dtype=object)
+    type_fuel_mode = raw_type_fuel.dropna().mode()
+    type_fuel_mode = type_fuel_mode.iloc[0] if not type_fuel_mode.empty else "P"
+
+    return {
+        "raw_feature_columns": RAW_FEATURE_COLS.copy(),
+        "feature_columns": feature_df.columns.tolist(),
+        "feature_fill_values": {
+            col: float(feature_df[col].median()) for col in feature_df.columns
+        },
+        "raw_defaults": {
+            "type_fuel_mode": type_fuel_mode,
+            "global_length_median": float(df_raw["Length"].dropna().median()) if "Length" in df_raw.columns else 0.0,
+            "length_medians_by_type_risk": {
+                int(k): float(v) for k, v in length_medians.items()
+            },
+        },
+    }
+
+
+def clean_and_engineer_for_inference(
+    df: pd.DataFrame,
+    reference: dict,
+) -> pd.DataFrame:
+    """
+    在线推理专用预处理：
+      - 不依赖真实标签列
+      - 自动补全缺失原始字段
+      - 严格按训练阶段特征顺序输出
+    """
+    df = df.copy()
+
+    for col in reference["raw_feature_columns"]:
+        if col not in df.columns:
+            df[col] = np.nan
+
+    # 训练阶段不允许进入模型的字段，推理阶段直接忽略
+    df.drop(columns=DROP_COLS, inplace=True, errors="ignore")
+
+    # 原始数值列统一转数值，日期列和燃料类型单独处理
+    raw_numeric_cols = [col for col in reference["raw_feature_columns"] if col not in DATE_COLS + ["Type_fuel"]]
+    for col in raw_numeric_cols:
+        df[col] = pd.to_numeric(df[col], errors="coerce")
+
+    # 日期特征工程
+    df = engineer_date_features(df)
+
+    # 燃料类型：兼容 P / D / 0 / 1
+    fuel_default = reference["raw_defaults"]["type_fuel_mode"]
+    fuel_series = df["Type_fuel"].replace("", np.nan).fillna(fuel_default)
+    df["Type_fuel"] = fuel_series.map({
+        "P": 0, "D": 1,
+        "p": 0, "d": 1,
+        0: 0, 1: 1,
+        "0": 0, "1": 1,
+    })
+    df["Type_fuel"] = pd.to_numeric(df["Type_fuel"], errors="coerce").fillna(
+        0 if str(fuel_default).upper() == "P" else 1
+    )
+
+    # Length 缺失时优先按风险类型填充，再退化到全局中位数
+    length_defaults = reference["raw_defaults"]["length_medians_by_type_risk"]
+    global_length = reference["raw_defaults"]["global_length_median"]
+    df["Length"] = pd.to_numeric(df["Length"], errors="coerce")
+    df["Type_risk"] = pd.to_numeric(df["Type_risk"], errors="coerce")
+    df["Length"] = df["Length"].fillna(df["Type_risk"].map(length_defaults))
+    df["Length"] = df["Length"].fillna(global_length)
+
+    # 历史理赔频率缺失时按 0 处理
+    df["R_Claims_history"] = pd.to_numeric(df["R_Claims_history"], errors="coerce").fillna(0)
+
+    # 严格按训练期特征顺序对齐
+    feature_df = df.reindex(columns=reference["feature_columns"])
+
+    for col in reference["feature_columns"]:
+        feature_df[col] = pd.to_numeric(feature_df[col], errors="coerce")
+        feature_df[col] = feature_df[col].fillna(reference["feature_fill_values"].get(col, 0.0))
+        feature_df[col] = feature_df[col].astype(np.float32)
+
+    return feature_df
 
 
 # ─────────────────────────────────────────────
@@ -293,6 +431,21 @@ def preprocess_single(
         scaler = pickle.load(f)
     X = scaler.transform(X).astype(np.float32)
     return torch.tensor(X, dtype=torch.float32)
+
+
+def preprocess_for_inference(
+    records: list[dict],
+    reference: dict,
+    scaler,
+) -> tuple[torch.Tensor, pd.DataFrame]:
+    """
+    批量在线推理预处理入口。
+    records 中的字段名应为训练原始字段名（如 Date_start_contract）。
+    """
+    feature_df = clean_and_engineer_for_inference(pd.DataFrame(records), reference)
+    X = feature_df.values.astype(np.float32)
+    X = scaler.transform(X).astype(np.float32)
+    return torch.tensor(X, dtype=torch.float32), feature_df
 
 
 # ─────────────────────────────────────────────

@@ -19,7 +19,7 @@
             router
             style="border: none"
             :default-active="$route.path"
-            :default-openeds="['/home', '2', '3']"
+            :default-openeds="['/home', '2', '3', '4']"
         >
           <el-menu-item index="/home">
             <el-icon><HomeFilled /></el-icon>
@@ -57,6 +57,20 @@
             <el-icon><Van /></el-icon>
             <span>车辆信息管理</span>
           </el-menu-item>
+          <el-sub-menu index="4">
+            <template #title>
+              <el-icon><TrendCharts /></el-icon>
+              <span>理赔率预测</span>
+            </template>
+            <el-menu-item index="/predictionManage">
+              <el-icon><MagicStick /></el-icon>
+              <span>预测管理</span>
+            </el-menu-item>
+            <el-menu-item index="/predictionStatistics">
+              <el-icon><PieChart /></el-icon>
+              <span>预测统计</span>
+            </el-menu-item>
+          </el-sub-menu>
         </el-menu>
       </div>
 

@@ -15,6 +15,8 @@ const router = createRouter({
         { path: 'claimTypes', name: 'ClaimTypes', component: () => import('@/views/manager/ClaimTypes.vue')},
         { path: 'claimStatistics', name: 'ClaimStatistics', component: () => import('@/views/manager/ClaimStatistics.vue')},
         { path: 'vehicleInfo', name: 'VehicleInfo', component: () => import('@/views/manager/VehicleInfo.vue')},
+        { path: 'predictionManage', name: 'PredictionManage', component: () => import('@/views/manager/PredictionManage.vue')},
+        { path: 'predictionStatistics', name: 'PredictionStatistics', component: () => import('@/views/manager/PredictionStatistics.vue')},
       ]
     },
   ]

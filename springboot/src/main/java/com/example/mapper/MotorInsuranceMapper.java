@@ -40,6 +40,8 @@ public interface MotorInsuranceMapper {
 
     List<MotorInsurance> selectAll(MotorInsurance motorInsurance);
 
+    List<MotorInsurance> selectByIds(List<Integer> ids);
+
     @Select("SELECT Type_risk as typeRisk, COUNT(*) as count, SUM(Premium) as totalPremium, " +
             "SUM(Cost_claims_year) as totalClaimsCost FROM motor_insurance GROUP BY Type_risk")
     List<Map<String, Object>> statisticsByRiskType();
