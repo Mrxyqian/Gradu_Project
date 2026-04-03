@@ -1,20 +1,20 @@
-<template>
+﻿<template>
   <div>
     <div class="card" style="line-height: 30px; margin-bottom: 20px">
-      <div>欢迎您，<span style="color: dodgerblue;">管理员</span> 祝您今天过得开心！</div>
+      <div>欢迎您，<span style="color: dodgerblue;">{{ currentUser.name || '用户' }}</span> 祝您今天过得开心！</div>
     </div>
 
     <el-row :gutter="20" style="margin-bottom: 20px">
       <el-col :span="6">
         <div class="stat-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
           <div class="stat-title">总保费收入</div>
-          <div class="stat-value">¥{{ statistics.totalPremium || 0 }}</div>
+          <div class="stat-value">￥{{ statistics.totalPremium || 0 }}</div>
         </div>
       </el-col>
       <el-col :span="6">
         <div class="stat-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
           <div class="stat-title">总索赔成本</div>
-          <div class="stat-value">¥{{ statistics.totalClaimsCost || 0 }}</div>
+          <div class="stat-value">￥{{ statistics.totalClaimsCost || 0 }}</div>
         </div>
       </el-col>
       <el-col :span="6">
@@ -25,7 +25,7 @@
       </el-col>
       <el-col :span="6">
         <div class="stat-card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
-          <div class="stat-title">平均索赔频率比</div>
+          <div class="stat-title">平均索赔率</div>
           <div class="stat-value">{{ statistics.avgClaimsRatio || 0 }}%</div>
         </div>
       </el-col>
@@ -40,7 +40,7 @@
             <li><strong>保单管理</strong>：管理车险保单数据，支持增删改查、条件筛选和分页浏览</li>
             <li><strong>保单统计</strong>：按风险类型、地区、缴费方式等维度统计保单数据</li>
             <li><strong>索赔类型</strong>：管理索赔类型信息，支持增删改查操作</li>
-            <li><strong>理赔统计</strong>：按索赔类型统计理赔成本，展示成本占比分析</li>
+            <li><strong>理赔统计</strong>：按索赔类型统计理赔成本，展示成本占比分布</li>
           </ul>
         </div>
       </el-col>
@@ -49,29 +49,31 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
-import request from "@/utils/request";
+import { ref, onMounted } from 'vue'
+import request from '@/utils/request'
+import { getCurrentUser } from '@/utils/auth'
 
+const currentUser = ref(getCurrentUser())
 const statistics = ref({
   totalPremium: 0,
   totalClaimsCost: 0,
   totalClaimsCount: 0,
   avgClaimsRatio: 0
-});
+})
 
 const loadStatistics = () => {
   request.get('/motorInsurance/overallStatistics').then(res => {
     if (res.code === '200' && res.data) {
-      statistics.value = res.data;
+      statistics.value = res.data
     }
   }).catch(err => {
-    console.error('加载统计数据失败', err);
-  });
-};
+    console.error('加载统计数据失败', err)
+  })
+}
 
 onMounted(() => {
-  loadStatistics();
-});
+  loadStatistics()
+})
 </script>
 
 <style scoped>
@@ -82,11 +84,13 @@ onMounted(() => {
   text-align: center;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
+
 .stat-title {
   font-size: 14px;
   opacity: 0.9;
   margin-bottom: 10px;
 }
+
 .stat-value {
   font-size: 28px;
   font-weight: bold;

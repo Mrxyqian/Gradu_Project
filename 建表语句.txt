@@ -1,6 +1,21 @@
 CREATE DATABASE gra_data;
 USE gra_data;
 
+DROP TABLE IF EXISTS sys_user;
+
+CREATE TABLE sys_user (
+    id INT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
+    employee_no VARCHAR(6) NOT NULL UNIQUE COMMENT '6位员工工号',
+    name VARCHAR(30) NOT NULL COMMENT '用户中文姓名',
+    password VARCHAR(64) NOT NULL COMMENT 'MD5加密后的密码',
+    role VARCHAR(20) NOT NULL COMMENT '角色：admin或user',
+    last_login_time VARCHAR(19) DEFAULT NULL COMMENT '上次登录时间',
+    create_time VARCHAR(19) NOT NULL COMMENT '创建时间'
+);
+
+INSERT INTO sys_user (employee_no, name, password, role, create_time)
+VALUES ('000001', '管理员', '0192023a7bbd73250516f069df18b500', 'ADMIN', '2026-04-03 00:00:00');
+
 CREATE TABLE claim_types (
     ID INT NOT NULL COMMENT '内部识别号',
     Cost_claims_year DECIMAL(10,2) NOT NULL COMMENT '当年总索赔成本',
