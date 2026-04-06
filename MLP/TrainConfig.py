@@ -62,7 +62,7 @@ class ModelConfig:
     input_dim:          int   = -1
 
     backbone_dropout:   float = 0.25   # 主干残差块 Dropout 概率
-    head_dropout:       float = 0.15   # 分类头/回归头 Dropout 概率
+    head_dropout:       float = 0.10   # 分类头/回归头 Dropout 概率
 
 
 # ─────────────────────────────────────────────
@@ -73,7 +73,7 @@ class ModelConfig:
 class LossConfig:
     # 正样本权重：缓解理赔/非理赔样本不平衡
     # 计算公式：负样本数 / 正样本数 ≈ 85909 / 19646 ≈ 4.37
-    pos_weight: float = 4.10
+    pos_weight: float = 4.15
 
     # 不确定性加权损失的初始 log_var 值（对应 Kendall & Gal 2018）
     # 两个参数均为可学习参数，此处仅为初始化值

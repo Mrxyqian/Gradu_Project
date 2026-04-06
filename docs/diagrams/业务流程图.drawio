@@ -1,0 +1,160 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/25.0.2 Chrome/128.0.6613.186 Electron/32.2.5 Safari/537.36" version="25.0.2">
+  <diagram id="business-flow" name="Page-1">
+    <mxGraphModel dx="1008" dy="690" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="1200" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=none;fontSize=20;" parent="1" vertex="1">
+          <mxGeometry x="60" y="50" width="1800" height="1200" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="基于深度学习的车险理赔预测系统业务流程图" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=20;fontStyle=1;fontColor=#111111;whiteSpace=wrap;" parent="1" vertex="1">
+          <mxGeometry x="510" y="50" width="760" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="start" value="开始" style="ellipse;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=20;fontStyle=1;strokeColor=#111111;strokeWidth=1.8;fillColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="820" y="120" width="140" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="login" value="用户输入工号与密码" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=20;strokeColor=#111111;strokeWidth=1.8;fillColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="760" y="215" width="260" height="62" as="geometry" />
+        </mxCell>
+        <mxCell id="check" value="系统校验账号并确认权限" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=20;strokeColor=#111111;strokeWidth=1.8;fillColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="760" y="315" width="260" height="62" as="geometry" />
+        </mxCell>
+        <mxCell id="homeStep" value="进入系统首页查看业务总览" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=20;strokeColor=#111111;strokeWidth=1.8;fillColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="745" y="415" width="290" height="62" as="geometry" />
+        </mxCell>
+        <mxCell id="portal" value="&lt;font style=&quot;font-size: 18px;&quot;&gt;进入功能入口选择业务&lt;/font&gt;" style="shape=hexagon;perimeter=hexagonPerimeter2;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=20;fontStyle=1;strokeColor=#111111;strokeWidth=1.8;fillColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="770" y="520" width="240" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="lane1" value="保单信息管理" style="swimlane;html=1;whiteSpace=wrap;rounded=1;arcSize=6;strokeColor=#111111;strokeWidth=1.5;fillColor=#ffffff;fontFamily=Microsoft YaHei;fontSize=20;fontStyle=1;startSize=36;horizontal=0;" parent="1" vertex="1">
+          <mxGeometry x="120" y="645" width="320" height="290" as="geometry" />
+        </mxCell>
+        <mxCell id="lane2" value="车辆信息管理" style="swimlane;html=1;whiteSpace=wrap;rounded=1;arcSize=6;strokeColor=#111111;strokeWidth=1.5;fillColor=#ffffff;fontFamily=Microsoft YaHei;fontSize=20;fontStyle=1;startSize=36;horizontal=0;" parent="1" vertex="1">
+          <mxGeometry x="520" y="645" width="340" height="290" as="geometry">
+            <mxRectangle x="520" y="645" width="40" height="130" as="alternateBounds" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lane3" value="理赔类型管理" style="swimlane;html=1;whiteSpace=wrap;rounded=1;arcSize=6;strokeColor=#111111;strokeWidth=1.5;fillColor=#ffffff;fontFamily=Microsoft YaHei;fontSize=20;fontStyle=1;startSize=36;horizontal=0;" parent="1" vertex="1">
+          <mxGeometry x="930" y="645" width="340" height="290" as="geometry" />
+        </mxCell>
+        <mxCell id="lane4" value="理赔预测服务" style="swimlane;html=1;whiteSpace=wrap;rounded=1;arcSize=6;strokeColor=#111111;strokeWidth=1.5;fillColor=#ffffff;fontFamily=Microsoft YaHei;fontSize=20;fontStyle=1;startSize=36;horizontal=0;" parent="1" vertex="1">
+          <mxGeometry x="1340" y="645" width="340" height="340" as="geometry" />
+        </mxCell>
+        <mxCell id="policy1" value="&lt;font&gt;查看保单列表&lt;/font&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=20;strokeColor=#111111;strokeWidth=1.5;fillColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="165" y="705" width="230" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="policy2" value="&lt;font&gt;新增或编辑保单信息&lt;/font&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=20;strokeColor=#111111;strokeWidth=1.5;fillColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="165" y="790" width="230" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="policy3" value="&lt;font&gt;保存更新内容并继续管理&lt;/font&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=20;strokeColor=#111111;strokeWidth=1.5;fillColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="165" y="875" width="230" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="vehicle1" value="&lt;font&gt;查看车辆基本信息&lt;/font&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=20;strokeColor=#111111;strokeWidth=1.5;fillColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="575" y="705" width="230" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="vehicle2" value="&lt;font&gt;维护车辆关键资料&lt;/font&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=20;strokeColor=#111111;strokeWidth=1.5;fillColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="575" y="790" width="230" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="vehicle3" value="&lt;font&gt;保证车辆数据准确&lt;/font&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=20;strokeColor=#111111;strokeWidth=1.5;fillColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="575" y="875" width="230" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="claim1" value="查看理赔类型列表" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=20;strokeColor=#111111;strokeWidth=1.5;fillColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="985" y="705" width="230" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="claim2" value="维护理赔类型与金额" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=20;strokeColor=#111111;strokeWidth=1.5;fillColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="985" y="790" width="230" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="claim3" value="保证理赔类型数据准确" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=20;strokeColor=#111111;strokeWidth=1.5;fillColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="985" y="875" width="230" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="pred1" value="选择待预测的保单" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=20;strokeColor=#111111;strokeWidth=1.5;fillColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="1395" y="705" width="230" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="pred2" value="发起预测并由系统自动校对" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=20;strokeColor=#111111;strokeWidth=1.5;fillColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="1395" y="790" width="230" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="pred3" value="完成批量风险评估" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=20;strokeColor=#111111;strokeWidth=1.5;fillColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="1395" y="875" width="230" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="pred4" value="保存预测结果并更新历史记录" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=20;strokeColor=#111111;strokeWidth=1.5;fillColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="1395" y="960" width="230" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="analysis" value="&lt;font style=&quot;font-size: 16px;&quot;&gt;查看统计分析与预测结果&lt;/font&gt;" style="shape=hexagon;perimeter=hexagonPerimeter2;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=20;fontStyle=1;strokeColor=#111111;strokeWidth=1.8;fillColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="780" y="980" width="220" height="66" as="geometry" />
+        </mxCell>
+        <mxCell id="end" value="结束" style="ellipse;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=20;fontStyle=1;strokeColor=#111111;strokeWidth=1.8;fillColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="820" y="1080" width="140" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" style="endArrow=block;endFill=1;html=1;strokeColor=#111111;strokeWidth=1.8;rounded=0;fontSize=20;" parent="1" source="start" target="login" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" style="endArrow=block;endFill=1;html=1;strokeColor=#111111;strokeWidth=1.8;rounded=0;fontSize=20;" parent="1" source="login" target="check" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" style="endArrow=block;endFill=1;html=1;strokeColor=#111111;strokeWidth=1.8;rounded=0;fontSize=20;" parent="1" source="check" target="homeStep" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" style="endArrow=block;endFill=1;html=1;strokeColor=#111111;strokeWidth=1.8;rounded=0;fontSize=20;" parent="1" source="homeStep" target="portal" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;html=1;strokeColor=#111111;strokeWidth=1.8;rounded=0;fontSize=20;" parent="1" source="portal" target="policy1" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;html=1;strokeColor=#111111;strokeWidth=1.8;rounded=0;fontSize=20;" parent="1" source="portal" target="vehicle1" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e7" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;html=1;strokeColor=#111111;strokeWidth=1.8;rounded=0;fontSize=20;" parent="1" source="portal" target="claim1" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e8" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;html=1;strokeColor=#111111;strokeWidth=1.8;rounded=0;fontSize=20;" parent="1" source="portal" target="pred1" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e9" style="endArrow=block;endFill=1;html=1;strokeColor=#111111;strokeWidth=1.6;rounded=0;fontSize=20;" parent="1" source="policy1" target="policy2" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e10" style="endArrow=block;endFill=1;html=1;strokeColor=#111111;strokeWidth=1.6;rounded=0;fontSize=20;" parent="1" source="policy2" target="policy3" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e11" style="endArrow=block;endFill=1;html=1;strokeColor=#111111;strokeWidth=1.6;rounded=0;fontSize=20;" parent="1" source="vehicle1" target="vehicle2" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e12" style="endArrow=block;endFill=1;html=1;strokeColor=#111111;strokeWidth=1.6;rounded=0;fontSize=20;" parent="1" source="vehicle2" target="vehicle3" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e13" style="endArrow=block;endFill=1;html=1;strokeColor=#111111;strokeWidth=1.6;rounded=0;fontSize=20;" parent="1" source="claim1" target="claim2" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e14" style="endArrow=block;endFill=1;html=1;strokeColor=#111111;strokeWidth=1.6;rounded=0;fontSize=20;" parent="1" source="claim2" target="claim3" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e15" style="endArrow=block;endFill=1;html=1;strokeColor=#111111;strokeWidth=1.6;rounded=0;fontSize=20;" parent="1" source="pred1" target="pred2" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e16" style="endArrow=block;endFill=1;html=1;strokeColor=#111111;strokeWidth=1.6;rounded=0;fontSize=20;" parent="1" source="pred2" target="pred3" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e17" style="endArrow=block;endFill=1;html=1;strokeColor=#111111;strokeWidth=1.6;rounded=0;fontSize=20;" parent="1" source="pred3" target="pred4" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e18" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;html=1;strokeColor=#111111;strokeWidth=1.8;rounded=0;fontSize=20;" parent="1" source="policy3" target="analysis" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="280" y="1013" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e19" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;html=1;strokeColor=#111111;strokeWidth=1.8;rounded=0;fontSize=20;" parent="1" source="vehicle3" target="analysis" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e20" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;html=1;strokeColor=#111111;strokeWidth=1.8;rounded=0;fontSize=20;" parent="1" source="claim3" target="analysis" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e21" style="edgeStyle=orthogonalEdgeStyle;endArrow=block;endFill=1;html=1;strokeColor=#111111;strokeWidth=1.8;rounded=0;fontSize=20;" parent="1" source="pred4" target="analysis" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e22" style="endArrow=block;endFill=1;html=1;strokeColor=#111111;strokeWidth=1.8;rounded=0;fontSize=20;" parent="1" source="analysis" target="end" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,146 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/25.0.2 Chrome/128.0.6613.186 Electron/32.2.5 Safari/537.36" version="25.0.2">
+  <diagram id="claim-system-tree" name="Page-1">
+    <mxGraphModel dx="1008" dy="690" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" value="基于深度学习的车险理赔预测系统" style="rounded=0;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=26;fontStyle=1;strokeColor=#111111;strokeWidth=2.4;fillColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="520" y="40" width="360" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="m1" value="业务管理" style="rounded=0;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=24;fontStyle=1;strokeColor=#111111;strokeWidth=2.4;fillColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="230" y="300" width="170" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="m2" value="可视化分析" style="rounded=0;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=24;fontStyle=1;strokeColor=#111111;strokeWidth=2.4;fillColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="615" y="300" width="170" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="m3" value="理赔预测" style="rounded=0;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=24;fontStyle=1;strokeColor=#111111;strokeWidth=2.4;fillColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="960" y="300" width="170" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="l1" value="用户登录" style="rounded=0;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=20;fontStyle=1;strokeColor=#111111;strokeWidth=2.2;fillColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="150" y="465" width="70" height="245" as="geometry" />
+        </mxCell>
+        <mxCell id="l2" value="保单信息管理" style="rounded=0;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=20;fontStyle=1;strokeColor=#111111;strokeWidth=2.2;fillColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="240" y="465" width="70" height="245" as="geometry" />
+        </mxCell>
+        <mxCell id="l3" value="理赔类型管理" style="rounded=0;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=20;fontStyle=1;strokeColor=#111111;strokeWidth=2.2;fillColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="330" y="465" width="70" height="245" as="geometry" />
+        </mxCell>
+        <mxCell id="l4" value="车辆信息查询" style="rounded=0;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=20;fontStyle=1;strokeColor=#111111;strokeWidth=2.2;fillColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="410" y="465" width="70" height="245" as="geometry" />
+        </mxCell>
+        <mxCell id="l5" value="保单统计概览" style="rounded=0;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=20;fontStyle=1;strokeColor=#111111;strokeWidth=2.2;fillColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="605" y="465" width="70" height="245" as="geometry" />
+        </mxCell>
+        <mxCell id="l6" value="预测结果分析" style="rounded=0;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=20;fontStyle=1;strokeColor=#111111;strokeWidth=2.2;fillColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="725" y="465" width="70" height="245" as="geometry" />
+        </mxCell>
+        <mxCell id="l7" value="批量数据选择" style="rounded=0;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=20;fontStyle=1;strokeColor=#111111;strokeWidth=2.2;fillColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="910" y="465" width="70" height="245" as="geometry" />
+        </mxCell>
+        <mxCell id="l8" value="模型预测" style="rounded=0;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=20;fontStyle=1;strokeColor=#111111;strokeWidth=2.2;fillColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="1030" y="465" width="70" height="245" as="geometry" />
+        </mxCell>
+        <mxCell id="l9" value="结果输出查看" style="rounded=0;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=20;fontStyle=1;strokeColor=#111111;strokeWidth=2.2;fillColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="1150" y="465" width="70" height="245" as="geometry" />
+        </mxCell>
+        <mxCell id="note" value="说明：该图参照树状编排格式式，仅展示系统核心模块及其核心小功能，不体现注册模块与调用关系。" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#444444;whiteSpace=wrap;" parent="1" vertex="1">
+          <mxGeometry x="60" y="835" width="920" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;strokeColor=#111111;strokeWidth=2.2;" parent="1" source="title" target="m2" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="700" y="220" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;strokeColor=#111111;strokeWidth=2.2;" parent="1" source="m1" target="l1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="315" y="430" />
+              <mxPoint x="185" y="430" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;strokeColor=#111111;strokeWidth=2.2;" parent="1" source="m1" target="l2" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="315" y="430" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;strokeColor=#111111;strokeWidth=2.2;" parent="1" source="m1" target="l3" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="315" y="430" />
+              <mxPoint x="365" y="430" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;strokeColor=#111111;strokeWidth=2.2;" parent="1" source="m1" target="l4" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="315" y="430" />
+              <mxPoint x="445" y="430" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;strokeColor=#111111;strokeWidth=2.2;" parent="1" source="m2" target="l5" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="700" y="430" />
+              <mxPoint x="640" y="430" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;strokeColor=#111111;strokeWidth=2.2;" parent="1" source="m2" target="l6" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="700" y="430" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;strokeColor=#111111;strokeWidth=2.2;" parent="1" source="m3" target="l7" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1070" y="430" />
+              <mxPoint x="945" y="430" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;strokeColor=#111111;strokeWidth=2.2;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" parent="1" source="m3" target="l9" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1070" y="390" />
+              <mxPoint x="1070" y="430" />
+              <mxPoint x="1185" y="430" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="EhhAQZ0shndBprbbskSM-2" value="" style="endArrow=none;html=1;rounded=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;strokeWidth=2;" edge="1" parent="1" source="m1" target="title">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="280" y="85" as="sourcePoint" />
+            <mxPoint x="600" y="330" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="315" y="100" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="EhhAQZ0shndBprbbskSM-3" value="" style="endArrow=none;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=2;" edge="1" parent="1" source="title" target="m3">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="970" y="210" as="sourcePoint" />
+            <mxPoint x="1020" y="160" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="1045" y="100" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="EhhAQZ0shndBprbbskSM-4" value="" style="endArrow=none;html=1;rounded=0;strokeWidth=2;entryX=0.571;entryY=0.02;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" target="l8">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1070" y="430" as="sourcePoint" />
+            <mxPoint x="1070" y="460" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,190 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/25.0.2 Chrome/128.0.6613.186 Electron/32.2.5 Safari/537.36" version="25.0.2">
+  <diagram id="vehic-insur-claim-arch" name="Page-1">
+    <mxGraphModel dx="1460" dy="724" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="1550" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=1;arcSize=2;whiteSpace=wrap;html=1;fillColor=#f8fbff;strokeColor=#cbd5e1;strokeWidth=1.5;" parent="1" vertex="1">
+          <mxGeometry x="22" y="109" width="1152" height="1280" as="geometry" />
+        </mxCell>
+        <mxCell id="layer1" value="" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#bfdbfe;strokeWidth=2;" parent="1" vertex="1">
+          <mxGeometry x="48" y="150" width="1104" height="190" as="geometry" />
+        </mxCell>
+        <mxCell id="lt1" value="1. 表现层" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=20;fontStyle=1;fontColor=#0f172a;" parent="1" vertex="1">
+          <mxGeometry x="74" y="160" width="120" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="layer2" value="" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#bfdbfe;strokeWidth=2;" parent="1" vertex="1">
+          <mxGeometry x="48" y="365" width="1104" height="190" as="geometry" />
+        </mxCell>
+        <mxCell id="lt2" value="2. 数据接口层" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=20;fontStyle=1;fontColor=#0f172a;" parent="1" vertex="1">
+          <mxGeometry x="74" y="380" width="180" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="layer3" value="" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#bfdbfe;strokeWidth=2;" parent="1" vertex="1">
+          <mxGeometry x="48" y="575" width="1104" height="190" as="geometry" />
+        </mxCell>
+        <mxCell id="lt3" value="3. 业务逻辑层" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=20;fontStyle=1;fontColor=#0f172a;" parent="1" vertex="1">
+          <mxGeometry x="74" y="590" width="180" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="layer4" value="" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#bfdbfe;strokeWidth=2;" parent="1" vertex="1">
+          <mxGeometry x="48" y="785" width="1104" height="205" as="geometry" />
+        </mxCell>
+        <mxCell id="lt4" value="4. 智能预测层" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=20;fontStyle=1;fontColor=#0f172a;" parent="1" vertex="1">
+          <mxGeometry x="74" y="805" width="180" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="layer5" value="" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#bfdbfe;strokeWidth=2;" parent="1" vertex="1">
+          <mxGeometry x="48" y="1005" width="1104" height="190" as="geometry" />
+        </mxCell>
+        <mxCell id="lt5" value="5. 数据持久层" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=20;fontStyle=1;fontColor=#0f172a;" parent="1" vertex="1">
+          <mxGeometry x="74" y="1005" width="180" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="layer6" value="" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#bfdbfe;strokeWidth=2;" parent="1" vertex="1">
+          <mxGeometry x="48" y="1220" width="1104" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="lt6" value="6. 基础框架层" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=20;fontStyle=1;fontColor=#0f172a;" parent="1" vertex="1">
+          <mxGeometry x="74" y="1230" width="180" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="vueapp" value="Vue3 + Vite 前端应用&amp;nbsp;&lt;div&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;Element Plus / 页面交互 &lt;/font&gt;&lt;br&gt; &lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=14;fontStyle=1;strokeColor=#60a5fa;strokeWidth=2;fillColor=#eff6ff;" parent="1" vertex="1">
+          <mxGeometry x="230" y="184" width="320" height="62" as="geometry" />
+        </mxCell>
+        <mxCell id="pages" value="登录页 / 主框架 / 首页&amp;nbsp;&lt;div&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;基础页面入口 &lt;/font&gt;&lt;br&gt; &lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=14;fontStyle=1;strokeColor=#60a5fa;strokeWidth=2;fillColor=#eff6ff;" parent="1" vertex="1">
+          <mxGeometry x="600" y="184" width="320" height="62" as="geometry" />
+        </mxCell>
+        <mxCell id="manageviews" value="保单管理 / 理赔类型 / 车辆信息&amp;nbsp;&lt;div&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;业务管理页面 &lt;/font&gt;&lt;br&gt; &lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=14;fontStyle=1;strokeColor=#60a5fa;strokeWidth=2;fillColor=#eff6ff;" parent="1" vertex="1">
+          <mxGeometry x="230" y="261" width="320" height="62" as="geometry" />
+        </mxCell>
+        <mxCell id="predviews" value="预测管理 / 统计分析&amp;nbsp;&lt;div&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;ECharts 可视化页面 &lt;/font&gt;&lt;br&gt; &lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=14;fontStyle=1;strokeColor=#60a5fa;strokeWidth=2;fillColor=#eff6ff;" parent="1" vertex="1">
+          <mxGeometry x="600" y="260" width="320" height="62" as="geometry" />
+        </mxCell>
+        <mxCell id="router" value="路由与鉴权&amp;nbsp;&lt;div&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;Vue Router&lt;/font&gt;&lt;br&gt; &lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=14;fontStyle=1;strokeColor=#fbbf24;strokeWidth=2;fillColor=#fffbeb;" parent="1" vertex="1">
+          <mxGeometry x="230" y="404" width="320" height="62" as="geometry" />
+        </mxCell>
+        <mxCell id="axios" value="Axios 请求封装&amp;nbsp;&lt;div&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;统一请求与响应拦截 &lt;/font&gt;&lt;br&gt; &lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=14;fontStyle=1;strokeColor=#fbbf24;strokeWidth=2;fillColor=#fffbeb;" parent="1" vertex="1">
+          <mxGeometry x="600" y="404" width="320" height="62" as="geometry" />
+        </mxCell>
+        <mxCell id="rest" value="Spring Boot REST 接口&amp;nbsp;&lt;div&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;JSON 数据通信 &lt;/font&gt;&lt;br&gt; &lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=14;fontStyle=1;strokeColor=#fbbf24;strokeWidth=2;fillColor=#fffbeb;" parent="1" vertex="1">
+          <mxGeometry x="230" y="474" width="320" height="62" as="geometry" />
+        </mxCell>
+        <mxCell id="fileapi" value="文件上传 / 下载接口&amp;nbsp;&lt;div&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;文件流传输输 &lt;/font&gt;&lt;br&gt; &lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=14;fontStyle=1;strokeColor=#fbbf24;strokeWidth=2;fillColor=#fffbeb;" parent="1" vertex="1">
+          <mxGeometry x="600" y="474" width="320" height="62" as="geometry" />
+        </mxCell>
+        <mxCell id="authbiz" value="用户认证模块&amp;nbsp;&lt;div&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;注册 / 登录&lt;/font&gt;&lt;br&gt; &lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=14;fontStyle=1;strokeColor=#34d399;strokeWidth=2;fillColor=#ecfdf5;" parent="1" vertex="1">
+          <mxGeometry x="230" y="614" width="320" height="62" as="geometry" />
+        </mxCell>
+        <mxCell id="corebiz" value="保单 / 理赔 / 车辆业务模块&amp;nbsp;&lt;div&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;业务数据管理与统计 &lt;/font&gt;&lt;br&gt; &lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=14;fontStyle=1;strokeColor=#34d399;strokeWidth=2;fillColor=#ecfdf5;" parent="1" vertex="1">
+          <mxGeometry x="600" y="614" width="320" height="62" as="geometry" />
+        </mxCell>
+        <mxCell id="predbiz" value="预测业务模块&amp;nbsp;&lt;div&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;批量预测、历史记录、结果统计 &lt;/font&gt;&lt;br&gt; &lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=14;fontStyle=1;strokeColor=#34d399;strokeWidth=2;fillColor=#ecfdf5;" parent="1" vertex="1">
+          <mxGeometry x="230" y="685" width="320" height="62" as="geometry" />
+        </mxCell>
+        <mxCell id="commonbiz" value="公共支撑组件&amp;nbsp;&lt;div&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;统一返回、异常、跨域、时间处理 &lt;/font&gt;&lt;br&gt; &lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=14;fontStyle=1;strokeColor=#34d399;strokeWidth=2;fillColor=#ecfdf5;" parent="1" vertex="1">
+          <mxGeometry x="600" y="685" width="320" height="62" as="geometry" />
+        </mxCell>
+        <mxCell id="0ATEzeBLytV41B0gsxt0-2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="bridge" target="fastapi" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="bridge" value="Spring Boot调用&amp;nbsp;&lt;div&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;将保单记录转发到预测服务 &lt;/font&gt;&lt;br&gt; &lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=14;fontStyle=1;strokeColor=#fb7185;strokeWidth=2;fillColor=#fff1f2;" parent="1" vertex="1">
+          <mxGeometry x="150" y="839" width="320" height="62" as="geometry" />
+        </mxCell>
+        <mxCell id="fastapi" value="FastAPI 预测服务&amp;nbsp;&lt;div&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;接口校验、健康检查、服务契约&lt;/font&gt;&lt;br&gt; &lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=14;fontStyle=1;strokeColor=#fb7185;strokeWidth=2;fillColor=#fff1f2;" parent="1" vertex="1">
+          <mxGeometry x="520" y="839" width="320" height="62" as="geometry" />
+        </mxCell>
+        <mxCell id="inference" value="MLP 在线推理模块&amp;nbsp;&lt;div&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;输出理赔率、风险等级、预计赔付金 &lt;/font&gt;&lt;br&gt; &lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=14;fontStyle=1;strokeColor=#fb7185;strokeWidth=2;fillColor=#fff1f2;" parent="1" vertex="1">
+          <mxGeometry x="150" y="917" width="320" height="62" as="geometry" />
+        </mxCell>
+        <mxCell id="artifacts" value="模型文件与阈值产物&amp;nbsp;&lt;div&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;best_model / scaler / threshold &lt;/font&gt;&lt;br&gt; &lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=14;fontStyle=1;strokeColor=#fb7185;strokeWidth=2;fillColor=#fff1f2;" parent="1" vertex="1">
+          <mxGeometry x="520" y="917" width="320" height="62" as="geometry" />
+        </mxCell>
+        <mxCell id="dataset" value="训练数据集&amp;nbsp;&lt;div&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;CSV 数据 &lt;/font&gt;&lt;br&gt; &lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=14;fontStyle=1;strokeColor=#a78bfa;strokeWidth=2;fillColor=#f5f3ff;" parent="1" vertex="1">
+          <mxGeometry x="920" y="839" width="150" height="62" as="geometry" />
+        </mxCell>
+        <mxCell id="trainmodel" value="离线训练模块 &lt;font style=&quot;font-size: 12px;&quot;&gt;TrainModel &lt;/font&gt;&lt;br&gt; " style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=14;fontStyle=1;strokeColor=#a78bfa;strokeWidth=2;fillColor=#f5f3ff;" parent="1" vertex="1">
+          <mxGeometry x="920" y="917" width="150" height="62" as="geometry" />
+        </mxCell>
+        <mxCell id="0ATEzeBLytV41B0gsxt0-15" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="mybatis" target="mysql" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="mybatis" value="MyBatis 数据访问层&amp;nbsp;&lt;div&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;Mapper / XML / 分页 / 统计查询 &lt;/font&gt;&lt;br&gt; &lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=14;fontStyle=1;strokeColor=#94a3b8;strokeWidth=2;fillColor=#f8fafc;" parent="1" vertex="1">
+          <mxGeometry x="150" y="1040" width="320" height="62" as="geometry" />
+        </mxCell>
+        <mxCell id="mysql" value="MySQL 业务数据库&amp;nbsp;&lt;br&gt; " style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=14;fontStyle=1;strokeColor=#818cf8;strokeWidth=2;fillColor=#eef2ff;size=15;" parent="1" vertex="1">
+          <mxGeometry x="520" y="1040" width="320" height="62" as="geometry" />
+        </mxCell>
+        <mxCell id="datadoc" value="业务数据表与统计结果&amp;nbsp;&lt;div&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;支撑管理页面与预测结果展示 &lt;/font&gt;&lt;br&gt; &lt;/div&gt;" style="shape=document;whiteSpace=wrap;html=1;boundedLbl=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=14;fontStyle=1;strokeColor=#94a3b8;strokeWidth=2;fillColor=#f8fafc;" parent="1" vertex="1">
+          <mxGeometry x="150" y="1120" width="320" height="62" as="geometry" />
+        </mxCell>
+        <mxCell id="files" value="本地文件存储&amp;nbsp;&lt;div&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;上传文件与导出文件 &lt;/font&gt;&lt;br&gt; &lt;/div&gt;" style="shape=document;whiteSpace=wrap;html=1;boundedLbl=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=14;fontStyle=1;strokeColor=#94a3b8;strokeWidth=2;fillColor=#f8fafc;" parent="1" vertex="1">
+          <mxGeometry x="520" y="1120" width="320" height="62" as="geometry" />
+        </mxCell>
+        <mxCell id="frontendbase" value="前端基础框架&amp;nbsp;&lt;div&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;Vue3 / Vite / Element Plus / ECharts &lt;/font&gt;&lt;br&gt; &lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=14;fontStyle=1;strokeColor=#64748b;strokeWidth=2;fillColor=#f1f5f9;" parent="1" vertex="1">
+          <mxGeometry x="150" y="1265" width="280" height="62" as="geometry" />
+        </mxCell>
+        <mxCell id="backendbase" value="后端基础框架&amp;nbsp;&lt;div&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;Spring Boot / MyBatis &lt;/font&gt;&lt;br&gt; &lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=14;fontStyle=1;strokeColor=#64748b;strokeWidth=2;fillColor=#f1f5f9;" parent="1" vertex="1">
+          <mxGeometry x="460" y="1265" width="280" height="62" as="geometry" />
+        </mxCell>
+        <mxCell id="mlbase" value="算法与服务基础&amp;nbsp;&lt;div&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;FastAPI / PyTorch / Pandas &lt;/font&gt;&lt;br&gt; &lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=14;fontStyle=1;strokeColor=#64748b;strokeWidth=2;fillColor=#f1f5f9;" parent="1" vertex="1">
+          <mxGeometry x="780" y="1265" width="280" height="62" as="geometry" />
+        </mxCell>
+        <mxCell id="e12" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748b;strokeWidth=2.2;dashed=1;dashPattern=8 6;endArrow=block;endFill=1;" parent="1" source="dataset" target="trainmodel" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e13" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748b;strokeWidth=2.2;dashed=1;dashPattern=8 6;endArrow=block;endFill=1;" parent="1" source="trainmodel" target="artifacts" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="0ATEzeBLytV41B0gsxt0-5" value="" style="endArrow=classic;html=1;rounded=0;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;dashed=1;strokeWidth=2.2;" parent="1" source="dataset" target="fastapi" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="620" y="990" as="sourcePoint" />
+            <mxPoint x="670" y="940" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="0ATEzeBLytV41B0gsxt0-8" value="" style="endArrow=classic;html=1;rounded=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" parent="1" source="inference" target="artifacts" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="620" y="980" as="sourcePoint" />
+            <mxPoint x="680" y="940" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="0ATEzeBLytV41B0gsxt0-17" value="" style="endArrow=classic;html=1;rounded=0;exitX=0.48;exitY=0.958;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0.479;entryY=-0.023;entryDx=0;entryDy=0;entryPerimeter=0;" parent="1" source="mysql" target="files" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="530" y="1130" as="sourcePoint" />
+            <mxPoint x="580" y="1080" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="0ATEzeBLytV41B0gsxt0-20" value="" style="endArrow=classic;html=1;rounded=0;exitX=0.67;exitY=-0.015;exitDx=0;exitDy=0;dashed=1;entryX=0.836;entryY=1.005;entryDx=0;entryDy=0;entryPerimeter=0;exitPerimeter=0;strokeWidth=2;" parent="1" source="mlbase" target="layer4" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="310" y="1285" as="sourcePoint" />
+            <mxPoint x="310" y="1212" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="iGOsCVfxCS-QnLhSVxzp-1" value="" style="endArrow=classic;startArrow=classic;html=1;rounded=0;entryX=0.478;entryY=0.998;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" target="layer1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="576" y="363" as="sourcePoint" />
+            <mxPoint x="500" y="330" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="iGOsCVfxCS-QnLhSVxzp-2" value="" style="endArrow=classic;startArrow=classic;html=1;rounded=0;exitX=0.477;exitY=0.018;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0.476;entryY=1;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="layer3" target="layer2">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="450" y="380" as="sourcePoint" />
+            <mxPoint x="580" y="556" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="iGOsCVfxCS-QnLhSVxzp-7" value="" style="endArrow=classic;startArrow=classic;html=1;rounded=0;exitX=0.477;exitY=0.018;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0.476;entryY=1;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="571" y="787" as="sourcePoint" />
+            <mxPoint x="570" y="764" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="iGOsCVfxCS-QnLhSVxzp-8" value="" style="endArrow=classic;startArrow=classic;html=1;rounded=0;entryX=0.476;entryY=1;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="570" y="1010" as="sourcePoint" />
+            <mxPoint x="570" y="990" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="iGOsCVfxCS-QnLhSVxzp-9" value="" style="endArrow=classic;startArrow=classic;html=1;rounded=0;entryX=0.476;entryY=1;entryDx=0;entryDy=0;entryPerimeter=0;exitX=0.419;exitY=0.019;exitDx=0;exitDy=0;exitPerimeter=0;" edge="1" parent="1" source="layer6">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="510" y="1215" as="sourcePoint" />
+            <mxPoint x="510" y="1195" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
