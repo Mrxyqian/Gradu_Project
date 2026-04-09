@@ -61,9 +61,9 @@ public class InsurPredController {
         return Result.success(statistics);
     }
 
-    @GetMapping("/claimAmountHistogram")
-    public Result claimAmountHistogram() {
-        List<Map<String, Object>> statistics = insurPredService.claimAmountHistogram();
+    @GetMapping("/claimProbabilityHistogram")
+    public Result claimProbabilityHistogram() {
+        List<Map<String, Object>> statistics = insurPredService.claimProbabilityHistogram();
         return Result.success(statistics);
     }
 

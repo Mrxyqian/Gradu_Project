@@ -8,7 +8,6 @@ public class InsurPred {
     private BigDecimal claimProbability;
     private Integer claimFlag;
     private String riskLevel;
-    private BigDecimal expectedClaimAmount;
     private BigDecimal thresholdUsed;
     private String modelVersion;
     private String predictionTime;
@@ -51,14 +50,6 @@ public class InsurPred {
 
     public void setRiskLevel(String riskLevel) {
         this.riskLevel = riskLevel;
-    }
-
-    public BigDecimal getExpectedClaimAmount() {
-        return expectedClaimAmount;
-    }
-
-    public void setExpectedClaimAmount(BigDecimal expectedClaimAmount) {
-        this.expectedClaimAmount = expectedClaimAmount;
     }
 
     public BigDecimal getThresholdUsed() {

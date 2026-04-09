@@ -77,8 +77,8 @@ public class InsurPredService {
         return insurPredMapper.riskLevelDistribution();
     }
 
-    public List<Map<String, Object>> claimAmountHistogram() {
-        return insurPredMapper.claimAmountHistogram();
+    public List<Map<String, Object>> claimProbabilityHistogram() {
+        return insurPredMapper.claimProbabilityHistogram();
     }
 
     public Map<String, Object> overallStatistics() {
@@ -197,7 +197,6 @@ public class InsurPredService {
         insurPred.setClaimProbability(toBigDecimal(item.get("claimProbability")));
         insurPred.setClaimFlag(item.getInt("claimFlag", 0));
         insurPred.setRiskLevel(item.getStr("riskLevel"));
-        insurPred.setExpectedClaimAmount(toBigDecimal(item.get("expectedClaimAmount")));
         insurPred.setThresholdUsed(toBigDecimal(item.get("thresholdUsed")));
         insurPred.setModelVersion(item.getStr("modelVersion"));
         insurPred.setPredictionTime(normalizeDateTime(item.getStr("generatedAt")));

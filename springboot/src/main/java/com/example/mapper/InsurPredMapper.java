@@ -4,17 +4,17 @@ import com.example.entity.InsurPred;
 import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Options;
-import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
 
 import java.util.List;
 import java.util.Map;
 
 public interface InsurPredMapper {
 
-    @Insert("INSERT INTO insur_pred (ID, claim_probability, claim_flag, risk_level, expected_claim_amount, " +
+    @Insert("INSERT INTO insur_pred (ID, claim_probability, claim_flag, risk_level, " +
             "threshold_used, model_version, prediction_time) VALUES (#{id}, #{claimProbability}, #{claimFlag}, " +
-            "#{riskLevel}, #{expectedClaimAmount}, #{thresholdUsed}, #{modelVersion}, #{predictionTime})")
+            "#{riskLevel}, #{thresholdUsed}, #{modelVersion}, #{predictionTime})")
     @Options(useGeneratedKeys = true, keyProperty = "predId", keyColumn = "pred_id")
     void insert(InsurPred insurPred);
 
@@ -30,17 +30,17 @@ public interface InsurPredMapper {
     List<Map<String, Object>> riskLevelDistribution();
 
     @Select("SELECT " +
-            "CAST(FLOOR(expected_claim_amount / 500) * 500 AS SIGNED) as bucketStart, " +
-            "CAST(FLOOR(expected_claim_amount / 500) * 500 + 500 AS SIGNED) as bucketEnd, " +
+            "CAST(FLOOR(claim_probability * 10) / 10 AS DECIMAL(3,1)) as bucketStart, " +
+            "CAST(LEAST(FLOOR(claim_probability * 10) / 10 + 0.1, 1.0) AS DECIMAL(3,1)) as bucketEnd, " +
             "COUNT(*) as count " +
             "FROM insur_pred " +
-            "GROUP BY FLOOR(expected_claim_amount / 500) " +
+            "GROUP BY FLOOR(claim_probability * 10) " +
             "ORDER BY bucketStart")
-    List<Map<String, Object>> claimAmountHistogram();
+    List<Map<String, Object>> claimProbabilityHistogram();
 
     @Select("SELECT COUNT(*) as totalCount, " +
             "AVG(claim_probability) as avgClaimProbability, " +
-            "AVG(expected_claim_amount) as avgExpectedClaimAmount " +
+            "AVG(CASE WHEN claim_flag = 1 THEN 1 ELSE 0 END) as positivePredictionRate " +
             "FROM insur_pred")
     Map<String, Object> overallStatistics();
 

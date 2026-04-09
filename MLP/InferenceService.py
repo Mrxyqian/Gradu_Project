@@ -138,18 +138,13 @@ class InsuranceInferenceService:
         x_tensor = x_tensor.to(self.device)
 
         with torch.no_grad():
-            clf_logit, reg_pred = bundle["model"](x_tensor)
-            claim_probs = torch.sigmoid(clf_logit).cpu().numpy()
-            claim_amounts = torch.expm1(reg_pred.clamp(min=0)).cpu().numpy()
+            logits = bundle["model"](x_tensor, return_dummy_regression=False)
+            claim_probs = torch.sigmoid(logits).cpu().numpy()
 
         results = []
         generated_at = datetime.now().isoformat(timespec="seconds")
-        for index, (source_id, claim_prob, claim_amount) in enumerate(
-            zip(source_ids, claim_probs, claim_amounts),
-            start=1,
-        ):
+        for index, (source_id, claim_prob) in enumerate(zip(source_ids, claim_probs), start=1):
             claim_prob = float(claim_prob)
-            claim_amount = float(claim_amount)
             results.append({
                 "requestIndex": index,
                 "sourceId": source_id,
@@ -157,7 +152,6 @@ class InsuranceInferenceService:
                 "claimProbabilityPercent": round(claim_prob * 100, 2),
                 "claimFlag": int(claim_prob >= bundle["classificationThreshold"]),
                 "riskLevel": self.map_risk_level(claim_prob),
-                "expectedClaimAmount": round(claim_amount, 2),
                 "thresholdUsed": round(float(bundle["classificationThreshold"]), 6),
                 "modelVersion": bundle["modelVersion"],
                 "generatedAt": generated_at,
@@ -255,7 +249,6 @@ class InsuranceInferenceService:
                 {"name": "claimProbabilityPercent", "type": "float", "description": "理赔概率百分比"},
                 {"name": "claimFlag", "type": "integer", "description": "按最优分类阈值判定的是否理赔"},
                 {"name": "riskLevel", "type": "string", "description": "风险等级：LOW / MEDIUM / HIGH"},
-                {"name": "expectedClaimAmount", "type": "float", "description": "预计理赔金额，单位元"},
                 {"name": "thresholdUsed", "type": "float", "description": "当前分类阈值"},
                 {"name": "modelVersion", "type": "string", "description": "模型版本标识"},
                 {"name": "generatedAt", "type": "string", "description": "推理完成时间"},
@@ -426,7 +419,6 @@ class InsuranceInferenceService:
                 "auc": final_metrics.get("auc"),
                 "f1": final_metrics.get("f1"),
                 "accuracy": final_metrics.get("accuracy"),
-                "rmse": final_metrics.get("rmse"),
                 "scalerPath": str(scaler_path),
                 "bestThresholdPath": str(threshold_path) if threshold_path else None,
                 "isFallback": False,
@@ -455,7 +447,6 @@ class InsuranceInferenceService:
             "auc": None,
             "f1": None,
             "accuracy": None,
-            "rmse": None,
             "scalerPath": str(self.scaler_path),
             "bestThresholdPath": str(self.best_threshold_path) if self.best_threshold_path.exists() else None,
             "isFallback": True,

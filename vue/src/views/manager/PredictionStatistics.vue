@@ -3,7 +3,7 @@
     <div class="card stats-header">
       <div>
         <div class="stats-title">预测统计分析</div>
-        <div class="stats-desc">基于 insur_pred 历史记录展示风险等级分布与预计理赔金额分布。</div>
+        <div class="stats-desc">基于 insur_pred 历史记录展示风险等级分布、理赔概率分布和阳性预测占比。</div>
       </div>
     </div>
 
@@ -22,8 +22,8 @@
       </el-col>
       <el-col :span="8">
         <div class="summary-card summary-green">
-          <div class="summary-label">平均预计金额</div>
-          <div class="summary-value">¥{{ averageExpectedClaimAmount }}</div>
+          <div class="summary-label">阳性预测占比</div>
+          <div class="summary-value">{{ positivePredictionRate }}</div>
         </div>
       </el-col>
     </el-row>
@@ -37,8 +37,8 @@
       </el-col>
       <el-col :span="14">
         <div class="card chart-card">
-          <div class="chart-title">预计理赔金额分布（500元步长）</div>
-          <div ref="amountBarRef" style="height: 380px;"></div>
+          <div class="chart-title">理赔概率分布（0.1 步长）</div>
+          <div ref="probabilityBarRef" style="height: 380px;"></div>
         </div>
       </el-col>
     </el-row>
@@ -46,24 +46,24 @@
 </template>
 
 <script setup>
-import { computed, onMounted, onUnmounted, ref } from "vue";
-import * as echarts from "echarts";
-import request from "@/utils/request";
+import { computed, onMounted, onUnmounted, ref } from 'vue'
+import * as echarts from 'echarts'
+import request from '@/utils/request'
 
 const riskPieRef = ref(null)
-const amountBarRef = ref(null)
+const probabilityBarRef = ref(null)
 
 let riskPieChart = null
-let amountBarChart = null
+let probabilityBarChart = null
 
 const summary = ref({
   totalCount: 0,
   avgClaimProbability: 0,
-  avgExpectedClaimAmount: 0
+  positivePredictionRate: 0,
 })
 
 const averageClaimProbability = computed(() => `${(Number(summary.value.avgClaimProbability || 0) * 100).toFixed(2)}%`)
-const averageExpectedClaimAmount = computed(() => Number(summary.value.avgExpectedClaimAmount || 0).toFixed(2))
+const positivePredictionRate = computed(() => `${(Number(summary.value.positivePredictionRate || 0) * 100).toFixed(2)}%`)
 
 const getRiskLevelText = (riskLevel) => {
   const map = { LOW: '低风险', MEDIUM: '中风险', HIGH: '高风险' }
@@ -99,15 +99,15 @@ const initRiskPieChart = (data) => {
   })
 }
 
-const initAmountBarChart = (data) => {
-  if (!amountBarRef.value) return
-  amountBarChart?.dispose()
-  amountBarChart = echarts.init(amountBarRef.value)
+const initProbabilityBarChart = (data) => {
+  if (!probabilityBarRef.value) return
+  probabilityBarChart?.dispose()
+  probabilityBarChart = echarts.init(probabilityBarRef.value)
 
-  const xData = (data || []).map(item => `${item.bucketStart}-${item.bucketEnd}`)
+  const xData = (data || []).map(item => `${Number(item.bucketStart).toFixed(1)}-${Number(item.bucketEnd).toFixed(1)}`)
   const yData = (data || []).map(item => item.count)
 
-  amountBarChart.setOption({
+  probabilityBarChart.setOption({
     tooltip: {
       trigger: 'axis',
       axisPointer: { type: 'shadow' }
@@ -155,16 +155,16 @@ const loadCharts = () => {
     }
   })
 
-  request.get('/insurPred/claimAmountHistogram').then(res => {
+  request.get('/insurPred/claimProbabilityHistogram').then(res => {
     if (res.code === '200') {
-      initAmountBarChart(res.data || [])
+      initProbabilityBarChart(res.data || [])
     }
   })
 }
 
 const handleResize = () => {
   riskPieChart?.resize()
-  amountBarChart?.resize()
+  probabilityBarChart?.resize()
 }
 
 onMounted(() => {
@@ -176,7 +176,7 @@ onMounted(() => {
 onUnmounted(() => {
   window.removeEventListener('resize', handleResize)
   riskPieChart?.dispose()
-  amountBarChart?.dispose()
+  probabilityBarChart?.dispose()
 })
 </script>
 
@@ -185,8 +185,8 @@ onUnmounted(() => {
   margin-bottom: 16px;
   padding: 18px 20px;
   background:
-      linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(14, 165, 233, 0.16)),
-      #fff;
+    linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(14, 165, 233, 0.16)),
+    #fff;
 }
 
 .stats-title {

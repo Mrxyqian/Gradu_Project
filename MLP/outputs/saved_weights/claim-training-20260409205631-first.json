@@ -1,0 +1,43 @@
+{
+  "jobId": "20260409205631-69dff3",
+  "checkpointType": "best",
+  "fileName": "claim-training-20260409205631-first.pth",
+  "filePath": "D:\\Gradua_pro_code-spring\\Vehic_Insur_Claim\\MLP\\outputs\\saved_weights\\claim-training-20260409205631-first.pth",
+  "savedAt": "2026-04-09T21:15:54",
+  "sourcePath": "D:\\Gradua_pro_code-spring\\Vehic_Insur_Claim\\MLP\\outputs\\training_jobs\\20260409205631-69dff3\\best_model.pth",
+  "summary": {
+    "epochsCompleted": 39,
+    "configuredEpochs": 40,
+    "stoppedEarly": true,
+    "monitorMetric": "auc",
+    "bestMonitorValue": 0.969932,
+    "finalThreshold": 0.674121,
+    "resolvedPosWeight": 4.15,
+    "finalMetrics": {
+      "loss": 0.338169,
+      "clfLoss": 0.338169,
+      "regLoss": null,
+      "auc": 0.972186,
+      "accuracy": 0.923172,
+      "f1": 0.809042,
+      "precision": 0.752848,
+      "recall": 0.8743,
+      "rmse": null,
+      "logRmse": null
+    },
+    "taskWeights": {
+      "weight_clf": 1.0,
+      "weight_reg": 0.0
+    },
+    "classificationReport": "              precision    recall  f1-score   support\n\n    No Claim     0.9701    0.9343    0.9519      8591\n       Claim     0.7528    0.8743    0.8090      1965\n\n    accuracy                         0.9232     10556\n   macro avg     0.8615    0.9043    0.8805     10556\nweighted avg     0.9297    0.9232    0.9253     10556\n"
+  },
+  "relatedArtifacts": {
+    "outputDir": "D:\\Gradua_pro_code-spring\\Vehic_Insur_Claim\\MLP\\outputs\\training_jobs\\20260409205631-69dff3",
+    "logFile": "D:\\Gradua_pro_code-spring\\Vehic_Insur_Claim\\MLP\\outputs\\training_jobs\\20260409205631-69dff3\\train.log",
+    "tensorboardDir": "D:\\Gradua_pro_code-spring\\Vehic_Insur_Claim\\MLP\\outputs\\training_jobs\\20260409205631-69dff3\\runs",
+    "scalerPath": "D:\\Gradua_pro_code-spring\\Vehic_Insur_Claim\\MLP\\outputs\\training_jobs\\20260409205631-69dff3\\scaler.pkl",
+    "bestModelPath": "D:\\Gradua_pro_code-spring\\Vehic_Insur_Claim\\MLP\\outputs\\training_jobs\\20260409205631-69dff3\\best_model.pth",
+    "lastModelPath": "D:\\Gradua_pro_code-spring\\Vehic_Insur_Claim\\MLP\\outputs\\training_jobs\\20260409205631-69dff3\\last_model.pth",
+    "bestThresholdPath": "D:\\Gradua_pro_code-spring\\Vehic_Insur_Claim\\MLP\\outputs\\training_jobs\\20260409205631-69dff3\\best_threshold.pt"
+  }
+}

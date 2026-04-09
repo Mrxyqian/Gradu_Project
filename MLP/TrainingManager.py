@@ -100,7 +100,7 @@ class TrainingJobManager:
 
         cfg.loss.pos_weight = float(params["posWeight"])
         cfg.loss.init_log_var_clf = float(params["initLogVarClf"])
-        cfg.loss.init_log_var_reg = float(params["initLogVarReg"])
+        cfg.loss.init_log_var_reg = float(params.get("initLogVarReg", 0.0))
 
         cfg.optimizer.optimizer = str(params["optimizer"])
         cfg.optimizer.lr = float(params["learningRate"])

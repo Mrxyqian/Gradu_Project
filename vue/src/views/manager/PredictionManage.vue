@@ -3,7 +3,9 @@
     <div class="card prediction-banner">
       <div>
         <div class="banner-title">理赔率预测管理</div>
-        <div class="banner-desc">从保单库中勾选 1 到 10 条记录执行预测，可选择管理员已保存的模型权重版本，系统会自动保存预测历史。</div>
+        <div class="banner-desc">
+          从保单库中勾选 1 到 10 条记录执行预测，可选择管理员保存的模型权重版本，系统会自动保存本次理赔概率预测记录。
+        </div>
       </div>
       <div class="banner-actions">
         <div class="version-picker">
@@ -12,7 +14,7 @@
             v-model="selectedModelVersion"
             placeholder="请选择模型版本"
             filterable
-            style="width: 320px"
+            style="width: 340px"
             :loading="modelVersionLoading"
           >
             <el-option
@@ -31,13 +33,13 @@
 
     <div class="card" style="margin-bottom: 12px;">
       <div class="section-title">可选保单列表</div>
-      <div class="section-subtitle">允许跨页勾选，超出 10 条后将禁止继续选择。</div>
+      <div class="section-subtitle">支持跨页勾选，超过 10 条后将禁止继续选择。</div>
       <el-table
-          ref="policyTableRef"
-          :data="policyTableData"
-          row-key="id"
-          @selection-change="handleSelectionChange"
-          style="width: 100%; margin-top: 12px;"
+        ref="policyTableRef"
+        :data="policyTableData"
+        row-key="id"
+        @selection-change="handleSelectionChange"
+        style="width: 100%; margin-top: 12px;"
       >
         <el-table-column type="selection" width="55" :selectable="isSelectable" reserve-selection />
         <el-table-column prop="id" label="保单ID" width="100" />
@@ -53,7 +55,7 @@
         </el-table-column>
         <el-table-column prop="premium" label="净保费" width="120" />
         <el-table-column prop="nClaimsHistory" label="历史索赔次数" width="130" />
-        <el-table-column prop="rClaimsHistory" label="历史索赔频率比" width="140" />
+        <el-table-column prop="rClaimsHistory" label="历史索赔率" width="130" />
         <el-table-column prop="yearMatriculation" label="注册年份" width="110" />
         <el-table-column prop="typeFuel" label="燃料类型" width="100">
           <template #default="scope">
@@ -64,19 +66,19 @@
       </el-table>
       <div style="margin-top: 12px; display: flex; justify-content: flex-end;">
         <el-pagination
-            v-model:current-page="policyPageNum"
-            v-model:page-size="policyPageSize"
-            :total="policyTotal"
-            background
-            layout="prev, pager, next"
-            @current-change="loadPolicyPage"
+          v-model:current-page="policyPageNum"
+          v-model:page-size="policyPageSize"
+          :total="policyTotal"
+          background
+          layout="prev, pager, next"
+          @current-change="loadPolicyPage"
         />
       </div>
     </div>
 
     <div class="card" style="margin-bottom: 12px;">
       <div class="section-title">历史预测记录</div>
-      <div class="section-subtitle">支持按预测记录主键删除，不能手工新增或修改。</div>
+      <div class="section-subtitle">仅保留理赔概率预测结果，可按记录主键删除历史。</div>
       <el-table :data="historyTableData" style="width: 100%; margin-top: 12px;">
         <el-table-column prop="predId" label="记录ID" width="100" />
         <el-table-column prop="id" label="保单ID" width="100" />
@@ -85,18 +87,18 @@
             {{ formatPercent(scope.row.claimProbability) }}
           </template>
         </el-table-column>
+        <el-table-column prop="claimFlag" label="预测标签" width="100">
+          <template #default="scope">
+            {{ Number(scope.row.claimFlag) === 1 ? '理赔' : '不理赔' }}
+          </template>
+        </el-table-column>
         <el-table-column prop="riskLevel" label="风险等级" width="120">
           <template #default="scope">
             <el-tag :type="getRiskLevelTag(scope.row.riskLevel)">{{ getRiskLevelText(scope.row.riskLevel) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="expectedClaimAmount" label="预计理赔金额" width="150">
-          <template #default="scope">
-            ¥{{ formatMoney(scope.row.expectedClaimAmount) }}
-          </template>
-        </el-table-column>
         <el-table-column prop="predictionTime" label="预测时间" width="180" />
-        <el-table-column prop="modelVersion" label="模型版本" min-width="190" show-overflow-tooltip />
+        <el-table-column prop="modelVersion" label="模型版本" min-width="210" show-overflow-tooltip />
         <el-table-column prop="thresholdUsed" label="阈值" width="110" />
         <el-table-column label="操作" width="100" fixed="right">
           <template #default="scope">
@@ -106,12 +108,12 @@
       </el-table>
       <div style="margin-top: 12px; display: flex; justify-content: flex-end;">
         <el-pagination
-            v-model:current-page="historyPageNum"
-            v-model:page-size="historyPageSize"
-            :total="historyTotal"
-            background
-            layout="prev, pager, next"
-            @current-change="loadHistoryPage"
+          v-model:current-page="historyPageNum"
+          v-model:page-size="historyPageSize"
+          :total="historyTotal"
+          background
+          layout="prev, pager, next"
+          @current-change="loadHistoryPage"
         />
       </div>
     </div>
@@ -127,8 +129,8 @@
           <div class="result-value">{{ latestAverageProbability }}</div>
         </div>
         <div class="result-card result-green">
-          <div class="result-label">平均预计金额</div>
-          <div class="result-value">¥{{ latestAverageAmount }}</div>
+          <div class="result-label">高风险条数</div>
+          <div class="result-value">{{ latestHighRiskCount }}</div>
         </div>
       </div>
 
@@ -140,27 +142,27 @@
             {{ formatPercent(scope.row.claimProbability) }}
           </template>
         </el-table-column>
+        <el-table-column prop="claimFlag" label="预测标签" width="100">
+          <template #default="scope">
+            {{ Number(scope.row.claimFlag) === 1 ? '理赔' : '不理赔' }}
+          </template>
+        </el-table-column>
         <el-table-column prop="riskLevel" label="风险等级" width="120">
           <template #default="scope">
             <el-tag :type="getRiskLevelTag(scope.row.riskLevel)">{{ getRiskLevelText(scope.row.riskLevel) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="expectedClaimAmount" label="预计理赔金额" width="150">
-          <template #default="scope">
-            ¥{{ formatMoney(scope.row.expectedClaimAmount) }}
-          </template>
-        </el-table-column>
         <el-table-column prop="predictionTime" label="预测时间" width="180" />
-        <el-table-column prop="modelVersion" label="模型版本" min-width="190" show-overflow-tooltip />
+        <el-table-column prop="modelVersion" label="模型版本" min-width="210" show-overflow-tooltip />
       </el-table>
     </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { computed, nextTick, reactive, ref } from "vue";
-import request from "@/utils/request";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { computed, nextTick, reactive, ref } from 'vue'
+import request from '@/utils/request'
+import { ElMessage, ElMessageBox } from 'element-plus'
 
 const policyTableRef = ref()
 
@@ -190,10 +192,8 @@ const latestAverageProbability = computed(() => {
   return formatPercent(avg)
 })
 
-const latestAverageAmount = computed(() => {
-  if (!latestResults.value.length) return '0.00'
-  const avg = latestResults.value.reduce((sum, item) => sum + Number(item.expectedClaimAmount || 0), 0) / latestResults.value.length
-  return formatMoney(avg)
+const latestHighRiskCount = computed(() => {
+  return latestResults.value.filter(item => item.riskLevel === 'HIGH').length
 })
 
 const getRiskTypeText = (type) => {
@@ -213,19 +213,15 @@ const getRiskLevelTag = (riskLevel) => {
 
 const formatPercent = (value) => `${(Number(value || 0) * 100).toFixed(2)}%`
 
-const formatMoney = (value) => Number(value || 0).toFixed(2)
-
 const buildModelVersionLabel = (item) => {
   const tags = []
-  if (item.savedAt) tags.push(item.savedAt.replace('T', ' '))
+  if (item.savedAt) tags.push(String(item.savedAt).replace('T', ' '))
   if (item.checkpointType) tags.push(item.checkpointType)
   if (item.auc !== undefined && item.auc !== null) tags.push(`AUC ${Number(item.auc).toFixed(4)}`)
   return `${item.displayName || item.modelVersion}${tags.length ? `（${tags.join(' | ')}）` : ''}`
 }
 
-const isSelectable = (row) => {
-  return selectedRowMap[row.id] || selectedIds.value.length < 10
-}
+const isSelectable = (row) => selectedRowMap[row.id] || selectedIds.value.length < 10
 
 const syncCurrentPageSelection = () => {
   nextTick(() => {
@@ -315,9 +311,9 @@ const handlePredict = async () => {
     const duplicateIds = (duplicateRes.data || []).map(item => item.id)
     if (duplicateIds.length) {
       await ElMessageBox.confirm(
-          `保单 ${duplicateIds.join('、')} 已存在历史预测记录，是否继续重复预测？`,
-          '重复预测提示',
-          { type: 'warning' }
+        `保单 ${duplicateIds.join('、')} 已存在历史预测记录，是否继续重复预测？`,
+        '重复预测提示',
+        { type: 'warning' }
       )
     }
 
@@ -371,8 +367,8 @@ loadModelVersions()
   justify-content: space-between;
   gap: 16px;
   background:
-      linear-gradient(135deg, rgba(40, 167, 69, 0.10), rgba(32, 201, 151, 0.16)),
-      #fff;
+    linear-gradient(135deg, rgba(40, 167, 69, 0.10), rgba(32, 201, 151, 0.16)),
+    #fff;
 }
 
 .banner-title {

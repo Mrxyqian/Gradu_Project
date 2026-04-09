@@ -4,7 +4,7 @@
       <div>
         <div class="hero-title">模型训练中心</div>
         <div class="hero-desc">
-          管理员可直接配置训练超参数、实时查看按 epoch 刷新的训练进度，并在训练完成后查看结果概览与保存权重文件。
+          管理员可直接配置纯分类理赔率模型的训练参数，按 epoch 实时查看训练进度，并在训练完成后查看结果概览与保存权重文件。
         </div>
       </div>
       <div class="hero-status">
@@ -17,7 +17,7 @@
       <el-col :xs="24" :lg="11">
         <div class="card section-card">
           <div class="section-title">训练超参数</div>
-          <div class="section-subtitle">当前表单会映射到你现有的 MLP 训练方式，并复用现有数据集与训练逻辑。</div>
+          <div class="section-subtitle">当前表单直接映射到纯理赔概率分类训练配置。</div>
 
           <el-form :model="trainForm" label-position="top" class="train-form">
             <div class="group-title">数据与训练</div>
@@ -125,7 +125,7 @@
                 </el-form-item>
               </el-col>
               <el-col :span="12">
-                <el-form-item label="任务头 Dropout">
+                <el-form-item label="分类头 Dropout">
                   <el-input-number v-model="trainForm.headDropout" :min="0" :max="0.9" :step="0.05" :precision="2" controls-position="right" />
                 </el-form-item>
               </el-col>
@@ -142,11 +142,6 @@
               <el-col :span="12">
                 <el-form-item label="分类 log_var 初值">
                   <el-input-number v-model="trainForm.initLogVarClf" :min="-10" :max="10" :step="0.1" :precision="1" controls-position="right" />
-                </el-form-item>
-              </el-col>
-              <el-col :span="12">
-                <el-form-item label="回归 log_var 初值">
-                  <el-input-number v-model="trainForm.initLogVarReg" :min="-10" :max="10" :step="0.1" :precision="1" controls-position="right" />
                 </el-form-item>
               </el-col>
             </el-row>
@@ -179,7 +174,7 @@
                 </el-form-item>
               </el-col>
               <el-col :span="12">
-                <el-form-item label="最小改善阈值">
+                <el-form-item label="最小改进阈值">
                   <el-input-number v-model="trainForm.minDelta" :min="0" :max="1" :step="0.0001" :precision="4" controls-position="right" />
                 </el-form-item>
               </el-col>
@@ -193,7 +188,6 @@
                     <el-option label="F1" value="f1" />
                     <el-option label="Precision" value="precision" />
                     <el-option label="Recall" value="recall" />
-                    <el-option label="RMSE" value="rmse" />
                   </el-select>
                 </el-form-item>
               </el-col>
@@ -230,7 +224,7 @@
 
         <div class="card section-card">
           <div class="section-title">权重保存</div>
-          <div class="section-subtitle">训练完成后可选择保存本次训练的 `best` 或 `last` 权重文件，并写入本地输出目录。</div>
+          <div class="section-subtitle">训练完成后可选择保存本次训练的 best 或 last 权重文件。</div>
 
           <el-form :model="saveForm" label-position="top">
             <el-row :gutter="12">
@@ -271,7 +265,7 @@
           <div class="status-row">
             <div class="status-inline">
               <el-tag :type="statusTagType">{{ statusText }}</el-tag>
-              <span v-if="currentJob" class="status-hint">任务已完成 {{ currentEpoch }} / {{ totalEpochs }} 个 epoch</span>
+              <span v-if="currentJob" class="status-hint">当前已完成 {{ currentEpoch }} / {{ totalEpochs }} 个 epoch</span>
             </div>
             <div v-if="currentJob?.createdAt" class="status-time">创建时间：{{ currentJob.createdAt }}</div>
           </div>
@@ -299,7 +293,9 @@
             <el-descriptions-item label="最新验证 AUC">{{ formatMetric(latestEpoch?.valAuc) }}</el-descriptions-item>
             <el-descriptions-item label="最新验证 Accuracy">{{ formatPercent(latestEpoch?.valAccuracy) }}</el-descriptions-item>
             <el-descriptions-item label="最新验证 F1">{{ formatMetric(latestEpoch?.valF1) }}</el-descriptions-item>
-            <el-descriptions-item label="最新验证 RMSE">{{ formatMetric(latestEpoch?.valRmse, 4) }}</el-descriptions-item>
+            <el-descriptions-item label="最新验证 Precision / Recall">
+              {{ formatMetric(latestEpoch?.valPrecision) }} / {{ formatMetric(latestEpoch?.valRecall) }}
+            </el-descriptions-item>
           </el-descriptions>
 
           <el-empty v-else description="暂无训练任务，管理员可在左侧直接发起训练。" />
@@ -322,8 +318,8 @@
               <div class="summary-value">{{ formatMetric(summary.finalMetrics?.f1) }}</div>
             </div>
             <div class="summary-card rose-card">
-              <div class="summary-label">测试 RMSE</div>
-              <div class="summary-value">{{ formatMetric(summary.finalMetrics?.rmse, 4) }}</div>
+              <div class="summary-label">测试 Precision</div>
+              <div class="summary-value">{{ formatMetric(summary.finalMetrics?.precision) }}</div>
             </div>
           </div>
 
@@ -399,7 +395,6 @@ const defaultTrainForm = () => ({
   headDropout: 0.10,
   posWeight: 4.15,
   initLogVarClf: -0.5,
-  initLogVarReg: 0.5,
   earlyStop: true,
   patience: 20,
   minDelta: 0.0001,
@@ -654,12 +649,12 @@ const renderCharts = () => {
   }
   if (valAucRef.value) {
     valAucChart = echarts.init(valAucRef.value)
-    valAucChart.setOption(buildLineOption('验证AUC', epochs, history.value.valAuc || [], '#f97316'))
+    valAucChart.setOption(buildLineOption('验证 AUC', epochs, history.value.valAuc || [], '#f97316'))
   }
   if (valAccuracyRef.value) {
     valAccuracyChart = echarts.init(valAccuracyRef.value)
     valAccuracyChart.setOption(buildLineOption(
-      '验证Accuracy',
+      '验证 Accuracy',
       epochs,
       (history.value.valAccuracy || []).map(item => Number((Number(item) * 100).toFixed(2))),
       '#db2777',

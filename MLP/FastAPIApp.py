@@ -139,7 +139,6 @@ class PredictionResult(BaseModel):
     claimProbabilityPercent: float
     claimFlag: int
     riskLevel: str
-    expectedClaimAmount: float
     thresholdUsed: float
     modelVersion: str
     generatedAt: str
@@ -155,7 +154,6 @@ class BatchPredictionSummary(BaseModel):
     total: int
     riskLevelDistribution: Dict[str, int]
     averageClaimProbability: float
-    averageExpectedClaimAmount: float
 
 
 class BatchPredictionResponse(BaseModel):
@@ -190,11 +188,10 @@ class TrainingStartRequest(BaseModel):
     headDropout: float = Field(0.10, ge=0, lt=1, description="任务头 Dropout")
     posWeight: float = Field(4.15, gt=0, le=100, description="正样本权重")
     initLogVarClf: float = Field(-0.5, ge=-10, le=10, description="分类损失初始 log_var")
-    initLogVarReg: float = Field(0.5, ge=-10, le=10, description="回归损失初始 log_var")
     earlyStop: bool = Field(True, description="是否启用 Early Stopping")
     patience: int = Field(20, ge=1, le=200, description="Early Stopping patience")
     minDelta: float = Field(1e-4, ge=0, le=1, description="Early Stopping 最小改善阈值")
-    earlyStopMetric: Literal["auc", "loss", "clf_loss", "accuracy", "f1", "precision", "recall", "rmse"] = Field(
+    earlyStopMetric: Literal["auc", "loss", "clf_loss", "accuracy", "f1", "precision", "recall"] = Field(
         "auc", description="Early Stopping 监控指标"
     )
     useAmp: bool = Field(True, description="是否启用 AMP")
@@ -278,9 +275,6 @@ def predict_batch(request: BatchPredictionRequest) -> Dict[str, Any]:
         "riskLevelDistribution": dict(risk_counter),
         "averageClaimProbability": round(
             sum(item["claimProbability"] for item in results) / len(results), 6
-        ),
-        "averageExpectedClaimAmount": round(
-            sum(item["expectedClaimAmount"] for item in results) / len(results), 2
         ),
     }
 
