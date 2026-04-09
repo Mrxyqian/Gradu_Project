@@ -8,7 +8,7 @@ import pandas as pd
 import torch
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader, Dataset, WeightedRandomSampler
 
 
 DROP_COLS = [
@@ -70,6 +70,30 @@ CLIP_COLS = [
     "Cylinder_capacity",
     "Weight",
     "Length",
+]
+
+LOW_CARDINALITY_COLS = [
+    "Distribution_channel",
+    "Payment",
+    "Type_risk",
+    "Area",
+    "Second_driver",
+    "Lapse",
+    "Type_fuel",
+]
+
+LOG1P_COLS = [
+    "Premium",
+    "Value_vehicle",
+    "Power",
+    "Cylinder_capacity",
+    "Weight",
+    "Length",
+    "Policies_in_force",
+    "Max_policies",
+    "Max_products",
+    "N_claims_history",
+    "R_Claims_history",
 ]
 
 
@@ -194,6 +218,55 @@ def _build_fill_values(feature_df: pd.DataFrame) -> dict[str, float]:
     return fill_values
 
 
+def _safe_divide(
+    numerator: pd.Series,
+    denominator: pd.Series,
+    default_value: float = 0.0,
+) -> pd.Series:
+    numerator = pd.to_numeric(numerator, errors="coerce").astype(np.float32)
+    denominator = pd.to_numeric(denominator, errors="coerce").astype(np.float32)
+    denominator = denominator.replace(0, np.nan)
+    return numerator.div(denominator).replace([np.inf, -np.inf], np.nan).fillna(default_value)
+
+
+def _add_interaction_features(feature_df: pd.DataFrame) -> pd.DataFrame:
+    engineered = feature_df.copy()
+
+    premium = pd.to_numeric(engineered.get("Premium"), errors="coerce").fillna(0)
+    policies = pd.to_numeric(engineered.get("Policies_in_force"), errors="coerce").fillna(0)
+    max_policies = pd.to_numeric(engineered.get("Max_policies"), errors="coerce").fillna(0)
+    max_products = pd.to_numeric(engineered.get("Max_products"), errors="coerce").fillna(0)
+    vehicle_value = pd.to_numeric(engineered.get("Value_vehicle"), errors="coerce").fillna(0)
+    vehicle_age = pd.to_numeric(engineered.get("vehicle_age_years"), errors="coerce").fillna(0)
+    seniority = pd.to_numeric(engineered.get("Seniority"), errors="coerce").fillna(0)
+    claims_history = pd.to_numeric(engineered.get("N_claims_history"), errors="coerce").fillna(0)
+    claims_ratio = pd.to_numeric(engineered.get("R_Claims_history"), errors="coerce").fillna(0)
+    power = pd.to_numeric(engineered.get("Power"), errors="coerce").fillna(0)
+    weight = pd.to_numeric(engineered.get("Weight"), errors="coerce").fillna(0)
+    cylinder = pd.to_numeric(engineered.get("Cylinder_capacity"), errors="coerce").fillna(0)
+    insured_age = pd.to_numeric(engineered.get("insured_age_years"), errors="coerce").fillna(0)
+    driving_years = pd.to_numeric(engineered.get("driving_experience_years"), errors="coerce").fillna(0)
+
+    engineered["premium_per_policy"] = _safe_divide(premium, policies.clip(lower=1))
+    engineered["products_per_policy"] = _safe_divide(max_products, max_policies.clip(lower=1))
+    engineered["policy_utilization"] = _safe_divide(policies, max_policies.clip(lower=1))
+    engineered["value_to_premium"] = _safe_divide(vehicle_value, premium.clip(lower=1))
+    engineered["claims_per_seniority"] = _safe_divide(claims_history, seniority + 1.0)
+    engineered["history_risk_interaction"] = claims_ratio * (claims_history + 1.0)
+    engineered["power_weight_ratio"] = _safe_divide(power, weight.clip(lower=1))
+    engineered["cylinder_power_ratio"] = _safe_divide(cylinder, power.clip(lower=1))
+    engineered["vehicle_value_age_ratio"] = _safe_divide(vehicle_value, vehicle_age + 1.0)
+    engineered["driver_vehicle_age_gap"] = insured_age - vehicle_age
+    engineered["experience_vehicle_gap"] = driving_years - vehicle_age
+
+    for column in LOG1P_COLS:
+        if column in engineered.columns:
+            numeric = pd.to_numeric(engineered[column], errors="coerce").fillna(0).clip(lower=0)
+            engineered[f"{column}_log1p"] = np.log1p(numeric).astype(np.float32)
+
+    return engineered
+
+
 def prepare_features(
     df: pd.DataFrame,
     *,
@@ -226,8 +299,24 @@ def prepare_features(
         .fillna(0)
         .astype(np.float32)
     )
+    feature_df = _add_interaction_features(feature_df)
 
     feature_df = feature_df.drop(columns=DROP_COLS, errors="ignore")
+
+    present_low_cardinality_cols = [
+        column for column in LOW_CARDINALITY_COLS if column in feature_df.columns
+    ]
+    for column in present_low_cardinality_cols:
+        numeric = pd.to_numeric(feature_df[column], errors="coerce").fillna(-1)
+        feature_df[column] = numeric.astype(np.int32).astype(str)
+
+    if present_low_cardinality_cols:
+        feature_df = pd.get_dummies(
+            feature_df,
+            columns=present_low_cardinality_cols,
+            prefix=present_low_cardinality_cols,
+            dtype=np.float32,
+        )
 
     if feature_columns is not None:
         feature_df = feature_df.reindex(columns=feature_columns)
@@ -291,6 +380,11 @@ class InsuranceDataset(Dataset):
         self.features = torch.tensor(features, dtype=torch.float32)
         self.labels = torch.tensor(labels, dtype=torch.float32)
         self.targets = self.labels
+        positive_count = float(np.sum(labels))
+        total_count = float(len(labels))
+        self.positive_count = int(positive_count)
+        self.negative_count = int(total_count - positive_count)
+        self.positive_rate = float(positive_count / total_count) if total_count > 0 else 0.0
 
     def __len__(self) -> int:
         return len(self.features)
@@ -307,6 +401,8 @@ def build_dataloaders(
     random_seed: int = 42,
     scaler_save_path: str = "scaler.pkl",
     num_workers: int = 4,
+    balanced_sampling: bool = True,
+    sampler_alpha: float = 0.75,
 ) -> tuple[DataLoader, DataLoader, DataLoader, int]:
     dataset_path = Path(csv_path)
     scaler_path = Path(scaler_save_path)
@@ -352,10 +448,24 @@ def build_dataloaders(
     test_dataset = InsuranceDataset(x_test, y_test)
 
     pin_memory = torch.cuda.is_available()
+    train_sampler = None
+    if balanced_sampling and len(train_dataset) > 0:
+        train_labels = y_train.astype(np.int64)
+        class_counts = np.bincount(train_labels, minlength=2).astype(np.float64)
+        class_counts[class_counts == 0] = 1.0
+        class_weights = np.power(class_counts.max() / class_counts, float(sampler_alpha))
+        sample_weights = class_weights[train_labels]
+        train_sampler = WeightedRandomSampler(
+            weights=torch.as_tensor(sample_weights, dtype=torch.double),
+            num_samples=len(sample_weights),
+            replacement=True,
+        )
+
     train_loader = DataLoader(
         train_dataset,
         batch_size=batch_size,
-        shuffle=True,
+        shuffle=train_sampler is None,
+        sampler=train_sampler,
         num_workers=num_workers,
         pin_memory=pin_memory,
         drop_last=len(train_dataset) > batch_size,

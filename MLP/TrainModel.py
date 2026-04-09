@@ -12,6 +12,8 @@ import torch
 import torch.nn as nn
 from sklearn.metrics import (
     accuracy_score,
+    average_precision_score,
+    balanced_accuracy_score,
     classification_report,
     f1_score,
     fbeta_score,
@@ -174,7 +176,9 @@ def init_history() -> Dict[str, list]:
         "valClfLoss": [],
         "valRegLoss": [],
         "valAuc": [],
+        "valPrAuc": [],
         "valAccuracy": [],
+        "valBalancedAccuracy": [],
         "valF1": [],
         "valPrecision": [],
         "valRecall": [],
@@ -194,7 +198,9 @@ def append_history(history: Dict[str, list], epoch_record: Dict[str, Any]) -> No
     history["valClfLoss"].append(epoch_record["valClfLoss"])
     history["valRegLoss"].append(epoch_record["valRegLoss"])
     history["valAuc"].append(epoch_record["valAuc"])
+    history["valPrAuc"].append(epoch_record["valPrAuc"])
     history["valAccuracy"].append(epoch_record["valAccuracy"])
+    history["valBalancedAccuracy"].append(epoch_record["valBalancedAccuracy"])
     history["valF1"].append(epoch_record["valF1"])
     history["valPrecision"].append(epoch_record["valPrecision"])
     history["valRecall"].append(epoch_record["valRecall"])
@@ -217,7 +223,9 @@ def build_latest_epoch(history: Dict[str, list]) -> Optional[Dict[str, Any]]:
         "valClfLoss": history["valClfLoss"][last_idx],
         "valRegLoss": history["valRegLoss"][last_idx],
         "valAuc": history["valAuc"][last_idx],
+        "valPrAuc": history["valPrAuc"][last_idx],
         "valAccuracy": history["valAccuracy"][last_idx],
+        "valBalancedAccuracy": history["valBalancedAccuracy"][last_idx],
         "valF1": history["valF1"][last_idx],
         "valPrecision": history["valPrecision"][last_idx],
         "valRecall": history["valRecall"][last_idx],
@@ -235,7 +243,10 @@ def resolve_monitor_metric(metric_name: str) -> tuple[str, str]:
         "total_loss": ("loss", "min"),
         "clf_loss": ("clf_loss", "min"),
         "auc": ("auc", "max"),
+        "pr_auc": ("pr_auc", "max"),
+        "average_precision": ("pr_auc", "max"),
         "accuracy": ("accuracy", "max"),
+        "balanced_accuracy": ("balanced_accuracy", "max"),
         "f1": ("f1", "max"),
         "precision": ("precision", "max"),
         "recall": ("recall", "max"),
@@ -276,7 +287,11 @@ def build_optimizer(model: nn.Module, cfg: Config) -> torch.optim.Optimizer:
     raise ValueError(f"Unsupported optimizer: {optimizer_cfg.optimizer}")
 
 
-def build_scheduler(optimizer: torch.optim.Optimizer, cfg: Config):
+def build_scheduler(
+    optimizer: torch.optim.Optimizer,
+    cfg: Config,
+    monitor_mode: str = "min",
+):
     scheduler_cfg = cfg.scheduler
     train_cfg = cfg.train
 
@@ -301,7 +316,7 @@ def build_scheduler(optimizer: torch.optim.Optimizer, cfg: Config):
     if scheduler_cfg.scheduler == "reduce_on_plateau":
         return ReduceLROnPlateau(
             optimizer,
-            mode="min",
+            mode=monitor_mode,
             factor=scheduler_cfg.plateau_factor,
             patience=scheduler_cfg.plateau_patience,
             min_lr=scheduler_cfg.plateau_min_lr,
@@ -365,6 +380,14 @@ def save_checkpoint(
             "best_loss": best_monitor_value,
             "best_threshold": best_threshold,
             "input_dim": cfg.model.input_dim,
+            "model_config": {
+                "hidden_dims": list(cfg.model.hidden_dims),
+                "head_hidden_dim": cfg.model.head_hidden_dim,
+                "input_dropout": cfg.model.input_dropout,
+                "backbone_dropout": cfg.model.backbone_dropout,
+                "head_dropout": cfg.model.head_dropout,
+                "head_samples": cfg.model.head_samples,
+            },
         },
         path,
     )
@@ -506,13 +529,22 @@ def evaluate(
         if labels_int.size > 0 and np.unique(labels_int).size > 1
         else 0.5
     )
+    pr_auc = (
+        float(average_precision_score(labels_int, probs))
+        if labels_int.size > 0 and np.unique(labels_int).size > 1
+        else float(labels_int.mean()) if labels_int.size > 0 else 0.0
+    )
     return {
         "split": split,
         "loss": total_loss / max(total_samples, 1),
         "clf_loss": total_clf_loss / max(total_samples, 1),
         "reg_loss": None,
         "auc": auc,
+        "pr_auc": pr_auc,
         "accuracy": accuracy_score(labels_int, preds) if labels_int.size else 0.0,
+        "balanced_accuracy": (
+            balanced_accuracy_score(labels_int, preds) if labels_int.size else 0.0
+        ),
         "f1": f1_score(labels_int, preds, zero_division=0) if labels_int.size else 0.0,
         "precision": precision_score(labels_int, preds, zero_division=0) if labels_int.size else 0.0,
         "recall": recall_score(labels_int, preds, zero_division=0) if labels_int.size else 0.0,
@@ -558,6 +590,8 @@ def run_training(
             random_seed=cfg.data.random_seed,
             scaler_save_path=cfg.path.scaler_path,
             num_workers=cfg.data.num_workers,
+            balanced_sampling=cfg.data.balanced_sampling,
+            sampler_alpha=cfg.data.sampler_alpha,
         )
         cfg.model.input_dim = input_dim
 
@@ -567,6 +601,8 @@ def run_training(
         resolved_pos_weight = float(cfg.loss.pos_weight)
         if resolved_pos_weight <= 0 and positive_count > 0:
             resolved_pos_weight = negative_count / positive_count
+        if cfg.data.balanced_sampling:
+            resolved_pos_weight = float(np.sqrt(max(resolved_pos_weight, 1.0)))
         resolved_pos_weight = max(resolved_pos_weight, 1.0)
         logger.info(
             "Resolved pos_weight=%.6f (positive=%d, negative=%d)",
@@ -574,27 +610,38 @@ def run_training(
             int(positive_count),
             int(negative_count),
         )
+        logger.info(
+            "Train positive_rate=%.4f, balanced_sampling=%s, sampler_alpha=%.3f",
+            float(positive_count / max(len(train_targets), 1)),
+            bool(cfg.data.balanced_sampling),
+            float(cfg.data.sampler_alpha),
+        )
 
         model = InsuranceMLP(
             input_dim=cfg.model.input_dim,
             hidden_dims=cfg.model.hidden_dims,
             head_hidden_dim=cfg.model.head_hidden_dim,
+            input_dropout=cfg.model.input_dropout,
             backbone_dropout=cfg.model.backbone_dropout,
             head_dropout=cfg.model.head_dropout,
+            head_samples=cfg.model.head_samples,
         ).to(device)
         criterion = ClaimClassificationLoss(
             pos_weight=resolved_pos_weight,
             label_smoothing=cfg.loss.label_smoothing,
+            focal_gamma=cfg.loss.focal_gamma,
+            focal_alpha=cfg.loss.focal_alpha,
+            bce_weight=cfg.loss.bce_weight,
+            focal_weight=cfg.loss.focal_weight,
             init_log_var_clf=cfg.loss.init_log_var_clf,
             init_log_var_reg=cfg.loss.init_log_var_reg,
             w_clf=cfg.loss.w_clf,
             w_reg=cfg.loss.w_reg,
         ).to(device)
         optimizer = build_optimizer(model, cfg)
-        scheduler, scheduler_mode = build_scheduler(optimizer, cfg)
-        amp_scaler = GradScaler(enabled=bool(cfg.train.use_amp and device.type == "cuda"))
-
         monitor_key, monitor_mode = resolve_monitor_metric(cfg.train.early_stop_metric)
+        scheduler, scheduler_mode = build_scheduler(optimizer, cfg, monitor_mode=monitor_mode)
+        amp_scaler = GradScaler(enabled=bool(cfg.train.use_amp and device.type == "cuda"))
         early_stopper = (
             EarlyStopping(cfg.train.patience, cfg.train.min_delta, mode=monitor_mode)
             if cfg.train.early_stop
@@ -673,6 +720,9 @@ def run_training(
             threshold_preds = (val_metrics["_probs"] >= best_threshold).astype(int)
             threshold_metrics = {
                 "accuracy": accuracy_score(val_metrics["_labels"], threshold_preds),
+                "balanced_accuracy": balanced_accuracy_score(
+                    val_metrics["_labels"], threshold_preds
+                ),
                 "f1": f1_score(val_metrics["_labels"], threshold_preds, zero_division=0),
                 "precision": precision_score(val_metrics["_labels"], threshold_preds, zero_division=0),
                 "recall": recall_score(val_metrics["_labels"], threshold_preds, zero_division=0),
@@ -683,15 +733,16 @@ def run_training(
 
             logger.info(
                 "Epoch %03d/%03d lr=%.2e train_loss=%.4f val_loss=%.4f val_auc=%.4f "
-                "val_acc=%.4f val_f1=%.4f thr=%.3f",
+                "val_pr_auc=%.4f val_f1=%.4f val_precision=%.4f thr=%.3f",
                 epoch + 1,
                 cfg.train.num_epochs,
                 current_lr,
                 train_metrics["loss"],
                 val_metrics["loss"],
                 val_metrics["auc"],
-                threshold_metrics["accuracy"],
+                val_metrics["pr_auc"],
                 threshold_metrics["f1"],
+                threshold_metrics["precision"],
                 best_threshold,
             )
 
@@ -700,19 +751,22 @@ def run_training(
             add_scalar_if_not_none(writer, "val/loss", val_metrics["loss"], epoch)
             add_scalar_if_not_none(writer, "val/clf_loss", val_metrics["clf_loss"], epoch)
             add_scalar_if_not_none(writer, "val/auc", val_metrics["auc"], epoch)
+            add_scalar_if_not_none(writer, "val/pr_auc", val_metrics["pr_auc"], epoch)
             add_scalar_if_not_none(writer, "val/accuracy", threshold_metrics["accuracy"], epoch)
+            add_scalar_if_not_none(
+                writer, "val/balanced_accuracy", threshold_metrics["balanced_accuracy"], epoch
+            )
             add_scalar_if_not_none(writer, "val/f1", threshold_metrics["f1"], epoch)
             add_scalar_if_not_none(writer, "val/precision", threshold_metrics["precision"], epoch)
             add_scalar_if_not_none(writer, "val/recall", threshold_metrics["recall"], epoch)
             add_scalar_if_not_none(writer, "train/lr", current_lr, epoch)
             add_scalar_if_not_none(writer, "val/best_threshold", best_threshold, epoch)
 
+            monitor_value = build_monitor_value(monitor_key, val_metrics, threshold_metrics)
             if scheduler_mode == "epoch" and scheduler is not None:
                 scheduler.step()
             elif scheduler_mode == "plateau" and scheduler is not None:
-                scheduler.step(val_metrics["loss"])
-
-            monitor_value = build_monitor_value(monitor_key, val_metrics, threshold_metrics)
+                scheduler.step(monitor_value)
             if early_stopper is not None:
                 is_best = early_stopper.step(monitor_value)
             elif monitor_mode == "max":
@@ -773,7 +827,9 @@ def run_training(
                 "valClfLoss": safe_round(val_metrics["clf_loss"]),
                 "valRegLoss": None,
                 "valAuc": safe_round(val_metrics["auc"]),
+                "valPrAuc": safe_round(val_metrics["pr_auc"]),
                 "valAccuracy": safe_round(threshold_metrics["accuracy"]),
+                "valBalancedAccuracy": safe_round(threshold_metrics["balanced_accuracy"]),
                 "valF1": safe_round(threshold_metrics["f1"]),
                 "valPrecision": safe_round(threshold_metrics["precision"]),
                 "valRecall": safe_round(threshold_metrics["recall"]),
@@ -838,7 +894,11 @@ def run_training(
             "clfLoss": safe_round(test_metrics["clf_loss"]),
             "regLoss": None,
             "auc": safe_round(test_metrics["auc"]),
+            "prAuc": safe_round(test_metrics["pr_auc"]),
             "accuracy": safe_round(accuracy_score(test_metrics["_labels"], test_preds)),
+            "balancedAccuracy": safe_round(
+                balanced_accuracy_score(test_metrics["_labels"], test_preds)
+            ),
             "f1": safe_round(f1_score(test_metrics["_labels"], test_preds, zero_division=0)),
             "precision": safe_round(precision_score(test_metrics["_labels"], test_preds, zero_division=0)),
             "recall": safe_round(recall_score(test_metrics["_labels"], test_preds, zero_division=0)),
@@ -864,6 +924,7 @@ def run_training(
             "bestMonitorValue": safe_round(best_monitor_value),
             "finalThreshold": safe_round(final_threshold),
             "resolvedPosWeight": safe_round(resolved_pos_weight),
+            "trainPositiveRate": safe_round(float(positive_count / max(len(train_targets), 1))),
             "finalMetrics": final_metrics,
             "taskWeights": serialize_metrics(task_weights),
             "classificationReport": report,

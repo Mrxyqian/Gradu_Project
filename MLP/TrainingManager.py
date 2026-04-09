@@ -94,13 +94,20 @@ class TrainingJobManager:
         cfg.data.val_ratio = float(params["valRatio"])
         cfg.data.test_ratio = float(params["testRatio"])
         cfg.data.num_workers = int(params["numWorkers"])
+        cfg.data.balanced_sampling = bool(params.get("balancedSampling", cfg.data.balanced_sampling))
+        cfg.data.sampler_alpha = float(params.get("samplerAlpha", cfg.data.sampler_alpha))
 
+        cfg.model.input_dropout = float(params.get("inputDropout", cfg.model.input_dropout))
         cfg.model.backbone_dropout = float(params["backboneDropout"])
         cfg.model.head_dropout = float(params["headDropout"])
+        cfg.model.head_samples = int(params.get("headSamples", cfg.model.head_samples))
 
         cfg.loss.pos_weight = float(params["posWeight"])
-        cfg.loss.init_log_var_clf = float(params["initLogVarClf"])
-        cfg.loss.init_log_var_reg = float(params.get("initLogVarReg", 0.0))
+        cfg.loss.label_smoothing = float(params.get("labelSmoothing", cfg.loss.label_smoothing))
+        cfg.loss.focal_gamma = float(params.get("focalGamma", cfg.loss.focal_gamma))
+        cfg.loss.focal_alpha = float(params.get("focalAlpha", cfg.loss.focal_alpha))
+        cfg.loss.bce_weight = float(params.get("bceWeight", cfg.loss.bce_weight))
+        cfg.loss.focal_weight = float(params.get("focalWeight", cfg.loss.focal_weight))
 
         cfg.optimizer.optimizer = str(params["optimizer"])
         cfg.optimizer.lr = float(params["learningRate"])
@@ -174,7 +181,9 @@ class TrainingJobManager:
                     "valClfLoss": [],
                     "valRegLoss": [],
                     "valAuc": [],
+                    "valPrAuc": [],
                     "valAccuracy": [],
+                    "valBalancedAccuracy": [],
                     "valF1": [],
                     "valPrecision": [],
                     "valRecall": [],
@@ -232,7 +241,9 @@ class TrainingJobManager:
                         "valClfLoss": result["history"]["valClfLoss"][last_idx],
                         "valRegLoss": result["history"]["valRegLoss"][last_idx],
                         "valAuc": result["history"]["valAuc"][last_idx],
+                        "valPrAuc": result["history"]["valPrAuc"][last_idx],
                         "valAccuracy": result["history"]["valAccuracy"][last_idx],
+                        "valBalancedAccuracy": result["history"]["valBalancedAccuracy"][last_idx],
                         "valF1": result["history"]["valF1"][last_idx],
                         "valPrecision": result["history"]["valPrecision"][last_idx],
                         "valRecall": result["history"]["valRecall"][last_idx],

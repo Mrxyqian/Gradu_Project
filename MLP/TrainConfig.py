@@ -29,23 +29,31 @@ class DataConfig:
     val_ratio: float = 0.15
     test_ratio: float = 0.10
     random_seed: int = 42
-    batch_size: int = 128
+    batch_size: int = 256
     num_workers: int = 2
+    balanced_sampling: bool = True
+    sampler_alpha: float = 0.75
 
 
 @dataclass
 class ModelConfig:
     input_dim: int = -1
-    hidden_dims: tuple[int, ...] = (256, 512, 256)
-    head_hidden_dim: int = 128
-    backbone_dropout: float = 0.25
-    head_dropout: float = 0.10
+    hidden_dims: tuple[int, ...] = (256, 384, 256, 128)
+    head_hidden_dim: int = 160
+    input_dropout: float = 0.05
+    backbone_dropout: float = 0.20
+    head_dropout: float = 0.20
+    head_samples: int = 4
 
 
 @dataclass
 class LossConfig:
-    pos_weight: float = 4.15
-    label_smoothing: float = 0.0
+    pos_weight: float = -1.0
+    label_smoothing: float = 0.01
+    focal_gamma: float = 2.0
+    focal_alpha: float = 0.75
+    bce_weight: float = 1.0
+    focal_weight: float = 0.35
     init_log_var_clf: float = 0.0
     init_log_var_reg: float = 0.0
     w_clf: float = 1.0
@@ -55,8 +63,8 @@ class LossConfig:
 @dataclass
 class OptimizerConfig:
     optimizer: str = "adamw"
-    lr: float = 2e-4
-    weight_decay: float = 7e-5
+    lr: float = 3e-4
+    weight_decay: float = 2e-4
     beta1: float = 0.9
     beta2: float = 0.999
     eps: float = 1e-8
@@ -67,31 +75,31 @@ class OptimizerConfig:
 @dataclass
 class SchedulerConfig:
     scheduler: str = "cosine_warmup"
-    warmup_epochs: int = 5
-    min_lr: float = 1e-6
+    warmup_epochs: int = 8
+    min_lr: float = 5e-6
     plateau_factor: float = 0.5
-    plateau_patience: int = 5
-    plateau_min_lr: float = 1e-6
+    plateau_patience: int = 4
+    plateau_min_lr: float = 5e-6
     step_size: int = 10
     gamma: float = 0.5
 
 
 @dataclass
 class TrainConfig:
-    num_epochs: int = 100
+    num_epochs: int = 80
     early_stop: bool = True
-    patience: int = 20
-    min_delta: float = 1e-4
-    early_stop_metric: str = "auc"
+    patience: int = 16
+    min_delta: float = 5e-4
+    early_stop_metric: str = "pr_auc"
     use_amp: bool = True
-    grad_clip: float = 1.0
+    grad_clip: float = 2.0
     resume_from: str = ""
-    log_interval: int = 100
+    log_interval: int = 200
     save_every_epoch: bool = False
     clf_threshold: float = 0.5
     auto_threshold: bool = True
     threshold_metric: str = "f1"
-    threshold_beta: float = 1.3
+    threshold_beta: float = 0.8
 
 
 @dataclass

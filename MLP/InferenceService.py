@@ -21,10 +21,10 @@ import torch
 
 if __package__:
     from .DataLoader import build_inference_reference, preprocess_for_inference
-    from .Model import InsuranceMLP
+    from .Model import build_model_from_checkpoint
 else:
     from DataLoader import build_inference_reference, preprocess_for_inference
-    from Model import InsuranceMLP
+    from Model import build_model_from_checkpoint
 
 
 _TORCH_LOAD_KWARGS = {"weights_only": False}
@@ -307,7 +307,7 @@ class InsuranceInferenceService:
         with open(scaler_path, "rb") as file:
             return pickle.load(file)
 
-    def _load_model(self, model_path: Path) -> InsuranceMLP:
+    def _load_model(self, model_path: Path):
         checkpoint = torch.load(model_path, map_location=self.device, **_TORCH_LOAD_KWARGS)
         input_dim = checkpoint.get("input_dim", len(self.reference["feature_columns"]))
 
@@ -316,8 +316,7 @@ class InsuranceInferenceService:
                 f"模型输入维度({input_dim})与训练特征维度({len(self.reference['feature_columns'])})不一致"
             )
 
-        model = InsuranceMLP(input_dim=input_dim)
-        model.load_state_dict(checkpoint["model"])
+        model = build_model_from_checkpoint(checkpoint, input_dim=input_dim)
         model.to(self.device)
         model.eval()
         return model
@@ -339,7 +338,12 @@ class InsuranceInferenceService:
 
         bundle_info = self._resolve_bundle_info(resolved_version)
         scaler = self._load_scaler(bundle_info["scalerPath"])
-        model = self._load_model(bundle_info["modelPath"])
+        try:
+            model = self._load_model(bundle_info["modelPath"])
+        except Exception as exc:
+            raise RuntimeError(
+                f"Failed to load model version '{bundle_info['modelVersion']}': {exc}"
+            ) from exc
         classification_threshold = self._load_threshold(bundle_info.get("thresholdPath"))
         bundle = {
             "modelVersion": bundle_info["modelVersion"],
