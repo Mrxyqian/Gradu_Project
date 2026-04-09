@@ -10,6 +10,11 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 
+BASE_DIR = Path(__file__).resolve().parent
+DEFAULT_OUTPUT_DIR = BASE_DIR / "outputs"
+DEFAULT_DATASET_PATH = BASE_DIR / "DataSet" / "Motor vehicle insurance data.csv"
+
+
 # ─────────────────────────────────────────────
 # 路径配置
 # ─────────────────────────────────────────────
@@ -17,22 +22,22 @@ from pathlib import Path
 @dataclass
 class PathConfig:
     # 数据
-    csv_path:        str = "./DataSet/Motor vehicle insurance data.csv"
+    csv_path:        str = str(DEFAULT_DATASET_PATH)
 
     # 训练产物输出目录
-    output_dir:      str = "outputs"
+    output_dir:      str = str(DEFAULT_OUTPUT_DIR)
 
     # Scaler 持久化路径（供推理复用）
-    scaler_path:     str = "outputs/scaler.pkl"
+    scaler_path:     str = str(DEFAULT_OUTPUT_DIR / "scaler.pkl")
 
     # 模型检查点
     # best_*  : 验证集最优权重（用于最终评估与部署）
     # last_*  : 最后一个 epoch 权重（用于断点续训）
-    best_model_path: str = "outputs/best_model.pth"
-    last_model_path: str = "outputs/last_model.pth"
+    best_model_path: str = str(DEFAULT_OUTPUT_DIR / "best_model.pth")
+    last_model_path: str = str(DEFAULT_OUTPUT_DIR / "last_model.pth")
 
     # TensorBoard 日志目录
-    log_dir:         str = "outputs/runs"
+    log_dir:         str = str(DEFAULT_OUTPUT_DIR / "runs")
 
     def __post_init__(self):
         Path(self.output_dir).mkdir(parents=True, exist_ok=True)

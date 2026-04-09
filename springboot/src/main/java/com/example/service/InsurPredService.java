@@ -4,6 +4,7 @@ import cn.hutool.http.HttpRequest;
 import cn.hutool.http.HttpResponse;
 import cn.hutool.json.JSONArray;
 import cn.hutool.json.JSONObject;
+import cn.hutool.json.JSONNull;
 import cn.hutool.json.JSONUtil;
 import com.example.entity.InsurPred;
 import com.example.entity.MotorInsurance;
@@ -19,6 +20,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -39,14 +41,14 @@ public class InsurPredService {
     @Value("${fastapi.timeout:30000}")
     private Integer fastApiTimeout;
 
-    public List<InsurPred> predictAndSave(List<Integer> ids) {
+    public List<InsurPred> predictAndSave(List<Integer> ids, String modelVersion) {
         validatePredictIds(ids);
 
         List<Integer> distinctIds = ids.stream().distinct().collect(Collectors.toList());
         List<MotorInsurance> motorInsuranceList = motorInsuranceService.selectByIds(distinctIds);
         validatePoliciesFound(distinctIds, motorInsuranceList);
 
-        JSONArray resultArray = callFastApiBatchPredict(motorInsuranceList);
+        JSONArray resultArray = callFastApiBatchPredict(motorInsuranceList, modelVersion);
         List<InsurPred> savedList = new ArrayList<>();
         for (int i = 0; i < resultArray.size(); i++) {
             JSONObject item = resultArray.getJSONObject(i);
@@ -88,6 +90,29 @@ public class InsurPredService {
         return insurPredMapper.countByBusinessIds(ids.stream().distinct().collect(Collectors.toList()));
     }
 
+    public Object listModelVersions() {
+        String url = fastApiBaseUrl + "/models/versions";
+        try (HttpResponse response = HttpRequest.get(url)
+                .timeout(fastApiTimeout)
+                .execute()) {
+
+            if (response.getStatus() < 200 || response.getStatus() >= 300) {
+                throw new CustomException("FastAPI 模型版本服务调用失败，HTTP 状态码: " + response.getStatus());
+            }
+
+            JSONObject responseObj = JSONUtil.parseObj(response.body());
+            if (!"200".equals(responseObj.getStr("code"))) {
+                throw new CustomException("FastAPI 模型版本服务返回异常: " + responseObj.getStr("msg"));
+            }
+
+            return normalizeJsonValue(responseObj.get("data"));
+        } catch (CustomException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new CustomException("调用 FastAPI 模型版本服务异常: " + e.getMessage());
+        }
+    }
+
     private void validatePredictIds(List<Integer> ids) {
         if (ids == null || ids.isEmpty()) {
             throw new CustomException("请至少传入 1 条保单 ID");
@@ -120,7 +145,7 @@ public class InsurPredService {
         }
     }
 
-    private JSONArray callFastApiBatchPredict(List<MotorInsurance> motorInsuranceList) {
+    private JSONArray callFastApiBatchPredict(List<MotorInsurance> motorInsuranceList, String modelVersion) {
         String url = fastApiBaseUrl + "/predict/batch";
 
         List<Object> recordList = new ArrayList<>();
@@ -131,6 +156,7 @@ public class InsurPredService {
 
         Map<String, Object> payload = new HashMap<>();
         payload.put("records", recordList);
+        payload.put("modelVersion", modelVersion);
 
         try (HttpResponse response = HttpRequest.post(url)
                 .timeout(fastApiTimeout)
@@ -194,5 +220,48 @@ public class InsurPredService {
         } catch (Exception e) {
             return BigDecimal.ZERO;
         }
+    }
+
+    private Object normalizeJsonValue(Object value) {
+        if (value == null || value instanceof JSONNull) {
+            return null;
+        }
+
+        if (value instanceof JSONObject) {
+            JSONObject jsonObject = (JSONObject) value;
+            Map<String, Object> map = new LinkedHashMap<>();
+            for (String key : jsonObject.keySet()) {
+                map.put(key, normalizeJsonValue(jsonObject.get(key)));
+            }
+            return map;
+        }
+
+        if (value instanceof JSONArray) {
+            JSONArray jsonArray = (JSONArray) value;
+            List<Object> list = new ArrayList<>();
+            for (Object item : jsonArray) {
+                list.add(normalizeJsonValue(item));
+            }
+            return list;
+        }
+
+        if (value instanceof Map) {
+            Map<?, ?> rawMap = (Map<?, ?>) value;
+            Map<String, Object> map = new LinkedHashMap<>();
+            for (Map.Entry<?, ?> entry : rawMap.entrySet()) {
+                map.put(String.valueOf(entry.getKey()), normalizeJsonValue(entry.getValue()));
+            }
+            return map;
+        }
+
+        if (value instanceof Iterable) {
+            List<Object> list = new ArrayList<>();
+            for (Object item : (Iterable<?>) value) {
+                list.add(normalizeJsonValue(item));
+            }
+            return list;
+        }
+
+        return value;
     }
 }

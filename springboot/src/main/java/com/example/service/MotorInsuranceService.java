@@ -1,6 +1,7 @@
 package com.example.service;
 
 import com.example.common.DateUtil;
+import com.example.common.SessionUserUtil;
 import com.example.entity.MotorInsurance;
 import com.example.mapper.MotorInsuranceMapper;
 import com.github.pagehelper.PageHelper;
@@ -8,6 +9,7 @@ import com.github.pagehelper.PageInfo;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
+import javax.servlet.http.HttpSession;
 import java.util.List;
 import java.util.Map;
 
@@ -64,7 +66,8 @@ public class MotorInsuranceService {
         motorInsuranceMapper.insert(motorInsurance);
     }
 
-    public void deleteById(Integer id) {
+    public void deleteById(Integer id, HttpSession session) {
+        SessionUserUtil.requireAdmin(session);
         motorInsuranceMapper.deleteById(id);
     }
 

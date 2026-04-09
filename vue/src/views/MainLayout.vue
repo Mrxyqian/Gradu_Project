@@ -69,6 +69,10 @@
             <el-icon><Van /></el-icon>
             <span>车辆信息管理</span>
           </el-menu-item>
+          <el-menu-item v-if="user.role === 'ADMIN'" index="/userManage">
+            <el-icon><User /></el-icon>
+            <span>用户管理</span>
+          </el-menu-item>
           <el-sub-menu index="4">
             <template #title>
               <el-icon><TrendCharts /></el-icon>
@@ -81,6 +85,10 @@
             <el-menu-item index="/predictionStatistics">
               <el-icon><PieChart /></el-icon>
               <span>预测统计</span>
+            </el-menu-item>
+            <el-menu-item v-if="user.role === 'ADMIN'" index="/modelTraining">
+              <el-icon><Operation /></el-icon>
+              <span>模型训练</span>
             </el-menu-item>
           </el-sub-menu>
         </el-menu>
@@ -98,12 +106,14 @@ import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { clearCurrentUser, getCurrentUser } from '@/utils/auth'
+import request from '@/utils/request'
 
 const $route = useRoute()
 const router = useRouter()
 const user = ref(getCurrentUser())
 
-const logout = () => {
+const logout = async () => {
+  await request.post('/auth/logout')
   clearCurrentUser()
   ElMessage.success('已退出登录')
   router.push('/login')

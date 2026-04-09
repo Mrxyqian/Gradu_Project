@@ -68,7 +68,7 @@
           <el-table-column label="操作" width="180" fixed="right">
             <template #default="scope">
               <el-button type="primary" plain size="small" @click="handleEdit(scope.row)">编辑</el-button>
-              <el-button type="danger" plain size="small" @click="del(scope.row.id)">删除</el-button>
+              <el-button v-if="canDelete" type="danger" plain size="small" @click="del(scope.row.id)">删除</el-button>
             </template>
           </el-table-column>
         </el-table>
@@ -248,8 +248,10 @@ import { ref, reactive } from "vue";
 import { Search } from '@element-plus/icons-vue'
 import request from "@/utils/request";
 import {ElMessage, ElMessageBox} from "element-plus";
+import { getCurrentUser } from "@/utils/auth";
 
 const baseUrl = '/motorInsurance'
+const canDelete = getCurrentUser().role === 'ADMIN'
 
 const data = reactive({
   id: '',
@@ -337,6 +339,10 @@ const handleEdit = (row) => {
 }
 
 const del = (id) => {
+  if (!canDelete) {
+    ElMessage.error('普通用户不能删除保单信息')
+    return
+  }
   ElMessageBox.confirm('删除数据后无法恢复，您确认删除吗？', '删除确认', { type: 'warning' }).then(res => {
     request.delete(baseUrl + '/delete/' + id).then(res => {
       if (res.code === '200') {

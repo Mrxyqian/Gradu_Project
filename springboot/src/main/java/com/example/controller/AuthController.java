@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.annotation.Resource;
+import javax.servlet.http.HttpSession;
 import java.util.Map;
 
 @RestController
@@ -19,14 +20,20 @@ public class AuthController {
     private UserService userService;
 
     @PostMapping("/register")
-    public Result register(@RequestBody User user) {
-        Map<String, Object> data = userService.register(user);
+    public Result register(@RequestBody User user, HttpSession session) {
+        Map<String, Object> data = userService.register(user, session);
         return Result.success(data);
     }
 
     @PostMapping("/login")
-    public Result login(@RequestBody User user) {
-        Map<String, Object> data = userService.login(user);
+    public Result login(@RequestBody User user, HttpSession session) {
+        Map<String, Object> data = userService.login(user, session);
         return Result.success(data);
+    }
+
+    @PostMapping("/logout")
+    public Result logout(HttpSession session) {
+        userService.logout(session);
+        return Result.success();
     }
 }

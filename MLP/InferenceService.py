@@ -10,6 +10,7 @@ InferenceService.py
 
 from __future__ import annotations
 
+import json
 import pickle
 from datetime import datetime
 from pathlib import Path
@@ -18,10 +19,10 @@ from typing import Any, Dict, List, Optional
 import pandas as pd
 import torch
 
-try:
+if __package__:
     from .DataLoader import build_inference_reference, preprocess_for_inference
     from .Model import InsuranceMLP
-except ImportError:
+else:
     from DataLoader import build_inference_reference, preprocess_for_inference
     from Model import InsuranceMLP
 
@@ -81,29 +82,30 @@ class InsuranceInferenceService:
         self.scaler_path = self.base_dir / "outputs" / "scaler.pkl"
         self.best_model_path = self.base_dir / "outputs" / "best_model.pth"
         self.best_threshold_path = self.base_dir / "outputs" / "best_threshold.pt"
+        self.saved_weights_dir = self.base_dir / "outputs" / "saved_weights"
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.risk_low_threshold = risk_low_threshold
         self.risk_high_threshold = risk_high_threshold
         self.max_batch_size = 10
 
-        self.scaler = None
-        self.model = None
         self.reference = None
+        self.bundle_cache: Dict[str, Dict[str, Any]] = {}
         self.classification_threshold = 0.5
         self.model_version = ""
+        self.default_model_version: Optional[str] = None
         self.ready = False
         self.load_error = ""
 
     def load(self) -> None:
         """加载模型、标准化器和训练期参考信息。"""
         try:
-            self._validate_files()
             self.reference = self._build_reference()
-            self.scaler = self._load_scaler()
-            self.model = self._load_model()
-            self.classification_threshold = self._load_threshold()
-            self.model_version = self._build_model_version()
+            self.bundle_cache = {}
+            default_bundle = self._load_bundle()
+            self.classification_threshold = float(default_bundle["classificationThreshold"])
+            self.model_version = default_bundle["modelVersion"]
+            self.default_model_version = default_bundle["modelVersion"]
             self.ready = True
             self.load_error = ""
         except Exception as exc:
@@ -120,7 +122,7 @@ class InsuranceInferenceService:
     def predict_single(self, record: Dict[str, Any]) -> Dict[str, Any]:
         return self.predict_batch([record])[0]
 
-    def predict_batch(self, records: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def predict_batch(self, records: List[Dict[str, Any]], model_version: Optional[str] = None) -> List[Dict[str, Any]]:
         self.ensure_ready()
 
         if not records:
@@ -128,14 +130,15 @@ class InsuranceInferenceService:
         if len(records) > self.max_batch_size:
             raise ValueError(f"单次最多支持 {self.max_batch_size} 条保单记录")
 
+        bundle = self._load_bundle(model_version)
         normalized_records = [self.normalize_record(record) for record in records]
         source_ids = [self.extract_source_id(record) for record in records]
 
-        x_tensor, _ = preprocess_for_inference(normalized_records, self.reference, self.scaler)
+        x_tensor, _ = preprocess_for_inference(normalized_records, self.reference, bundle["scaler"])
         x_tensor = x_tensor.to(self.device)
 
         with torch.no_grad():
-            clf_logit, reg_pred = self.model(x_tensor)
+            clf_logit, reg_pred = bundle["model"](x_tensor)
             claim_probs = torch.sigmoid(clf_logit).cpu().numpy()
             claim_amounts = torch.expm1(reg_pred.clamp(min=0)).cpu().numpy()
 
@@ -152,24 +155,46 @@ class InsuranceInferenceService:
                 "sourceId": source_id,
                 "claimProbability": round(claim_prob, 6),
                 "claimProbabilityPercent": round(claim_prob * 100, 2),
-                "claimFlag": int(claim_prob >= self.classification_threshold),
+                "claimFlag": int(claim_prob >= bundle["classificationThreshold"]),
                 "riskLevel": self.map_risk_level(claim_prob),
                 "expectedClaimAmount": round(claim_amount, 2),
-                "thresholdUsed": round(float(self.classification_threshold), 6),
-                "modelVersion": self.model_version,
+                "thresholdUsed": round(float(bundle["classificationThreshold"]), 6),
+                "modelVersion": bundle["modelVersion"],
                 "generatedAt": generated_at,
             })
 
         return results
 
+    def list_model_versions(self) -> Dict[str, Any]:
+        versions = self._discover_saved_versions()
+        if not versions:
+            fallback_version = self._build_fallback_version()
+            if fallback_version is None:
+                return {
+                    "defaultModelVersion": None,
+                    "versions": [],
+                }
+            return {
+                "defaultModelVersion": fallback_version["modelVersion"],
+                "versions": [fallback_version],
+            }
+
+        default_version = versions[0]["modelVersion"]
+        return {
+            "defaultModelVersion": default_version,
+            "versions": versions,
+        }
+
     def get_contract(self) -> Dict[str, Any]:
         """返回给 Spring Boot / 前端联调时使用的接口契约。"""
+        model_versions = self.list_model_versions()
         return {
             "serviceName": "motor-insurance-claim-prediction",
             "version": "1.0.0",
             "maxBatchSize": self.max_batch_size,
             "device": str(self.device),
             "classificationThreshold": round(float(self.classification_threshold), 6) if self.ready else None,
+            "defaultModelVersion": model_versions["defaultModelVersion"],
             "riskLevelRule": {
                 "low": f"claimProbability < {self.risk_low_threshold:.2f}",
                 "medium": f"{self.risk_low_threshold:.2f} <= claimProbability < {self.risk_high_threshold:.2f}",
@@ -180,6 +205,7 @@ class InsuranceInferenceService:
                 "method": "POST",
                 "path": "/predict",
                 "body": {
+                    "modelVersion": model_versions["defaultModelVersion"],
                     "record": {
                         "id": 100001,
                         "dateStartContract": "2019-01-01",
@@ -215,12 +241,14 @@ class InsuranceInferenceService:
                 "method": "POST",
                 "path": "/predict/batch",
                 "body": {
+                    "modelVersion": model_versions["defaultModelVersion"],
                     "records": [
                         {"id": 100001, "typeRisk": 3, "premium": 1800.0},
                         {"id": 100002, "typeRisk": 2, "premium": 2600.0},
                     ]
                 },
             },
+            "modelVersions": model_versions["versions"],
             "responseFields": [
                 {"name": "sourceId", "type": "integer|null", "description": "原保单 ID，用于业务系统回写"},
                 {"name": "claimProbability", "type": "float", "description": "理赔概率，取值范围 0~1"},
@@ -241,6 +269,8 @@ class InsuranceInferenceService:
             "device": str(self.device),
             "classificationThreshold": round(float(self.classification_threshold), 6) if self.ready else None,
             "modelVersion": self.model_version if self.ready else None,
+            "defaultModelVersion": self.default_model_version,
+            "availableModelVersions": self.list_model_versions()["versions"],
             "artifacts": {
                 "csvPath": str(self.csv_path),
                 "scalerPath": str(self.scaler_path),
@@ -276,23 +306,16 @@ class InsuranceInferenceService:
             normalized[raw_key] = value
         return normalized
 
-    def _validate_files(self) -> None:
-        missing = [str(path) for path in (
-            self.csv_path, self.scaler_path, self.best_model_path
-        ) if not path.exists()]
-        if missing:
-            raise FileNotFoundError(f"以下推理产物不存在: {missing}")
-
     def _build_reference(self) -> Dict[str, Any]:
         df_raw = pd.read_csv(self.csv_path)
         return build_inference_reference(df_raw)
 
-    def _load_scaler(self):
-        with open(self.scaler_path, "rb") as file:
+    def _load_scaler(self, scaler_path: Path):
+        with open(scaler_path, "rb") as file:
             return pickle.load(file)
 
-    def _load_model(self) -> InsuranceMLP:
-        checkpoint = torch.load(self.best_model_path, map_location=self.device, **_TORCH_LOAD_KWARGS)
+    def _load_model(self, model_path: Path) -> InsuranceMLP:
+        checkpoint = torch.load(model_path, map_location=self.device, **_TORCH_LOAD_KWARGS)
         input_dim = checkpoint.get("input_dim", len(self.reference["feature_columns"]))
 
         if input_dim != len(self.reference["feature_columns"]):
@@ -306,12 +329,134 @@ class InsuranceInferenceService:
         model.eval()
         return model
 
-    def _load_threshold(self) -> float:
-        if not self.best_threshold_path.exists():
+    def _load_threshold(self, threshold_path: Optional[Path]) -> float:
+        if threshold_path is None or not threshold_path.exists():
             return 0.5
-        saved = torch.load(self.best_threshold_path, map_location="cpu", **_TORCH_LOAD_KWARGS)
+        saved = torch.load(threshold_path, map_location="cpu", **_TORCH_LOAD_KWARGS)
         return float(saved.get("best_threshold", 0.5))
 
-    def _build_model_version(self) -> str:
-        mtime = datetime.fromtimestamp(self.best_model_path.stat().st_mtime).strftime("%Y%m%d%H%M%S")
-        return f"{self.best_model_path.stem}-{mtime}"
+    def _load_bundle(self, model_version: Optional[str] = None) -> Dict[str, Any]:
+        resolved_version = model_version or self._get_default_model_version()
+        if not resolved_version:
+            raise RuntimeError("当前没有可用的模型权重版本，请先由管理员保存训练权重")
+
+        cached_bundle = self.bundle_cache.get(resolved_version)
+        if cached_bundle is not None:
+            return cached_bundle
+
+        bundle_info = self._resolve_bundle_info(resolved_version)
+        scaler = self._load_scaler(bundle_info["scalerPath"])
+        model = self._load_model(bundle_info["modelPath"])
+        classification_threshold = self._load_threshold(bundle_info.get("thresholdPath"))
+        bundle = {
+            "modelVersion": bundle_info["modelVersion"],
+            "displayName": bundle_info["displayName"],
+            "model": model,
+            "scaler": scaler,
+            "classificationThreshold": classification_threshold,
+            "checkpointType": bundle_info.get("checkpointType"),
+            "savedAt": bundle_info.get("savedAt"),
+        }
+        self.bundle_cache[resolved_version] = bundle
+        return bundle
+
+    def _get_default_model_version(self) -> Optional[str]:
+        versions = self._discover_saved_versions()
+        if versions:
+            return versions[0]["modelVersion"]
+        fallback_version = self._build_fallback_version()
+        return fallback_version["modelVersion"] if fallback_version else None
+
+    def _resolve_bundle_info(self, model_version: str) -> Dict[str, Any]:
+        for version in self._discover_saved_versions():
+            if version["modelVersion"] == model_version:
+                return {
+                    "modelVersion": version["modelVersion"],
+                    "displayName": version["displayName"],
+                    "modelPath": Path(version["filePath"]),
+                    "scalerPath": Path(version["scalerPath"]),
+                    "thresholdPath": Path(version["bestThresholdPath"]) if version.get("bestThresholdPath") else None,
+                    "checkpointType": version.get("checkpointType"),
+                    "savedAt": version.get("savedAt"),
+                }
+
+        fallback_version = self._build_fallback_version()
+        if fallback_version and fallback_version["modelVersion"] == model_version:
+            return {
+                "modelVersion": fallback_version["modelVersion"],
+                "displayName": fallback_version["displayName"],
+                "modelPath": Path(fallback_version["filePath"]),
+                "scalerPath": Path(fallback_version["scalerPath"]),
+                "thresholdPath": Path(fallback_version["bestThresholdPath"]) if fallback_version.get("bestThresholdPath") else None,
+                "checkpointType": fallback_version.get("checkpointType"),
+                "savedAt": fallback_version.get("savedAt"),
+            }
+
+        raise ValueError(f"未找到模型权重版本: {model_version}")
+
+    def _discover_saved_versions(self) -> List[Dict[str, Any]]:
+        if not self.saved_weights_dir.exists():
+            return []
+
+        versions: List[Dict[str, Any]] = []
+        for metadata_path in self.saved_weights_dir.glob("*.json"):
+            try:
+                metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+            except Exception:
+                continue
+
+            file_path = Path(str(metadata.get("filePath", "")).strip())
+            related_artifacts = metadata.get("relatedArtifacts") or {}
+            scaler_path = Path(str(related_artifacts.get("scalerPath", "")).strip())
+            threshold_path_raw = str(related_artifacts.get("bestThresholdPath", "")).strip()
+            threshold_path = Path(threshold_path_raw) if threshold_path_raw else None
+
+            if not file_path.exists() or not scaler_path.exists():
+                continue
+
+            final_metrics = (metadata.get("summary") or {}).get("finalMetrics") or {}
+            versions.append({
+                "modelVersion": metadata.get("fileName") or file_path.name,
+                "displayName": metadata.get("fileName") or file_path.name,
+                "fileName": metadata.get("fileName") or file_path.name,
+                "filePath": str(file_path),
+                "savedAt": metadata.get("savedAt"),
+                "checkpointType": metadata.get("checkpointType", "best"),
+                "jobId": metadata.get("jobId"),
+                "auc": final_metrics.get("auc"),
+                "f1": final_metrics.get("f1"),
+                "accuracy": final_metrics.get("accuracy"),
+                "rmse": final_metrics.get("rmse"),
+                "scalerPath": str(scaler_path),
+                "bestThresholdPath": str(threshold_path) if threshold_path else None,
+                "isFallback": False,
+            })
+
+        versions.sort(
+            key=lambda item: (item.get("savedAt") or "", item.get("fileName") or ""),
+            reverse=True,
+        )
+        return versions
+
+    def _build_fallback_version(self) -> Optional[Dict[str, Any]]:
+        if not self.best_model_path.exists() or not self.scaler_path.exists():
+            return None
+
+        mtime = datetime.fromtimestamp(self.best_model_path.stat().st_mtime).strftime("%Y-%m-%d %H:%M:%S")
+        model_version = self.best_model_path.name
+        return {
+            "modelVersion": model_version,
+            "displayName": f"{self.best_model_path.stem} (默认内置)",
+            "fileName": self.best_model_path.name,
+            "filePath": str(self.best_model_path),
+            "savedAt": mtime,
+            "checkpointType": "best",
+            "jobId": None,
+            "auc": None,
+            "f1": None,
+            "accuracy": None,
+            "rmse": None,
+            "scalerPath": str(self.scaler_path),
+            "bestThresholdPath": str(self.best_threshold_path) if self.best_threshold_path.exists() else None,
+            "isFallback": True,
+        }

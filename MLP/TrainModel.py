@@ -18,11 +18,11 @@ trainModel.py
     python trainModel.py
 """
 
-import os
 import time
-import math
 import logging
+from copy import deepcopy
 from pathlib import Path
+from typing import Any, Callable, Dict, Optional
 
 import numpy as np
 import torch
@@ -42,6 +42,7 @@ from torch.optim.lr_scheduler import (
 )
 from torch.utils.tensorboard import SummaryWriter
 from sklearn.metrics import (
+    accuracy_score,
     roc_auc_score,
     f1_score,
     fbeta_score,
@@ -50,9 +51,14 @@ from sklearn.metrics import (
     classification_report,
 )
 
-from TrainConfig import Config
-from DataLoader import build_dataloaders
-from Model import InsuranceMLP, DualTaskLoss
+if __package__:
+    from .TrainConfig import Config
+    from .DataLoader import build_dataloaders
+    from .Model import InsuranceMLP, DualTaskLoss
+else:
+    from TrainConfig import Config
+    from DataLoader import build_dataloaders
+    from Model import InsuranceMLP, DualTaskLoss
 
 
 # ─────────────────────────────────────────────
@@ -110,9 +116,17 @@ def search_best_threshold(
 # ─────────────────────────────────────────────
 
 def setup_logger(log_path: str) -> logging.Logger:
-    logger = logging.getLogger("InsuranceTrain")
+    logger = logging.getLogger(f"InsuranceTrain.{Path(log_path).resolve()}")
     logger.setLevel(logging.INFO)
+    logger.propagate = False
     fmt = logging.Formatter("[%(asctime)s] %(levelname)s  %(message)s", "%Y-%m-%d %H:%M:%S")
+
+    for handler in list(logger.handlers):
+        logger.removeHandler(handler)
+        try:
+            handler.close()
+        except Exception:
+            pass
 
     # 控制台输出
     ch = logging.StreamHandler()
@@ -126,6 +140,40 @@ def setup_logger(log_path: str) -> logging.Logger:
     logger.addHandler(fh)
 
     return logger
+
+
+def close_logger(logger: logging.Logger) -> None:
+    for handler in list(logger.handlers):
+        logger.removeHandler(handler)
+        try:
+            handler.close()
+        except Exception:
+            pass
+
+
+def safe_round(value: Any, digits: int = 6) -> float:
+    return round(float(value), digits)
+
+
+def serialize_metrics(metrics: Dict[str, Any], digits: int = 6) -> Dict[str, float]:
+    return {
+        key: safe_round(value, digits)
+        for key, value in metrics.items()
+        if not key.startswith("_")
+    }
+
+
+def safe_progress_callback(
+    callback: Optional[Callable[[Dict[str, Any]], None]],
+    payload: Dict[str, Any],
+    logger: logging.Logger,
+) -> None:
+    if callback is None:
+        return
+    try:
+        callback(deepcopy(payload))
+    except Exception as exc:
+        logger.warning(f"进度回调执行失败: {exc}")
 
 
 # ─────────────────────────────────────────────
@@ -398,6 +446,7 @@ def evaluate(
     # 分类指标
     preds  = (all_probs >= cfg.train.clf_threshold).astype(int)
     auc    = roc_auc_score(all_labels, all_probs)
+    acc    = accuracy_score(all_labels, preds)
     f1     = f1_score(all_labels, preds, zero_division=0)
     prec   = precision_score(all_labels, preds, zero_division=0)
     rec    = recall_score(all_labels, preds, zero_division=0)
@@ -419,6 +468,7 @@ def evaluate(
         "clf_loss": clf_loss_sum   / n,
         "reg_loss": reg_loss_sum   / n,
         "auc":      auc,
+        "accuracy": acc,
         "f1":       f1,
         "precision": prec,
         "recall":   rec,
@@ -434,255 +484,422 @@ def evaluate(
 # 主训练函数
 # ─────────────────────────────────────────────
 
-def train(cfg: Config):
-    # ── 设备 ─────────────────────────────────
+def build_history_container() -> Dict[str, list]:
+    return {
+        "epochs": [],
+        "trainLoss": [],
+        "trainClfLoss": [],
+        "trainRegLoss": [],
+        "valLoss": [],
+        "valClfLoss": [],
+        "valRegLoss": [],
+        "valAuc": [],
+        "valAccuracy": [],
+        "valF1": [],
+        "valPrecision": [],
+        "valRecall": [],
+        "valRmse": [],
+        "learningRate": [],
+        "bestThreshold": [],
+        "epochSeconds": [],
+    }
+
+
+def append_history(history: Dict[str, list], epoch_record: Dict[str, Any]) -> None:
+    history["epochs"].append(epoch_record["epoch"])
+    history["trainLoss"].append(epoch_record["trainLoss"])
+    history["trainClfLoss"].append(epoch_record["trainClfLoss"])
+    history["trainRegLoss"].append(epoch_record["trainRegLoss"])
+    history["valLoss"].append(epoch_record["valLoss"])
+    history["valClfLoss"].append(epoch_record["valClfLoss"])
+    history["valRegLoss"].append(epoch_record["valRegLoss"])
+    history["valAuc"].append(epoch_record["valAuc"])
+    history["valAccuracy"].append(epoch_record["valAccuracy"])
+    history["valF1"].append(epoch_record["valF1"])
+    history["valPrecision"].append(epoch_record["valPrecision"])
+    history["valRecall"].append(epoch_record["valRecall"])
+    history["valRmse"].append(epoch_record["valRmse"])
+    history["learningRate"].append(epoch_record["learningRate"])
+    history["bestThreshold"].append(epoch_record["bestThreshold"])
+    history["epochSeconds"].append(epoch_record["epochSeconds"])
+
+
+def resolve_monitor_key(metric_name: str) -> str:
+    return {
+        "total_loss": "loss",
+        "val_loss": "loss",
+    }.get(metric_name, metric_name)
+
+
+def resolve_monitor_mode(metric_name: str) -> str:
+    return "max" if metric_name in {"auc", "accuracy", "f1", "precision", "recall"} else "min"
+
+
+def run_training(
+    cfg: Config,
+    progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
+) -> Dict[str, Any]:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-    # ── 日志 & TensorBoard ───────────────────
     log_file = str(Path(cfg.path.output_dir) / "train.log")
-    logger   = setup_logger(log_file)
-    writer   = SummaryWriter(log_dir=cfg.path.log_dir)
+    best_threshold_path = str(Path(cfg.path.output_dir) / "best_threshold.pt")
+    logger = None
+    writer = None
+    history = build_history_container()
 
-    logger.info(f"使用设备: {device}")
-    cfg.summary()
+    try:
+        logger = setup_logger(log_file)
+        writer = SummaryWriter(log_dir=cfg.path.log_dir)
 
-    # ── 固定随机种子 ──────────────────────────
-    seed = cfg.data.random_seed
-    torch.manual_seed(seed)
-    np.random.seed(seed)
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed_all(seed)
+        logger.info(f"使用设备: {device}")
+        cfg.summary()
 
-    # ── 构建 DataLoader ───────────────────────
-    logger.info("━" * 50)
-    logger.info("构建 DataLoader ...")
-    train_loader, val_loader, test_loader, input_dim = build_dataloaders(
-        csv_path      = cfg.path.csv_path,
-        batch_size    = cfg.data.batch_size,
-        val_ratio     = cfg.data.val_ratio,
-        test_ratio    = cfg.data.test_ratio,
-        random_seed   = cfg.data.random_seed,
-        scaler_save_path = cfg.path.scaler_path,
-        num_workers   = cfg.data.num_workers,
-    )
-    cfg.model.input_dim = input_dim   # 动态写回配置
-    logger.info(f"输入特征维度: {input_dim}")
+        seed = cfg.data.random_seed
+        torch.manual_seed(seed)
+        np.random.seed(seed)
+        if torch.cuda.is_available():
+            torch.cuda.manual_seed_all(seed)
 
-    # ── 构建模型 ──────────────────────────────
-    logger.info("━" * 50)
-    logger.info("初始化模型 ...")
-    model = InsuranceMLP(
-        input_dim        = cfg.model.input_dim,
-        backbone_dropout = cfg.model.backbone_dropout,
-        head_dropout     = cfg.model.head_dropout,
-    ).to(device)
-
-    total_params = sum(p.numel() for p in model.parameters())
-    logger.info(f"模型总参数量: {total_params:,}")
-
-    # ── 损失函数 ──────────────────────────────
-    criterion = DualTaskLoss(
-        pos_weight       = cfg.loss.pos_weight,
-        init_log_var_clf = cfg.loss.init_log_var_clf,
-        init_log_var_reg = cfg.loss.init_log_var_reg,
-    ).to(device)
-
-    # ── 优化器 & 调度器 ───────────────────────
-    optimizer           = build_optimizer(model, cfg)
-    scheduler, sched_mode = build_scheduler(optimizer, cfg)
-
-    # ── AMP Scaler ────────────────────────────
-    amp_scaler = GradScaler(enabled=cfg.train.use_amp and device.type == "cuda")
-
-    # ── 断点续训 ──────────────────────────────
-    start_epoch = 0
-    best_val_loss = float("inf")
-    if cfg.train.resume_from and Path(cfg.train.resume_from).exists():
-        start_epoch, best_val_loss = load_checkpoint(
-            cfg.train.resume_from, model, optimizer, scheduler, device, logger
+        logger.info("━" * 50)
+        logger.info("构建 DataLoader ...")
+        train_loader, val_loader, test_loader, input_dim = build_dataloaders(
+            csv_path=cfg.path.csv_path,
+            batch_size=cfg.data.batch_size,
+            val_ratio=cfg.data.val_ratio,
+            test_ratio=cfg.data.test_ratio,
+            random_seed=cfg.data.random_seed,
+            scaler_save_path=cfg.path.scaler_path,
+            num_workers=cfg.data.num_workers,
         )
+        cfg.model.input_dim = input_dim
+        logger.info(f"输入特征维度: {input_dim}")
 
-    # ── Early Stopping ────────────────────────
-    # 根据配置选择监控指标和模式
-    _es_mode = "max" if cfg.train.early_stop_metric == "auc" else "min"
-    early_stopper = EarlyStopping(
-        patience  = cfg.train.patience,
-        min_delta = cfg.train.min_delta,
-        mode      = _es_mode,
-    ) if cfg.train.early_stop else None
+        logger.info("━" * 50)
+        logger.info("初始化模型 ...")
+        model = InsuranceMLP(
+            input_dim=cfg.model.input_dim,
+            backbone_dropout=cfg.model.backbone_dropout,
+            head_dropout=cfg.model.head_dropout,
+        ).to(device)
 
-    # 最优阈值（训练过程中在验证集上动态更新）
-    best_threshold = cfg.train.clf_threshold
+        total_params = sum(p.numel() for p in model.parameters())
+        logger.info(f"模型总参数量: {total_params:,}")
 
-    # ── 训练主循环 ────────────────────────────
-    logger.info("━" * 50)
-    logger.info(f"开始训练  共 {cfg.train.num_epochs} epochs")
-    logger.info("━" * 50)
+        criterion = DualTaskLoss(
+            pos_weight=cfg.loss.pos_weight,
+            init_log_var_clf=cfg.loss.init_log_var_clf,
+            init_log_var_reg=cfg.loss.init_log_var_reg,
+        ).to(device)
 
-    for epoch in range(start_epoch, cfg.train.num_epochs):
-        t0 = time.time()
+        optimizer = build_optimizer(model, cfg)
+        scheduler, sched_mode = build_scheduler(optimizer, cfg)
+        amp_scaler = GradScaler(enabled=cfg.train.use_amp and device.type == "cuda")
 
-        # —— 训练 ——
-        train_metrics = train_one_epoch(
-            model, train_loader, optimizer, criterion,
-            amp_scaler, device, cfg, epoch, logger, writer,
-        )
-
-        # —— 验证 ——
-        val_metrics = evaluate(model, val_loader, criterion, device, cfg, split="val")
-
-        elapsed = time.time() - t0
-        lr_now  = optimizer.param_groups[0]["lr"]
-
-        # —— 自动阈值搜索（在验证集 probs 上进行）——
-        if cfg.train.auto_threshold:
-            best_threshold, thresh_score = search_best_threshold(
-                val_metrics["_probs"],
-                val_metrics["_labels"],
-                metric=cfg.train.threshold_metric,
-                beta=cfg.train.threshold_beta,
+        monitor_key = resolve_monitor_key(cfg.train.early_stop_metric)
+        monitor_mode = resolve_monitor_mode(monitor_key)
+        start_epoch = 0
+        best_monitor_value = float("-inf") if monitor_mode == "max" else float("inf")
+        if cfg.train.resume_from and Path(cfg.train.resume_from).exists():
+            start_epoch, best_monitor_value = load_checkpoint(
+                cfg.train.resume_from, model, optimizer, scheduler, device, logger
             )
-            # 用最优阈值重新计算 F1/Precision/Recall 用于日志展示
-            preds_opt = (val_metrics["_probs"] >= best_threshold).astype(int)
-            val_f1_opt  = f1_score(val_metrics["_labels"], preds_opt, zero_division=0)
-            val_prec_opt = precision_score(val_metrics["_labels"], preds_opt, zero_division=0)
-            val_rec_opt  = recall_score(val_metrics["_labels"], preds_opt, zero_division=0)
-        else:
-            val_f1_opt   = val_metrics["f1"]
-            val_prec_opt = val_metrics["precision"]
-            val_rec_opt  = val_metrics["recall"]
-            thresh_score = val_metrics["f1"]
 
-        logger.info(
-            f"Epoch {epoch:03d}/{cfg.train.num_epochs-1} "
-            f"[{elapsed:.1f}s]  lr={lr_now:.2e}  "
-            f"train_loss={train_metrics['loss']:.4f}  "
-            f"val_loss={val_metrics['loss']:.4f}  "
-            f"val_auc={val_metrics['auc']:.4f}  "
-            f"val_f1={val_f1_opt:.4f}(thr={best_threshold:.3f})  "
-            f"prec={val_prec_opt:.4f}  rec={val_rec_opt:.4f}  "
-            f"val_rmse={val_metrics['rmse']:.1f}"
-        )
+        early_stopper = EarlyStopping(
+            patience=cfg.train.patience,
+            min_delta=cfg.train.min_delta,
+            mode=monitor_mode,
+        ) if cfg.train.early_stop else None
+        if early_stopper and start_epoch > 0 and np.isfinite(best_monitor_value):
+            early_stopper.best_value = best_monitor_value
 
-        # —— TensorBoard ——
-        for k, v in train_metrics.items():
-            writer.add_scalar(f"train/{k}", v, epoch)
-        for k, v in val_metrics.items():
-            if not k.startswith("_"):
-                writer.add_scalar(f"val/{k}", v, epoch)
-        writer.add_scalar("train/lr", lr_now, epoch)
-        writer.add_scalar("val/best_threshold", best_threshold, epoch)
-        writer.add_scalar("val/f1_at_best_threshold", val_f1_opt, epoch)
-        # 记录不确定性加权的动态任务权重
-        task_weights = criterion.get_task_weights()
-        writer.add_scalar("loss/weight_clf", task_weights["weight_clf"], epoch)
-        writer.add_scalar("loss/weight_reg", task_weights["weight_reg"], epoch)
+        best_threshold = cfg.train.clf_threshold
+        last_epoch_index = start_epoch - 1
 
-        # —— 学习率调度 ——
-        if sched_mode == "epoch" and scheduler:
-            scheduler.step()
-        elif sched_mode == "plateau" and scheduler:
-            scheduler.step(val_metrics["loss"])
+        logger.info("━" * 50)
+        logger.info(f"开始训练  共 {cfg.train.num_epochs} epochs")
+        logger.info("━" * 50)
 
-        # —— 检查点保存（以 AUC 或配置指标为准）——
-        _monitor_value = val_metrics.get(cfg.train.early_stop_metric, val_metrics["loss"])
-        # loss 类指标需取负值统一为"越大越好"判断
-        is_best = False
-        if early_stopper:
-            is_best = early_stopper.step(_monitor_value)
-        else:
-            if _es_mode == "max":
-                is_best = _monitor_value > best_val_loss
+        safe_progress_callback(progress_callback, {
+            "status": "running",
+            "currentEpoch": max(start_epoch, 0),
+            "totalEpochs": cfg.train.num_epochs,
+            "progress": 0.0,
+            "latestEpoch": None,
+            "history": history,
+            "message": "训练任务已启动，等待首个 epoch 完成",
+        }, logger)
+
+        for epoch in range(start_epoch, cfg.train.num_epochs):
+            last_epoch_index = epoch
+            t0 = time.time()
+
+            train_metrics = train_one_epoch(
+                model, train_loader, optimizer, criterion,
+                amp_scaler, device, cfg, epoch, logger, writer,
+            )
+            val_metrics = evaluate(model, val_loader, criterion, device, cfg, split="val")
+
+            elapsed = time.time() - t0
+            lr_now = optimizer.param_groups[0]["lr"]
+
+            if cfg.train.auto_threshold:
+                best_threshold, _ = search_best_threshold(
+                    val_metrics["_probs"],
+                    val_metrics["_labels"],
+                    metric=cfg.train.threshold_metric,
+                    beta=cfg.train.threshold_beta,
+                )
+                preds_opt = (val_metrics["_probs"] >= best_threshold).astype(int)
+                val_acc_opt = accuracy_score(val_metrics["_labels"], preds_opt)
+                val_f1_opt = f1_score(val_metrics["_labels"], preds_opt, zero_division=0)
+                val_prec_opt = precision_score(val_metrics["_labels"], preds_opt, zero_division=0)
+                val_rec_opt = recall_score(val_metrics["_labels"], preds_opt, zero_division=0)
             else:
-                is_best = _monitor_value < best_val_loss
+                val_acc_opt = val_metrics["accuracy"]
+                val_f1_opt = val_metrics["f1"]
+                val_prec_opt = val_metrics["precision"]
+                val_rec_opt = val_metrics["recall"]
 
-        if is_best:
-            best_val_loss = _monitor_value
-            save_checkpoint(
-                cfg.path.best_model_path, epoch, model, optimizer, scheduler, best_val_loss, cfg
-            )
-            # 同时保存此时的最优阈值
-            torch.save({"best_threshold": best_threshold},
-                       str(Path(cfg.path.output_dir) / "best_threshold.pt"))
             logger.info(
-                f"  💾 Best model saved  "
-                f"({cfg.train.early_stop_metric}={best_val_loss:.6f}, "
-                f"threshold={best_threshold:.3f})"
+                f"Epoch {epoch:03d}/{cfg.train.num_epochs-1} "
+                f"[{elapsed:.1f}s]  lr={lr_now:.2e}  "
+                f"train_loss={train_metrics['loss']:.4f}  "
+                f"val_loss={val_metrics['loss']:.4f}  "
+                f"val_auc={val_metrics['auc']:.4f}  "
+                f"val_acc={val_acc_opt:.4f}  "
+                f"val_f1={val_f1_opt:.4f}(thr={best_threshold:.3f})  "
+                f"prec={val_prec_opt:.4f}  rec={val_rec_opt:.4f}  "
+                f"val_rmse={val_metrics['rmse']:.1f}"
             )
 
-        # 每 epoch 存档（可选）
-        if cfg.train.save_every_epoch:
-            epoch_path = str(Path(cfg.path.output_dir) / f"epoch_{epoch:03d}.pth")
-            save_checkpoint(epoch_path, epoch, model, optimizer, scheduler, best_val_loss, cfg)
+            for key, value in train_metrics.items():
+                writer.add_scalar(f"train/{key}", value, epoch)
+            for key, value in val_metrics.items():
+                if not key.startswith("_"):
+                    writer.add_scalar(f"val/{key}", value, epoch)
+            writer.add_scalar("train/lr", lr_now, epoch)
+            writer.add_scalar("val/best_threshold", best_threshold, epoch)
+            writer.add_scalar("val/accuracy_at_best_threshold", val_acc_opt, epoch)
+            writer.add_scalar("val/f1_at_best_threshold", val_f1_opt, epoch)
+            task_weights = criterion.get_task_weights()
+            writer.add_scalar("loss/weight_clf", task_weights["weight_clf"], epoch)
+            writer.add_scalar("loss/weight_reg", task_weights["weight_reg"], epoch)
 
-        # 最后一个 epoch 的存档
-        save_checkpoint(
-            cfg.path.last_model_path, epoch, model, optimizer, scheduler, best_val_loss, cfg
+            if sched_mode == "epoch" and scheduler:
+                scheduler.step()
+            elif sched_mode == "plateau" and scheduler:
+                scheduler.step(val_metrics["loss"])
+
+            monitor_value = val_acc_opt if monitor_key == "accuracy" else (
+                val_f1_opt if monitor_key == "f1" else (
+                    val_prec_opt if monitor_key == "precision" else (
+                        val_rec_opt if monitor_key == "recall" else val_metrics.get(monitor_key, val_metrics["loss"])
+                    )
+                )
+            )
+
+            is_best = False
+            if early_stopper:
+                is_best = early_stopper.step(monitor_value)
+            elif monitor_mode == "max":
+                is_best = monitor_value > best_monitor_value
+            else:
+                is_best = monitor_value < best_monitor_value
+
+            if is_best:
+                best_monitor_value = monitor_value
+                save_checkpoint(
+                    cfg.path.best_model_path, epoch, model, optimizer, scheduler, best_monitor_value, cfg
+                )
+                torch.save({"best_threshold": best_threshold}, best_threshold_path)
+                logger.info(
+                    f"  💾 Best model saved  "
+                    f"({monitor_key}={best_monitor_value:.6f}, threshold={best_threshold:.3f})"
+                )
+
+            if cfg.train.save_every_epoch:
+                epoch_path = str(Path(cfg.path.output_dir) / f"epoch_{epoch:03d}.pth")
+                save_checkpoint(epoch_path, epoch, model, optimizer, scheduler, best_monitor_value, cfg)
+
+            save_checkpoint(
+                cfg.path.last_model_path, epoch, model, optimizer, scheduler, best_monitor_value, cfg
+            )
+
+            epoch_record = {
+                "epoch": epoch + 1,
+                "trainLoss": safe_round(train_metrics["loss"]),
+                "trainClfLoss": safe_round(train_metrics["clf_loss"]),
+                "trainRegLoss": safe_round(train_metrics["reg_loss"]),
+                "valLoss": safe_round(val_metrics["loss"]),
+                "valClfLoss": safe_round(val_metrics["clf_loss"]),
+                "valRegLoss": safe_round(val_metrics["reg_loss"]),
+                "valAuc": safe_round(val_metrics["auc"]),
+                "valAccuracy": safe_round(val_acc_opt),
+                "valF1": safe_round(val_f1_opt),
+                "valPrecision": safe_round(val_prec_opt),
+                "valRecall": safe_round(val_rec_opt),
+                "valRmse": safe_round(val_metrics["rmse"], 4),
+                "learningRate": safe_round(lr_now, 8),
+                "bestThreshold": safe_round(best_threshold),
+                "epochSeconds": safe_round(elapsed, 2),
+                "isBest": is_best,
+            }
+            append_history(history, epoch_record)
+
+            safe_progress_callback(progress_callback, {
+                "status": "running",
+                "currentEpoch": epoch + 1,
+                "totalEpochs": cfg.train.num_epochs,
+                "progress": safe_round((epoch + 1) / max(cfg.train.num_epochs, 1), 4),
+                "latestEpoch": epoch_record,
+                "history": history,
+                "message": f"已完成第 {epoch + 1}/{cfg.train.num_epochs} 个 epoch",
+            }, logger)
+
+            if early_stopper and early_stopper.should_stop:
+                logger.info(f"⛔ Early Stopping 触发 (patience={cfg.train.patience})，提前结束训练")
+                break
+
+        logger.info("━" * 50)
+        logger.info("训练结束")
+
+        if not Path(cfg.path.best_model_path).exists() and Path(cfg.path.last_model_path).exists():
+            save_checkpoint(
+                cfg.path.best_model_path,
+                max(last_epoch_index, 0),
+                model,
+                optimizer,
+                scheduler,
+                best_monitor_value,
+                cfg,
+            )
+            torch.save({"best_threshold": best_threshold}, best_threshold_path)
+
+        logger.info("━" * 50)
+        logger.info("加载 Best Model 进行测试集评估 ...")
+        ckpt = torch.load(cfg.path.best_model_path, map_location=device, **_TORCH_LOAD_KWARGS)
+        model.load_state_dict(ckpt["model"])
+
+        test_metrics = evaluate(model, test_loader, criterion, device, cfg, split="test")
+
+        if cfg.train.auto_threshold and Path(best_threshold_path).exists():
+            saved = torch.load(best_threshold_path, map_location="cpu", **_TORCH_LOAD_KWARGS)
+            final_threshold = float(saved["best_threshold"])
+            logger.info(f"使用验证集最优阈值: {final_threshold:.4f}")
+        else:
+            final_threshold = float(cfg.train.clf_threshold)
+            logger.info(f"使用固定阈值: {final_threshold:.4f}")
+
+        final_preds = (test_metrics["_probs"] >= final_threshold).astype(int)
+        final_accuracy = accuracy_score(test_metrics["_labels"], final_preds)
+        final_f1 = f1_score(test_metrics["_labels"], final_preds, zero_division=0)
+        final_prec = precision_score(test_metrics["_labels"], final_preds, zero_division=0)
+        final_rec = recall_score(test_metrics["_labels"], final_preds, zero_division=0)
+        task_weights = criterion.get_task_weights()
+
+        logger.info("=" * 50)
+        logger.info("  📊 测试集最终指标")
+        logger.info("=" * 50)
+        logger.info(f"  总损失       : {test_metrics['loss']:.4f}")
+        logger.info(f"  分类损失     : {test_metrics['clf_loss']:.4f}")
+        logger.info(f"  回归损失     : {test_metrics['reg_loss']:.4f}")
+        logger.info(f"  动态任务权重 : clf={task_weights['weight_clf']:.4f}  reg={task_weights['weight_reg']:.4f}")
+        logger.info(f"  AUC-ROC      : {test_metrics['auc']:.4f}")
+        logger.info(f"  Accuracy     : {final_accuracy:.4f}")
+        logger.info(f"  分类阈值     : {final_threshold:.4f}")
+        logger.info(f"  F1 Score     : {final_f1:.4f}")
+        logger.info(f"  Precision    : {final_prec:.4f}")
+        logger.info(f"  Recall       : {final_rec:.4f}")
+        logger.info(f"  RMSE (原始¥) : {test_metrics['rmse']:.2f}")
+        logger.info(f"  RMSE (log)   : {test_metrics['log_rmse']:.4f}")
+        logger.info("=" * 50)
+
+        report = classification_report(
+            test_metrics["_labels"], final_preds,
+            target_names=["无理赔", "有理赔"],
+            digits=4,
         )
+        logger.info(f"\n分类详细报告:\n{report}")
 
-        # —— Early Stopping 判断 ——
-        if early_stopper and early_stopper.should_stop:
-            logger.info(f"⛔ Early Stopping 触发 (patience={cfg.train.patience})，提前结束训练")
-            break
+        final_metrics = {
+            "loss": safe_round(test_metrics["loss"]),
+            "clfLoss": safe_round(test_metrics["clf_loss"]),
+            "regLoss": safe_round(test_metrics["reg_loss"]),
+            "auc": safe_round(test_metrics["auc"]),
+            "accuracy": safe_round(final_accuracy),
+            "f1": safe_round(final_f1),
+            "precision": safe_round(final_prec),
+            "recall": safe_round(final_rec),
+            "rmse": safe_round(test_metrics["rmse"], 4),
+            "logRmse": safe_round(test_metrics["log_rmse"]),
+        }
+        summary = {
+            "epochsCompleted": len(history["epochs"]),
+            "configuredEpochs": cfg.train.num_epochs,
+            "stoppedEarly": bool(early_stopper and early_stopper.should_stop),
+            "monitorMetric": monitor_key,
+            "bestMonitorValue": safe_round(best_monitor_value),
+            "finalThreshold": safe_round(final_threshold),
+            "finalMetrics": final_metrics,
+            "taskWeights": serialize_metrics(task_weights),
+            "classificationReport": report,
+        }
+        artifacts = {
+            "outputDir": str(Path(cfg.path.output_dir).resolve()),
+            "logFile": str(Path(log_file).resolve()),
+            "tensorboardDir": str(Path(cfg.path.log_dir).resolve()),
+            "scalerPath": str(Path(cfg.path.scaler_path).resolve()),
+            "bestModelPath": str(Path(cfg.path.best_model_path).resolve()),
+            "lastModelPath": str(Path(cfg.path.last_model_path).resolve()),
+            "bestThresholdPath": str(Path(best_threshold_path).resolve()),
+        }
 
-    writer.close()
-    logger.info("━" * 50)
-    logger.info("训练结束")
+        safe_progress_callback(progress_callback, {
+            "status": "completed",
+            "currentEpoch": len(history["epochs"]),
+            "totalEpochs": cfg.train.num_epochs,
+            "progress": 1.0,
+            "latestEpoch": history and {
+                "epoch": history["epochs"][-1],
+                "trainLoss": history["trainLoss"][-1],
+                "trainClfLoss": history["trainClfLoss"][-1],
+                "trainRegLoss": history["trainRegLoss"][-1],
+                "valLoss": history["valLoss"][-1],
+                "valClfLoss": history["valClfLoss"][-1],
+                "valRegLoss": history["valRegLoss"][-1],
+                "valAuc": history["valAuc"][-1],
+                "valAccuracy": history["valAccuracy"][-1],
+                "valF1": history["valF1"][-1],
+                "valPrecision": history["valPrecision"][-1],
+                "valRecall": history["valRecall"][-1],
+                "valRmse": history["valRmse"][-1],
+                "learningRate": history["learningRate"][-1],
+                "bestThreshold": history["bestThreshold"][-1],
+                "epochSeconds": history["epochSeconds"][-1],
+                "isBest": True,
+            },
+            "history": history,
+            "summary": summary,
+            "artifacts": artifacts,
+            "message": "训练完成",
+        }, logger)
 
-    # ─────────────────────────────────────────
-    # 测试集最终评估（加载 best model）
-    # ─────────────────────────────────────────
-    logger.info("━" * 50)
-    logger.info("加载 Best Model 进行测试集评估 ...")
-    ckpt = torch.load(cfg.path.best_model_path, map_location=device, **_TORCH_LOAD_KWARGS)
-    model.load_state_dict(ckpt["model"])
+        return {
+            "model": model,
+            "rawTestMetrics": test_metrics,
+            "history": history,
+            "summary": summary,
+            "artifacts": artifacts,
+        }
+    finally:
+        if writer is not None:
+            writer.close()
+        if logger is not None:
+            close_logger(logger)
 
-    test_metrics = evaluate(model, test_loader, criterion, device, cfg, split="test")
 
-    # 加载训练过程中搜索到的最优阈值
-    threshold_path = str(Path(cfg.path.output_dir) / "best_threshold.pt")
-    if cfg.train.auto_threshold and Path(threshold_path).exists():
-        saved = torch.load(threshold_path, map_location="cpu", **_TORCH_LOAD_KWARGS)
-        final_threshold = saved["best_threshold"]
-        logger.info(f"使用验证集最优阈值: {final_threshold:.4f}")
-    else:
-        final_threshold = cfg.train.clf_threshold
-        logger.info(f"使用固定阈值: {final_threshold:.4f}")
-
-    # 用最终阈值重新计算测试集分类指标
-    final_preds = (test_metrics["_probs"] >= final_threshold).astype(int)
-    final_f1    = f1_score(test_metrics["_labels"], final_preds, zero_division=0)
-    final_prec  = precision_score(test_metrics["_labels"], final_preds, zero_division=0)
-    final_rec   = recall_score(test_metrics["_labels"], final_preds, zero_division=0)
-
-    # 显示最终动态任务权重
-    task_weights = criterion.get_task_weights()
-
-    logger.info("=" * 50)
-    logger.info("  📊 测试集最终指标")
-    logger.info("=" * 50)
-    logger.info(f"  总损失       : {test_metrics['loss']:.4f}")
-    logger.info(f"  分类损失     : {test_metrics['clf_loss']:.4f}")
-    logger.info(f"  回归损失     : {test_metrics['reg_loss']:.4f}")
-    logger.info(f"  动态任务权重 : clf={task_weights['weight_clf']:.4f}  reg={task_weights['weight_reg']:.4f}")
-    logger.info(f"  AUC-ROC      : {test_metrics['auc']:.4f}")
-    logger.info(f"  分类阈值     : {final_threshold:.4f}")
-    logger.info(f"  F1 Score     : {final_f1:.4f}")
-    logger.info(f"  Precision    : {final_prec:.4f}")
-    logger.info(f"  Recall       : {final_rec:.4f}")
-    logger.info(f"  RMSE (原始¥) : {test_metrics['rmse']:.2f}")
-    logger.info(f"  RMSE (log)   : {test_metrics['log_rmse']:.4f}")
-    logger.info("=" * 50)
-
-    # 详细分类报告
-    report = classification_report(
-        test_metrics["_labels"], final_preds,
-        target_names=["无理赔", "有理赔"],
-        digits=4,
-    )
-    logger.info(f"\n分类详细报告:\n{report}")
-
-    return model, test_metrics, final_threshold
+def train(cfg: Config):
+    result = run_training(cfg)
+    return result["model"], result["rawTestMetrics"], result["summary"]["finalThreshold"]
 
 
 # ─────────────────────────────────────────────

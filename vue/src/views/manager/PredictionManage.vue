@@ -3,9 +3,26 @@
     <div class="card prediction-banner">
       <div>
         <div class="banner-title">理赔率预测管理</div>
-        <div class="banner-desc">从保单库中勾选 1 到 10 条记录执行预测，系统会自动保存预测历史。</div>
+        <div class="banner-desc">从保单库中勾选 1 到 10 条记录执行预测，可选择管理员已保存的模型权重版本，系统会自动保存预测历史。</div>
       </div>
       <div class="banner-actions">
+        <div class="version-picker">
+          <span class="version-label">预测模型</span>
+          <el-select
+            v-model="selectedModelVersion"
+            placeholder="请选择模型版本"
+            filterable
+            style="width: 320px"
+            :loading="modelVersionLoading"
+          >
+            <el-option
+              v-for="item in modelVersions"
+              :key="item.modelVersion"
+              :label="buildModelVersionLabel(item)"
+              :value="item.modelVersion"
+            />
+          </el-select>
+        </div>
         <div class="pick-count">已选 {{ selectedIds.length }} / 10 条</div>
         <el-button @click="clearSelection" :disabled="selectedIds.length === 0">清空选择</el-button>
         <el-button type="primary" @click="handlePredict" :disabled="selectedIds.length === 0">开始预测</el-button>
@@ -160,6 +177,10 @@ const historyTotal = ref(0)
 const selectedRowMap = reactive({})
 const resultDialogVisible = ref(false)
 const latestResults = ref([])
+const modelVersions = ref([])
+const selectedModelVersion = ref('')
+const defaultModelVersion = ref('')
+const modelVersionLoading = ref(false)
 
 const selectedIds = computed(() => Object.keys(selectedRowMap).map(id => Number(id)))
 
@@ -193,6 +214,14 @@ const getRiskLevelTag = (riskLevel) => {
 const formatPercent = (value) => `${(Number(value || 0) * 100).toFixed(2)}%`
 
 const formatMoney = (value) => Number(value || 0).toFixed(2)
+
+const buildModelVersionLabel = (item) => {
+  const tags = []
+  if (item.savedAt) tags.push(item.savedAt.replace('T', ' '))
+  if (item.checkpointType) tags.push(item.checkpointType)
+  if (item.auc !== undefined && item.auc !== null) tags.push(`AUC ${Number(item.auc).toFixed(4)}`)
+  return `${item.displayName || item.modelVersion}${tags.length ? `（${tags.join(' | ')}）` : ''}`
+}
 
 const isSelectable = (row) => {
   return selectedRowMap[row.id] || selectedIds.value.length < 10
@@ -235,6 +264,25 @@ const loadHistoryPage = () => {
   })
 }
 
+const loadModelVersions = async () => {
+  try {
+    modelVersionLoading.value = true
+    const res = await request.get('/insurPred/modelVersions')
+    const data = res.data || {}
+    modelVersions.value = data.versions || []
+    defaultModelVersion.value = data.defaultModelVersion || ''
+
+    if (!selectedModelVersion.value || !modelVersions.value.some(item => item.modelVersion === selectedModelVersion.value)) {
+      selectedModelVersion.value = defaultModelVersion.value
+    }
+  } catch (error) {
+    console.error(error)
+    ElMessage.error('加载模型版本列表失败，请检查训练服务是否正常')
+  } finally {
+    modelVersionLoading.value = false
+  }
+}
+
 const handleSelectionChange = (currentSelection) => {
   const currentPageIds = new Set(policyTableData.value.map(item => item.id))
   currentPageIds.forEach(id => {
@@ -255,6 +303,10 @@ const handlePredict = async () => {
     ElMessage.warning('请先选择要预测的保单')
     return
   }
+  if (!selectedModelVersion.value) {
+    ElMessage.warning('当前没有可用的模型权重版本，请先联系管理员保存训练权重')
+    return
+  }
 
   try {
     const duplicateRes = await request.post('/insurPred/countByBusinessIds', {
@@ -270,7 +322,8 @@ const handlePredict = async () => {
     }
 
     const predictRes = await request.post('/insurPred/predict', {
-      ids: selectedIds.value
+      ids: selectedIds.value,
+      modelVersion: selectedModelVersion.value,
     })
 
     if (predictRes.code === '200') {
@@ -306,6 +359,7 @@ const deleteHistory = async (predId) => {
 
 loadPolicyPage()
 loadHistoryPage()
+loadModelVersions()
 </script>
 
 <style scoped>
@@ -338,6 +392,19 @@ loadHistoryPage()
   gap: 10px;
   flex-wrap: wrap;
   justify-content: flex-end;
+}
+
+.version-picker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.version-label {
+  color: #14532d;
+  font-weight: 600;
 }
 
 .pick-count {
@@ -401,6 +468,10 @@ loadHistoryPage()
   .prediction-banner {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .version-picker {
+    justify-content: flex-start;
   }
 
   .result-grid {

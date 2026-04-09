@@ -1,5 +1,6 @@
 package com.example.service;
 
+import com.example.common.SessionUserUtil;
 import com.example.entity.ClaimTypes;
 import com.example.mapper.ClaimTypesMapper;
 import com.github.pagehelper.PageHelper;
@@ -7,6 +8,7 @@ import com.github.pagehelper.PageInfo;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
+import javax.servlet.http.HttpSession;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
@@ -21,7 +23,8 @@ public class ClaimTypesService {
         claimTypesMapper.insert(claimTypes);
     }
 
-    public void deleteById(Integer id) {
+    public void deleteById(Integer id, HttpSession session) {
+        SessionUserUtil.requireAdmin(session);
         claimTypesMapper.deleteById(id);
     }
 

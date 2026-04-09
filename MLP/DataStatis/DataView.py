@@ -56,15 +56,30 @@ stats_df = pd.DataFrame(
 )
 print(stats_df.to_string(index=False))
 
-# 7. 绘制直方图（柱状图）并标注频数
+# 7. 绘制直方图（柱状图）并标注频数（字体放大 + Y轴留空）
 plt.figure(figsize=(14, 6))
+
+# 全局字体大小设置
+plt.rcParams['font.size'] = 14
+plt.rcParams['axes.labelsize'] = 14
+plt.rcParams['axes.titlesize'] = 16
+plt.rcParams['xtick.labelsize'] = 12
+plt.rcParams['ytick.labelsize'] = 12
+
 bars = plt.bar(freq.index.astype(str), freq.values, edgecolor="black")
 
-# 在每个条形顶部添加频数标签
+max_height = freq.values.max()
+# 扩展 Y 轴上限，为数字标签留出空间
+plt.ylim(0, max_height * 1.15)   # 顶部留出 5% 空白
+
+# 添加数字标签
 for bar in bars:
     height = bar.get_height()
-    plt.text(bar.get_x() + bar.get_width()/2., height + 0.5,
-             f'{int(height)}', ha='center', va='bottom', fontsize=9)
+    plt.text(bar.get_x() + bar.get_width()/2.,
+             height + max_height * 0.01,   # 标签位置在柱子上方一点
+             f'{int(height)}',
+             ha='center', va='bottom',
+             fontsize=16)
 
 plt.title("Distribution of the claim amount")
 plt.xlabel("Amount range")

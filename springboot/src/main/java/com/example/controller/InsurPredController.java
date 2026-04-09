@@ -26,8 +26,13 @@ public class InsurPredController {
 
     @PostMapping("/predict")
     public Result predict(@RequestBody PredictionBatchRequest request) {
-        List<InsurPred> resultList = insurPredService.predictAndSave(request.getIds());
+        List<InsurPred> resultList = insurPredService.predictAndSave(request.getIds(), request.getModelVersion());
         return Result.success(resultList);
+    }
+
+    @GetMapping("/modelVersions")
+    public Result modelVersions() {
+        return Result.success(insurPredService.listModelVersions());
     }
 
     @DeleteMapping("/delete/{predId}")

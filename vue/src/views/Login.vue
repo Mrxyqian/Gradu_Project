@@ -32,6 +32,12 @@
               <el-form-item label="密码" prop="password">
                 <el-input v-model="registerForm.password" show-password placeholder="请设置登录密码" />
               </el-form-item>
+              <el-form-item label="角色" prop="role">
+                <el-select v-model="registerForm.role" style="width: 100%">
+                  <el-option label="普通用户" value="USER" />
+                  <el-option label="管理员" value="ADMIN" />
+                </el-select>
+              </el-form-item>
               <el-form-item label="注册口令" prop="registerCode">
                 <el-input v-model="registerForm.registerCode" placeholder="请输入注册口令" />
               </el-form-item>
@@ -65,6 +71,7 @@ const registerForm = ref({
   employeeNo: '',
   name: '',
   password: '',
+  role: 'USER',
   registerCode: '',
 })
 
@@ -93,6 +100,7 @@ const registerRules = {
   employeeNo: [{ required: true, validator: validateEmployeeNo, trigger: 'blur' }],
   name: [{ required: true, validator: validateName, trigger: 'blur' }],
   password: [{ required: true, message: '请输入密码', trigger: 'blur' }],
+  role: [{ required: true, message: '请选择角色', trigger: 'change' }],
   registerCode: [{ required: true, message: '请输入注册口令', trigger: 'blur' }],
 }
 

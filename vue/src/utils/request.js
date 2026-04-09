@@ -1,9 +1,11 @@
 import { ElMessage } from 'element-plus'
 import router from '../router'
 import axios from "axios";
+import { clearCurrentUser } from '@/utils/auth'
 
 const request = axios.create({
     baseURL: import.meta.env.VITE_BASE_URL,
+    withCredentials: true,
     timeout: 30000  // 后台接口超时时间设置
 })
 
@@ -32,6 +34,7 @@ request.interceptors.response.use(
         // 当权限验证不通过的时候给出提示
         if (res.code === '401') {
             ElMessage.error(res.msg);
+            clearCurrentUser()
             router.push("/login")
         }
         return res;

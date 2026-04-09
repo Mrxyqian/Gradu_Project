@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
+import javax.servlet.http.HttpSession;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
@@ -31,8 +32,8 @@ public class ClaimTypesController {
     }
 
     @DeleteMapping("/delete/{id}")
-    public Result delete(@PathVariable Integer id) {
-        claimTypesService.deleteById(id);
+    public Result delete(@PathVariable Integer id, HttpSession session) {
+        claimTypesService.deleteById(id, session);
         return Result.success();
     }
 

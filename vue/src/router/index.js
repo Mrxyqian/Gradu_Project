@@ -27,6 +27,8 @@ const router = createRouter({
         { path: '/vehicleInfo', name: 'VehicleInfo', component: () => import('@/views/manager/VehicleInfo.vue') },
         { path: '/predictionManage', name: 'PredictionManage', component: () => import('@/views/manager/PredictionManage.vue') },
         { path: '/predictionStatistics', name: 'PredictionStatistics', component: () => import('@/views/manager/PredictionStatistics.vue') },
+        { path: '/modelTraining', name: 'ModelTraining', component: () => import('@/views/manager/ModelTraining.vue'), meta: { adminOnly: true } },
+        { path: '/userManage', name: 'UserManage', component: () => import('@/views/manager/UserManage.vue'), meta: { adminOnly: true } },
       ]
     },
   ]
@@ -43,6 +45,11 @@ router.beforeEach((to, from, next) => {
   }
 
   if (hasLogin && isLoginPage) {
+    next('/home')
+    return
+  }
+
+  if (to.meta.adminOnly && user.role !== 'ADMIN') {
     next('/home')
     return
   }

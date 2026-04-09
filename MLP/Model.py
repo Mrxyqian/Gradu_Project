@@ -27,7 +27,6 @@ class ResidualBlock(nn.Module):
 
     当输入维度与隐层维度不一致时，通过 projection 层对齐。
     """
-
     def __init__(self, in_dim: int, hidden_dim: int, dropout: float = 0.3):
         super().__init__()
         self.fc1   = nn.Linear(in_dim, hidden_dim)
