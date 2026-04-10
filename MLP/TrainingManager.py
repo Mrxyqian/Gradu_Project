@@ -89,51 +89,42 @@ class TrainingJobManager:
         cfg.path.last_model_path = str(run_dir / "last_model.pth")
         cfg.path.log_dir = str(run_dir / "runs")
 
-        cfg.data.batch_size = int(params["batchSize"])
-        cfg.data.random_seed = int(params["randomSeed"])
-        cfg.data.val_ratio = float(params["valRatio"])
-        cfg.data.test_ratio = float(params["testRatio"])
-        cfg.data.num_workers = int(params["numWorkers"])
-        cfg.data.balanced_sampling = bool(params.get("balancedSampling", cfg.data.balanced_sampling))
-        cfg.data.sampler_alpha = float(params.get("samplerAlpha", cfg.data.sampler_alpha))
+        cfg.data.batch_size = int(params.get("batchSize", cfg.data.batch_size))
+        cfg.data.random_seed = int(params.get("randomSeed", cfg.data.random_seed))
+        cfg.data.val_ratio = float(params.get("valRatio", cfg.data.val_ratio))
+        cfg.data.test_ratio = float(params.get("testRatio", cfg.data.test_ratio))
+        cfg.data.num_workers = int(params.get("numWorkers", cfg.data.num_workers))
 
-        cfg.model.input_dropout = float(params.get("inputDropout", cfg.model.input_dropout))
-        cfg.model.backbone_dropout = float(params["backboneDropout"])
-        cfg.model.head_dropout = float(params["headDropout"])
-        cfg.model.head_samples = int(params.get("headSamples", cfg.model.head_samples))
+        cfg.model.backbone_dropout = float(params.get("backboneDropout", cfg.model.backbone_dropout))
+        cfg.model.head_dropout = float(params.get("headDropout", cfg.model.head_dropout))
 
-        cfg.loss.pos_weight = float(params["posWeight"])
-        cfg.loss.label_smoothing = float(params.get("labelSmoothing", cfg.loss.label_smoothing))
-        cfg.loss.focal_gamma = float(params.get("focalGamma", cfg.loss.focal_gamma))
-        cfg.loss.focal_alpha = float(params.get("focalAlpha", cfg.loss.focal_alpha))
-        cfg.loss.bce_weight = float(params.get("bceWeight", cfg.loss.bce_weight))
-        cfg.loss.focal_weight = float(params.get("focalWeight", cfg.loss.focal_weight))
+        cfg.loss.pos_weight = float(params.get("posWeight", cfg.loss.pos_weight))
 
-        cfg.optimizer.optimizer = str(params["optimizer"])
-        cfg.optimizer.lr = float(params["learningRate"])
-        cfg.optimizer.weight_decay = float(params["weightDecay"])
+        cfg.optimizer.optimizer = str(params.get("optimizer", cfg.optimizer.optimizer))
+        cfg.optimizer.lr = float(params.get("learningRate", cfg.optimizer.lr))
+        cfg.optimizer.weight_decay = float(params.get("weightDecay", cfg.optimizer.weight_decay))
 
-        cfg.scheduler.scheduler = str(params["scheduler"])
-        cfg.scheduler.warmup_epochs = int(params["warmupEpochs"])
-        cfg.scheduler.min_lr = float(params["minLr"])
-        cfg.scheduler.step_size = int(params["stepSize"])
-        cfg.scheduler.gamma = float(params["gamma"])
-        cfg.scheduler.plateau_factor = float(params["plateauFactor"])
-        cfg.scheduler.plateau_patience = int(params["plateauPatience"])
-        cfg.scheduler.plateau_min_lr = float(params["plateauMinLr"])
+        cfg.scheduler.scheduler = str(params.get("scheduler", cfg.scheduler.scheduler))
+        cfg.scheduler.warmup_epochs = int(params.get("warmupEpochs", cfg.scheduler.warmup_epochs))
+        cfg.scheduler.min_lr = float(params.get("minLr", cfg.scheduler.min_lr))
+        cfg.scheduler.step_size = int(params.get("stepSize", cfg.scheduler.step_size))
+        cfg.scheduler.gamma = float(params.get("gamma", cfg.scheduler.gamma))
+        cfg.scheduler.plateau_factor = float(params.get("plateauFactor", cfg.scheduler.plateau_factor))
+        cfg.scheduler.plateau_patience = int(params.get("plateauPatience", cfg.scheduler.plateau_patience))
+        cfg.scheduler.plateau_min_lr = float(params.get("plateauMinLr", cfg.scheduler.plateau_min_lr))
 
-        cfg.train.num_epochs = int(params["numEpochs"])
-        cfg.train.early_stop = bool(params["earlyStop"])
-        cfg.train.patience = int(params["patience"])
-        cfg.train.min_delta = float(params["minDelta"])
-        cfg.train.early_stop_metric = str(params["earlyStopMetric"])
-        cfg.train.use_amp = bool(params["useAmp"])
-        cfg.train.grad_clip = float(params["gradClip"])
-        cfg.train.save_every_epoch = bool(params["saveEveryEpoch"])
-        cfg.train.auto_threshold = bool(params["autoThreshold"])
-        cfg.train.clf_threshold = float(params["clfThreshold"])
-        cfg.train.threshold_metric = str(params["thresholdMetric"])
-        cfg.train.threshold_beta = float(params["thresholdBeta"])
+        cfg.train.num_epochs = int(params.get("numEpochs", cfg.train.num_epochs))
+        cfg.train.early_stop = bool(params.get("earlyStop", cfg.train.early_stop))
+        cfg.train.patience = int(params.get("patience", cfg.train.patience))
+        cfg.train.min_delta = float(params.get("minDelta", cfg.train.min_delta))
+        cfg.train.early_stop_metric = str(params.get("earlyStopMetric", cfg.train.early_stop_metric))
+        cfg.train.use_amp = bool(params.get("useAmp", cfg.train.use_amp))
+        cfg.train.grad_clip = float(params.get("gradClip", cfg.train.grad_clip))
+        cfg.train.save_every_epoch = bool(params.get("saveEveryEpoch", cfg.train.save_every_epoch))
+        cfg.train.auto_threshold = bool(params.get("autoThreshold", cfg.train.auto_threshold))
+        cfg.train.clf_threshold = float(params.get("clfThreshold", cfg.train.clf_threshold))
+        cfg.train.threshold_metric = str(params.get("thresholdMetric", cfg.train.threshold_metric))
+        cfg.train.threshold_beta = float(params.get("thresholdBeta", cfg.train.threshold_beta))
         cfg.train.log_interval = 100
         cfg.train.resume_from = ""
         return cfg
@@ -176,10 +167,8 @@ class TrainingJobManager:
                     "epochs": [],
                     "trainLoss": [],
                     "trainClfLoss": [],
-                    "trainRegLoss": [],
                     "valLoss": [],
                     "valClfLoss": [],
-                    "valRegLoss": [],
                     "valAuc": [],
                     "valPrAuc": [],
                     "valAccuracy": [],
@@ -187,7 +176,6 @@ class TrainingJobManager:
                     "valF1": [],
                     "valPrecision": [],
                     "valRecall": [],
-                    "valRmse": [],
                     "learningRate": [],
                     "bestThreshold": [],
                     "epochSeconds": [],
@@ -236,10 +224,8 @@ class TrainingJobManager:
                         "epoch": result["history"]["epochs"][last_idx],
                         "trainLoss": result["history"]["trainLoss"][last_idx],
                         "trainClfLoss": result["history"]["trainClfLoss"][last_idx],
-                        "trainRegLoss": result["history"]["trainRegLoss"][last_idx],
                         "valLoss": result["history"]["valLoss"][last_idx],
                         "valClfLoss": result["history"]["valClfLoss"][last_idx],
-                        "valRegLoss": result["history"]["valRegLoss"][last_idx],
                         "valAuc": result["history"]["valAuc"][last_idx],
                         "valPrAuc": result["history"]["valPrAuc"][last_idx],
                         "valAccuracy": result["history"]["valAccuracy"][last_idx],
@@ -247,7 +233,6 @@ class TrainingJobManager:
                         "valF1": result["history"]["valF1"][last_idx],
                         "valPrecision": result["history"]["valPrecision"][last_idx],
                         "valRecall": result["history"]["valRecall"][last_idx],
-                        "valRmse": result["history"]["valRmse"][last_idx],
                         "learningRate": result["history"]["learningRate"][last_idx],
                         "bestThreshold": result["history"]["bestThreshold"][last_idx],
                         "epochSeconds": result["history"]["epochSeconds"][last_idx],

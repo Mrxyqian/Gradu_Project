@@ -138,7 +138,7 @@ class InsuranceInferenceService:
         x_tensor = x_tensor.to(self.device)
 
         with torch.no_grad():
-            logits = bundle["model"](x_tensor, return_dummy_regression=False)
+            logits = bundle["model"](x_tensor)
             claim_probs = torch.sigmoid(logits).cpu().numpy()
 
         results = []
@@ -184,7 +184,7 @@ class InsuranceInferenceService:
         model_versions = self.list_model_versions()
         return {
             "serviceName": "motor-insurance-claim-prediction",
-            "version": "1.0.0",
+            "version": "1.1.0",
             "maxBatchSize": self.max_batch_size,
             "device": str(self.device),
             "classificationThreshold": round(float(self.classification_threshold), 6) if self.ready else None,

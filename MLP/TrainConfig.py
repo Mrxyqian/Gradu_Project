@@ -1,5 +1,13 @@
 from __future__ import annotations
 
+"""
+TrainConfig.py
+车险理赔预测 —— 分类模型训练配置中心
+
+当前版本仅服务于“是否发生理赔”的二分类任务，
+默认配置与残差式 MLP 分类器保持一致。
+"""
+
 import dataclasses
 import json
 from dataclasses import dataclass, field
@@ -7,8 +15,8 @@ from pathlib import Path
 
 
 BASE_DIR = Path(__file__).resolve().parent
-DEFAULT_OUTPUT_DIR = BASE_DIR / "outputs"
 DEFAULT_DATASET_PATH = BASE_DIR / "DataSet" / "Motor vehicle insurance data.csv"
+DEFAULT_OUTPUT_DIR = BASE_DIR / "outputs"
 
 
 @dataclass
@@ -29,42 +37,34 @@ class DataConfig:
     val_ratio: float = 0.15
     test_ratio: float = 0.10
     random_seed: int = 42
-    batch_size: int = 256
-    num_workers: int = 2
-    balanced_sampling: bool = True
+    batch_size: int = 128
+    num_workers: int = 0
+    balanced_sampling: bool = False
     sampler_alpha: float = 0.75
 
 
 @dataclass
 class ModelConfig:
     input_dim: int = -1
-    hidden_dims: tuple[int, ...] = (256, 384, 256, 128)
-    head_hidden_dim: int = 160
-    input_dropout: float = 0.05
-    backbone_dropout: float = 0.20
-    head_dropout: float = 0.20
-    head_samples: int = 4
+    hidden_dims: tuple[int, ...] = (256, 512, 512, 256, 256)
+    head_hidden_dim: int = 64
+    input_dropout: float = 0.0
+    backbone_dropout: float = 0.25
+    head_dropout: float = 0.15
+    head_samples: int = 1
 
 
 @dataclass
 class LossConfig:
-    pos_weight: float = -1.0
-    label_smoothing: float = 0.01
-    focal_gamma: float = 2.0
-    focal_alpha: float = 0.75
-    bce_weight: float = 1.0
-    focal_weight: float = 0.35
-    init_log_var_clf: float = 0.0
-    init_log_var_reg: float = 0.0
-    w_clf: float = 1.0
-    w_reg: float = 0.0
+    pos_weight: float = 4.10
+    label_smoothing: float = 0.0
 
 
 @dataclass
 class OptimizerConfig:
     optimizer: str = "adamw"
-    lr: float = 3e-4
-    weight_decay: float = 2e-4
+    lr: float = 2e-4
+    weight_decay: float = 7e-5
     beta1: float = 0.9
     beta2: float = 0.999
     eps: float = 1e-8
@@ -75,31 +75,31 @@ class OptimizerConfig:
 @dataclass
 class SchedulerConfig:
     scheduler: str = "cosine_warmup"
-    warmup_epochs: int = 8
-    min_lr: float = 5e-6
+    warmup_epochs: int = 5
+    min_lr: float = 1e-6
     plateau_factor: float = 0.5
-    plateau_patience: int = 4
-    plateau_min_lr: float = 5e-6
+    plateau_patience: int = 5
+    plateau_min_lr: float = 1e-6
     step_size: int = 10
     gamma: float = 0.5
 
 
 @dataclass
-class TrainConfig:
-    num_epochs: int = 80
+class TrainSectionConfig:
+    num_epochs: int = 100
     early_stop: bool = True
-    patience: int = 16
-    min_delta: float = 5e-4
-    early_stop_metric: str = "pr_auc"
+    patience: int = 20
+    min_delta: float = 1e-4
+    early_stop_metric: str = "auc"
     use_amp: bool = True
-    grad_clip: float = 2.0
+    grad_clip: float = 1.0
     resume_from: str = ""
-    log_interval: int = 200
+    log_interval: int = 100
     save_every_epoch: bool = False
     clf_threshold: float = 0.5
     auto_threshold: bool = True
     threshold_metric: str = "f1"
-    threshold_beta: float = 0.8
+    threshold_beta: float = 1.3
 
 
 @dataclass
@@ -110,11 +110,11 @@ class Config:
     loss: LossConfig = field(default_factory=LossConfig)
     optimizer: OptimizerConfig = field(default_factory=OptimizerConfig)
     scheduler: SchedulerConfig = field(default_factory=SchedulerConfig)
-    train: TrainConfig = field(default_factory=TrainConfig)
+    train: TrainSectionConfig = field(default_factory=TrainSectionConfig)
 
     def summary(self) -> None:
         print("=" * 60)
-        print("Motor Insurance Claim Classification Config")
+        print("         车险理赔预测模型 —— 训练配置摘要")
         print("=" * 60)
         print(json.dumps(dataclasses.asdict(self), indent=2, ensure_ascii=False))
         print("=" * 60)
@@ -122,14 +122,14 @@ class Config:
 
 __all__ = [
     "BASE_DIR",
-    "DEFAULT_OUTPUT_DIR",
     "DEFAULT_DATASET_PATH",
+    "DEFAULT_OUTPUT_DIR",
     "PathConfig",
     "DataConfig",
     "ModelConfig",
     "LossConfig",
     "OptimizerConfig",
     "SchedulerConfig",
-    "TrainConfig",
+    "TrainSectionConfig",
     "Config",
 ]

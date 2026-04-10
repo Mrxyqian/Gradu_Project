@@ -1,23 +1,24 @@
-<template>
+﻿<template>
   <div>
-    <div class="card train-hero">
+    <div class="card hero-card">
       <div>
         <div class="hero-title">模型训练中心</div>
         <div class="hero-desc">
-          管理员可直接配置纯分类理赔率模型的训练参数，按 epoch 实时查看训练进度，并在训练完成后查看结果概览与保存权重文件。
+          当前页面已经同步到旧风格单任务分类模型。管理员只需要配置常用训练参数，就可以直接启动训练、
+          按 epoch 查看进度、查看结果摘要并保存本次权重。
         </div>
       </div>
-      <div class="hero-status">
+      <div class="hero-meta">
         <el-tag size="large" :type="statusTagType">{{ statusText }}</el-tag>
-        <div class="hero-job-id" v-if="currentJob">任务ID：{{ currentJob.jobId }}</div>
+        <div v-if="currentJob" class="hero-job-id">任务 ID：{{ currentJob.jobId }}</div>
       </div>
     </div>
 
-    <el-row :gutter="20">
+    <el-row :gutter="18">
       <el-col :xs="24" :lg="11">
         <div class="card section-card">
-          <div class="section-title">训练超参数</div>
-          <div class="section-subtitle">当前表单直接映射到纯理赔概率分类训练配置。</div>
+          <div class="section-title">训练参数</div>
+          <div class="section-subtitle">保留旧风格模型真正有意义的训练参数，默认值已经按当前项目调整为可直接使用。</div>
 
           <el-form :model="trainForm" label-position="top" class="train-form">
             <div class="group-title">数据与训练</div>
@@ -28,18 +29,18 @@
                 </el-form-item>
               </el-col>
               <el-col :span="12">
-                <el-form-item label="批大小">
+                <el-form-item label="Batch Size">
                   <el-input-number v-model="trainForm.batchSize" :min="8" :max="4096" controls-position="right" />
                 </el-form-item>
               </el-col>
               <el-col :span="12">
                 <el-form-item label="验证集比例">
-                  <el-input-number v-model="trainForm.valRatio" :min="0.05" :max="0.45" :step="0.01" controls-position="right" />
+                  <el-input-number v-model="trainForm.valRatio" :min="0.05" :max="0.45" :step="0.01" :precision="2" controls-position="right" />
                 </el-form-item>
               </el-col>
               <el-col :span="12">
                 <el-form-item label="测试集比例">
-                  <el-input-number v-model="trainForm.testRatio" :min="0.05" :max="0.45" :step="0.01" controls-position="right" />
+                  <el-input-number v-model="trainForm.testRatio" :min="0.05" :max="0.45" :step="0.01" :precision="2" controls-position="right" />
                 </el-form-item>
               </el-col>
               <el-col :span="12">
@@ -48,18 +49,8 @@
                 </el-form-item>
               </el-col>
               <el-col :span="12">
-                <el-form-item label="并行线程数">
+                <el-form-item label="线程数">
                   <el-input-number v-model="trainForm.numWorkers" :min="0" :max="8" controls-position="right" />
-                </el-form-item>
-              </el-col>
-              <el-col :span="12">
-                <el-form-item label="启用平衡采样">
-                  <el-switch v-model="trainForm.balancedSampling" />
-                </el-form-item>
-              </el-col>
-              <el-col :span="12">
-                <el-form-item label="采样强度 Alpha">
-                  <el-input-number v-model="trainForm.samplerAlpha" :min="0" :max="2" :step="0.05" :precision="2" controls-position="right" />
                 </el-form-item>
               </el-col>
             </el-row>
@@ -127,13 +118,8 @@
               </el-col>
             </el-row>
 
-            <div class="group-title">模型与损失</div>
+            <div class="group-title">模型与训练策略</div>
             <el-row :gutter="12">
-              <el-col :span="12">
-                <el-form-item label="输入层 Dropout">
-                  <el-input-number v-model="trainForm.inputDropout" :min="0" :max="0.9" :step="0.01" :precision="2" controls-position="right" />
-                </el-form-item>
-              </el-col>
               <el-col :span="12">
                 <el-form-item label="主干 Dropout">
                   <el-input-number v-model="trainForm.backboneDropout" :min="0" :max="0.9" :step="0.05" :precision="2" controls-position="right" />
@@ -154,30 +140,6 @@
                   <el-input-number v-model="trainForm.gradClip" :min="0" :max="100" :step="0.1" :precision="2" controls-position="right" />
                 </el-form-item>
               </el-col>
-              <el-col :span="12">
-                <el-form-item label="标签平滑">
-                  <el-input-number v-model="trainForm.labelSmoothing" :min="0" :max="0.5" :step="0.01" :precision="2" controls-position="right" />
-                </el-form-item>
-              </el-col>
-              <el-col :span="12">
-                <el-form-item label="Focal Gamma">
-                  <el-input-number v-model="trainForm.focalGamma" :min="0" :max="10" :step="0.1" :precision="1" controls-position="right" />
-                </el-form-item>
-              </el-col>
-              <el-col :span="12">
-                <el-form-item label="Focal Alpha">
-                  <el-input-number v-model="trainForm.focalAlpha" :min="0" :max="1" :step="0.05" :precision="2" controls-position="right" />
-                </el-form-item>
-              </el-col>
-              <el-col :span="12">
-                <el-form-item label="Focal Loss 权重">
-                  <el-input-number v-model="trainForm.focalWeight" :min="0" :max="10" :step="0.05" :precision="2" controls-position="right" />
-                </el-form-item>
-              </el-col>
-            </el-row>
-
-            <div class="group-title">训练策略</div>
-            <el-row :gutter="12">
               <el-col :span="12">
                 <el-form-item label="启用 Early Stopping">
                   <el-switch v-model="trainForm.earlyStop" />
@@ -211,8 +173,8 @@
               <el-col :span="12">
                 <el-form-item label="监控指标">
                   <el-select v-model="trainForm.earlyStopMetric">
-                    <el-option label="PR-AUC" value="pr_auc" />
                     <el-option label="AUC" value="auc" />
+                    <el-option label="PR-AUC" value="pr_auc" />
                     <el-option label="Loss" value="loss" />
                     <el-option label="分类 Loss" value="clf_loss" />
                     <el-option label="Accuracy" value="accuracy" />
@@ -248,15 +210,15 @@
               <el-button type="primary" :loading="starting" :disabled="isRunning" @click="handleStartTraining">
                 {{ isRunning ? '训练进行中' : '开始训练' }}
               </el-button>
-              <el-button @click="resetTrainForm" :disabled="isRunning">恢复默认配置</el-button>
-              <span class="form-tip">训练过程会按 epoch 轮询刷新，且仅管理员可操作。</span>
+              <el-button :disabled="isRunning" @click="resetTrainForm">恢复默认配置</el-button>
+              <span class="form-tip">默认值已经按当前旧风格单任务模型调整，直接点击开始训练即可。</span>
             </div>
           </el-form>
         </div>
 
         <div class="card section-card">
           <div class="section-title">权重保存</div>
-          <div class="section-subtitle">训练完成后可选择保存本次训练的 best 或 last 权重文件。</div>
+          <div class="section-subtitle">训练完成后可以选择保存本次训练得到的 best 或 last 权重文件。</div>
 
           <el-form :model="saveForm" label-position="top">
             <el-row :gutter="12">
@@ -314,24 +276,24 @@
           />
 
           <el-descriptions v-if="currentJob" :column="2" border style="margin-top: 16px">
-            <el-descriptions-item label="当前任务">{{ currentJob.jobId }}</el-descriptions-item>
+            <el-descriptions-item label="任务 ID">{{ currentJob.jobId }}</el-descriptions-item>
             <el-descriptions-item label="当前阶段">{{ currentJob.message || '-' }}</el-descriptions-item>
             <el-descriptions-item label="开始时间">{{ currentJob.startedAt || '-' }}</el-descriptions-item>
             <el-descriptions-item label="结束时间">{{ currentJob.finishedAt || '-' }}</el-descriptions-item>
             <el-descriptions-item label="当前 Epoch">{{ latestEpoch?.epoch || currentEpoch || 0 }}</el-descriptions-item>
-            <el-descriptions-item label="最新学习率">{{ formatScientific(latestEpoch?.learningRate) }}</el-descriptions-item>
-            <el-descriptions-item label="最新训练损失">{{ formatMetric(latestEpoch?.trainLoss) }}</el-descriptions-item>
-            <el-descriptions-item label="最新验证损失">{{ formatMetric(latestEpoch?.valLoss) }}</el-descriptions-item>
-            <el-descriptions-item label="最新验证 AUC / PR-AUC">
+            <el-descriptions-item label="当前学习率">{{ formatScientific(latestEpoch?.learningRate) }}</el-descriptions-item>
+            <el-descriptions-item label="训练损失">{{ formatMetric(latestEpoch?.trainLoss) }}</el-descriptions-item>
+            <el-descriptions-item label="验证损失">{{ formatMetric(latestEpoch?.valLoss) }}</el-descriptions-item>
+            <el-descriptions-item label="验证 AUC / PR-AUC">
               {{ formatMetric(latestEpoch?.valAuc) }} / {{ formatMetric(latestEpoch?.valPrAuc) }}
             </el-descriptions-item>
-            <el-descriptions-item label="最新验证 Accuracy / Balanced Accuracy">
-              {{ formatPercent(latestEpoch?.valAccuracy) }} / {{ formatPercent(latestEpoch?.valBalancedAccuracy) }}
+            <el-descriptions-item label="验证 F1 / Recall">
+              {{ formatMetric(latestEpoch?.valF1) }} / {{ formatMetric(latestEpoch?.valRecall) }}
             </el-descriptions-item>
-            <el-descriptions-item label="最新验证 F1">{{ formatMetric(latestEpoch?.valF1) }}</el-descriptions-item>
-            <el-descriptions-item label="最新验证 Precision / Recall">
-              {{ formatMetric(latestEpoch?.valPrecision) }} / {{ formatMetric(latestEpoch?.valRecall) }}
+            <el-descriptions-item label="验证 Precision / Accuracy">
+              {{ formatMetric(latestEpoch?.valPrecision) }} / {{ formatPercent(latestEpoch?.valAccuracy) }}
             </el-descriptions-item>
+            <el-descriptions-item label="当前阈值">{{ formatMetric(latestEpoch?.bestThreshold) }}</el-descriptions-item>
           </el-descriptions>
 
           <el-empty v-else description="暂无训练任务，管理员可在左侧直接发起训练。" />
@@ -354,15 +316,15 @@
               <div class="summary-value">{{ formatMetric(summary.finalMetrics?.f1) }}</div>
             </div>
             <div class="summary-card rose-card">
-              <div class="summary-label">测试 Precision</div>
-              <div class="summary-value">{{ formatMetric(summary.finalMetrics?.precision) }}</div>
+              <div class="summary-label">测试 Recall</div>
+              <div class="summary-value">{{ formatMetric(summary.finalMetrics?.recall) }}</div>
             </div>
           </div>
 
           <el-descriptions :column="2" border style="margin-top: 16px">
             <el-descriptions-item label="完成 Epoch">{{ summary.epochsCompleted }} / {{ summary.configuredEpochs }}</el-descriptions-item>
             <el-descriptions-item label="是否提前停止">{{ summary.stoppedEarly ? '是' : '否' }}</el-descriptions-item>
-            <el-descriptions-item label="最佳监控指标">{{ summary.monitorMetric }}</el-descriptions-item>
+            <el-descriptions-item label="监控指标">{{ summary.monitorMetric }}</el-descriptions-item>
             <el-descriptions-item label="最佳监控值">{{ formatMetric(summary.bestMonitorValue) }}</el-descriptions-item>
             <el-descriptions-item label="最终分类阈值">{{ formatMetric(summary.finalThreshold) }}</el-descriptions-item>
             <el-descriptions-item label="Precision / Recall">
@@ -396,8 +358,8 @@
         <div ref="valAucRef" class="chart-body"></div>
       </div>
       <div class="card chart-card">
-        <div class="chart-title">验证 PR-AUC 曲线</div>
-        <div ref="valPrAucRef" class="chart-body"></div>
+        <div class="chart-title">验证 F1 曲线</div>
+        <div ref="valF1Ref" class="chart-body"></div>
       </div>
     </div>
   </div>
@@ -410,44 +372,37 @@ import { ElMessage } from 'element-plus'
 import request from '@/utils/request'
 
 const defaultTrainForm = () => ({
-  numEpochs: 80,
-  batchSize: 256,
+  numEpochs: 100,
+  batchSize: 128,
   randomSeed: 42,
   valRatio: 0.15,
   testRatio: 0.10,
   numWorkers: 0,
-  balancedSampling: true,
-  samplerAlpha: 0.75,
   optimizer: 'adamw',
-  learningRate: 0.0003,
-  weightDecay: 0.0002,
+  learningRate: 0.0002,
+  weightDecay: 0.00007,
   scheduler: 'cosine_warmup',
-  warmupEpochs: 8,
-  minLr: 0.000005,
+  warmupEpochs: 5,
+  minLr: 0.000001,
   stepSize: 10,
   gamma: 0.5,
   plateauFactor: 0.5,
-  plateauPatience: 4,
-  plateauMinLr: 0.000005,
-  inputDropout: 0.05,
-  backboneDropout: 0.20,
-  headDropout: 0.20,
-  posWeight: -1,
-  labelSmoothing: 0.01,
-  focalGamma: 2.0,
-  focalAlpha: 0.75,
-  focalWeight: 0.35,
+  plateauPatience: 5,
+  plateauMinLr: 0.000001,
+  backboneDropout: 0.25,
+  headDropout: 0.15,
+  posWeight: 4.1,
   earlyStop: true,
-  patience: 16,
-  minDelta: 0.0005,
-  earlyStopMetric: 'pr_auc',
+  patience: 20,
+  minDelta: 0.0001,
+  earlyStopMetric: 'auc',
   useAmp: true,
-  gradClip: 2.0,
+  gradClip: 1.0,
   saveEveryEpoch: false,
   autoThreshold: true,
   clfThreshold: 0.5,
   thresholdMetric: 'f1',
-  thresholdBeta: 0.8,
+  thresholdBeta: 1.3,
 })
 
 const trainForm = reactive(defaultTrainForm())
@@ -463,12 +418,12 @@ const savingWeights = ref(false)
 const trainLossRef = ref(null)
 const valLossRef = ref(null)
 const valAucRef = ref(null)
-const valPrAucRef = ref(null)
+const valF1Ref = ref(null)
 
 let trainLossChart = null
 let valLossChart = null
 let valAucChart = null
-let valPrAucChart = null
+let valF1Chart = null
 let pollTimer = null
 
 const statusText = computed(() => {
@@ -679,7 +634,7 @@ const renderCharts = () => {
   trainLossChart?.dispose()
   valLossChart?.dispose()
   valAucChart?.dispose()
-  valPrAucChart?.dispose()
+  valF1Chart?.dispose()
 
   if (trainLossRef.value) {
     trainLossChart = echarts.init(trainLossRef.value)
@@ -693,15 +648,9 @@ const renderCharts = () => {
     valAucChart = echarts.init(valAucRef.value)
     valAucChart.setOption(buildLineOption('验证 AUC', epochs, history.value.valAuc || [], '#f97316'))
   }
-  if (valPrAucRef.value) {
-    valPrAucChart = echarts.init(valPrAucRef.value)
-    valPrAucChart.setOption(buildLineOption(
-      '验证 PR-AUC',
-      epochs,
-      history.value.valPrAuc || [],
-      '#db2777',
-      value => Number(value || 0).toFixed(4)
-    ))
+  if (valF1Ref.value) {
+    valF1Chart = echarts.init(valF1Ref.value)
+    valF1Chart.setOption(buildLineOption('验证 F1', epochs, history.value.valF1 || [], '#db2777'))
   }
 }
 
@@ -709,7 +658,7 @@ const handleResize = () => {
   trainLossChart?.resize()
   valLossChart?.resize()
   valAucChart?.resize()
-  valPrAucChart?.resize()
+  valF1Chart?.resize()
 }
 
 watch(
@@ -736,12 +685,12 @@ onUnmounted(() => {
   trainLossChart?.dispose()
   valLossChart?.dispose()
   valAucChart?.dispose()
-  valPrAucChart?.dispose()
+  valF1Chart?.dispose()
 })
 </script>
 
 <style scoped>
-.train-hero {
+.hero-card {
   margin-bottom: 18px;
   padding: 22px 24px;
   display: flex;
@@ -755,7 +704,7 @@ onUnmounted(() => {
 
 .hero-title {
   font-size: 22px;
-  font-weight: bold;
+  font-weight: 700;
   color: #1d4ed8;
 }
 
@@ -765,8 +714,8 @@ onUnmounted(() => {
   line-height: 1.8;
 }
 
-.hero-status {
-  min-width: 200px;
+.hero-meta {
+  min-width: 220px;
   text-align: right;
 }
 
@@ -782,7 +731,7 @@ onUnmounted(() => {
 
 .section-title {
   font-size: 18px;
-  font-weight: bold;
+  font-weight: 700;
   color: #1f2937;
 }
 
@@ -875,13 +824,13 @@ onUnmounted(() => {
 
 .summary-label {
   font-size: 13px;
-  opacity: 0.9;
+  opacity: 0.92;
 }
 
 .summary-value {
   margin-top: 10px;
   font-size: 28px;
-  font-weight: bold;
+  font-weight: 700;
 }
 
 .report-box {
@@ -935,7 +884,7 @@ onUnmounted(() => {
 
 .chart-title {
   font-size: 17px;
-  font-weight: bold;
+  font-weight: 700;
   color: #1f2937;
   margin-bottom: 10px;
 }
@@ -951,12 +900,12 @@ onUnmounted(() => {
 }
 
 @media (max-width: 900px) {
-  .train-hero {
+  .hero-card {
     flex-direction: column;
     align-items: flex-start;
   }
 
-  .hero-status {
+  .hero-meta {
     text-align: left;
     min-width: 0;
   }

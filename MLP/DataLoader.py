@@ -1,5 +1,12 @@
 from __future__ import annotations
 
+"""
+Dataloader.py
+车险理赔预测 —— 数据清洗、特征工程与 PyTorch DataLoader 定义
+
+当前版本仅保留分类任务：当年是否发生理赔（N_claims_year > 0）。
+"""
+
 import pickle
 from pathlib import Path
 
@@ -11,12 +18,10 @@ from sklearn.preprocessing import StandardScaler
 from torch.utils.data import DataLoader, Dataset, WeightedRandomSampler
 
 
-DROP_COLS = [
-    "ID",
-    "Date_lapse",
-    "Cost_claims_year",
-    "N_claims_year",
-]
+TARGET_COLUMN = "N_claims_year"
+AUXILIARY_LABEL_COLUMNS = ["Cost_claims_year"]
+
+DROP_COLS = ["ID", "Date_lapse", *AUXILIARY_LABEL_COLUMNS, TARGET_COLUMN]
 
 DATE_COLS = [
     "Date_start_contract",
@@ -26,8 +31,6 @@ DATE_COLS = [
     "Date_driving_licence",
 ]
 
-TARGET_COLUMN = "N_claims_year"
-TARGET_AMOUNT_COLUMN = "Cost_claims_year"
 REFERENCE_DATE = pd.Timestamp("2020-01-01")
 
 RAW_FEATURE_COLS = [
@@ -72,30 +75,6 @@ CLIP_COLS = [
     "Length",
 ]
 
-LOW_CARDINALITY_COLS = [
-    "Distribution_channel",
-    "Payment",
-    "Type_risk",
-    "Area",
-    "Second_driver",
-    "Lapse",
-    "Type_fuel",
-]
-
-LOG1P_COLS = [
-    "Premium",
-    "Value_vehicle",
-    "Power",
-    "Cylinder_capacity",
-    "Weight",
-    "Length",
-    "Policies_in_force",
-    "Max_policies",
-    "Max_products",
-    "N_claims_history",
-    "R_Claims_history",
-]
-
 
 def parse_date(series: pd.Series) -> pd.Series:
     parsed = pd.to_datetime(series, format="%d/%m/%Y", errors="coerce")
@@ -113,45 +92,52 @@ def parse_date(series: pd.Series) -> pd.Series:
 
 
 def date_to_days(series: pd.Series, ref: pd.Timestamp = REFERENCE_DATE) -> pd.Series:
-    return (series - ref).dt.days.fillna(0).astype(np.float32)
+    delta = (series - ref).dt.days
+    return delta.fillna(0).astype(np.float32)
 
 
 def engineer_date_features(df: pd.DataFrame) -> pd.DataFrame:
-    feature_df = df.copy()
-    for column in DATE_COLS:
-        feature_df[column] = parse_date(feature_df[column])
+    df = df.copy()
 
-    for column in DATE_COLS:
-        feature_df[f"{column}_days"] = date_to_days(feature_df[column])
+    for col in DATE_COLS:
+        df[col] = parse_date(df[col])
 
-    feature_df["driving_experience_years"] = (
-        (REFERENCE_DATE - feature_df["Date_driving_licence"]).dt.days / 365.25
+    for col in DATE_COLS:
+        df[col + "_days"] = date_to_days(df[col])
+
+    df["driving_experience_years"] = (
+        (REFERENCE_DATE - df["Date_driving_licence"]).dt.days / 365.25
     ).clip(lower=0).fillna(0).astype(np.float32)
-    feature_df["insured_age_years"] = (
-        (REFERENCE_DATE - feature_df["Date_birth"]).dt.days / 365.25
+
+    df["insured_age_years"] = (
+        (REFERENCE_DATE - df["Date_birth"]).dt.days / 365.25
     ).clip(lower=0).fillna(0).astype(np.float32)
-    feature_df["contract_duration_years"] = (
-        (feature_df["Date_last_renewal"] - feature_df["Date_start_contract"]).dt.days / 365.25
+
+    df["contract_duration_years"] = (
+        (df["Date_last_renewal"] - df["Date_start_contract"]).dt.days / 365.25
     ).clip(lower=0).fillna(0).astype(np.float32)
-    feature_df["vehicle_age_years"] = (
-        REFERENCE_DATE.year - pd.to_numeric(feature_df["Year_matriculation"], errors="coerce")
+
+    df["vehicle_age_years"] = (
+        REFERENCE_DATE.year - pd.to_numeric(df["Year_matriculation"], errors="coerce")
     ).clip(lower=0).fillna(0).astype(np.float32)
-    return feature_df.drop(columns=DATE_COLS, errors="ignore")
+
+    df.drop(columns=DATE_COLS, inplace=True)
+    return df
 
 
 def _ensure_raw_columns(df: pd.DataFrame) -> pd.DataFrame:
     feature_df = df.copy()
-    for column in RAW_FEATURE_COLS:
-        if column not in feature_df.columns:
-            feature_df[column] = np.nan
+    for col in RAW_FEATURE_COLS:
+        if col not in feature_df.columns:
+            feature_df[col] = np.nan
     return feature_df
 
 
 def _coerce_numeric(df: pd.DataFrame, columns: list[str]) -> pd.DataFrame:
     feature_df = df.copy()
-    for column in columns:
-        if column in feature_df.columns:
-            feature_df[column] = pd.to_numeric(feature_df[column], errors="coerce")
+    for col in columns:
+        if col in feature_df.columns:
+            feature_df[col] = pd.to_numeric(feature_df[col], errors="coerce")
     return feature_df
 
 
@@ -211,60 +197,11 @@ def _apply_length_fill(
 
 def _build_fill_values(feature_df: pd.DataFrame) -> dict[str, float]:
     fill_values: dict[str, float] = {}
-    for column in feature_df.columns:
-        numeric = pd.to_numeric(feature_df[column], errors="coerce")
+    for col in feature_df.columns:
+        numeric = pd.to_numeric(feature_df[col], errors="coerce")
         median = numeric.median()
-        fill_values[column] = float(median) if pd.notna(median) else 0.0
+        fill_values[col] = float(median) if pd.notna(median) else 0.0
     return fill_values
-
-
-def _safe_divide(
-    numerator: pd.Series,
-    denominator: pd.Series,
-    default_value: float = 0.0,
-) -> pd.Series:
-    numerator = pd.to_numeric(numerator, errors="coerce").astype(np.float32)
-    denominator = pd.to_numeric(denominator, errors="coerce").astype(np.float32)
-    denominator = denominator.replace(0, np.nan)
-    return numerator.div(denominator).replace([np.inf, -np.inf], np.nan).fillna(default_value)
-
-
-def _add_interaction_features(feature_df: pd.DataFrame) -> pd.DataFrame:
-    engineered = feature_df.copy()
-
-    premium = pd.to_numeric(engineered.get("Premium"), errors="coerce").fillna(0)
-    policies = pd.to_numeric(engineered.get("Policies_in_force"), errors="coerce").fillna(0)
-    max_policies = pd.to_numeric(engineered.get("Max_policies"), errors="coerce").fillna(0)
-    max_products = pd.to_numeric(engineered.get("Max_products"), errors="coerce").fillna(0)
-    vehicle_value = pd.to_numeric(engineered.get("Value_vehicle"), errors="coerce").fillna(0)
-    vehicle_age = pd.to_numeric(engineered.get("vehicle_age_years"), errors="coerce").fillna(0)
-    seniority = pd.to_numeric(engineered.get("Seniority"), errors="coerce").fillna(0)
-    claims_history = pd.to_numeric(engineered.get("N_claims_history"), errors="coerce").fillna(0)
-    claims_ratio = pd.to_numeric(engineered.get("R_Claims_history"), errors="coerce").fillna(0)
-    power = pd.to_numeric(engineered.get("Power"), errors="coerce").fillna(0)
-    weight = pd.to_numeric(engineered.get("Weight"), errors="coerce").fillna(0)
-    cylinder = pd.to_numeric(engineered.get("Cylinder_capacity"), errors="coerce").fillna(0)
-    insured_age = pd.to_numeric(engineered.get("insured_age_years"), errors="coerce").fillna(0)
-    driving_years = pd.to_numeric(engineered.get("driving_experience_years"), errors="coerce").fillna(0)
-
-    engineered["premium_per_policy"] = _safe_divide(premium, policies.clip(lower=1))
-    engineered["products_per_policy"] = _safe_divide(max_products, max_policies.clip(lower=1))
-    engineered["policy_utilization"] = _safe_divide(policies, max_policies.clip(lower=1))
-    engineered["value_to_premium"] = _safe_divide(vehicle_value, premium.clip(lower=1))
-    engineered["claims_per_seniority"] = _safe_divide(claims_history, seniority + 1.0)
-    engineered["history_risk_interaction"] = claims_ratio * (claims_history + 1.0)
-    engineered["power_weight_ratio"] = _safe_divide(power, weight.clip(lower=1))
-    engineered["cylinder_power_ratio"] = _safe_divide(cylinder, power.clip(lower=1))
-    engineered["vehicle_value_age_ratio"] = _safe_divide(vehicle_value, vehicle_age + 1.0)
-    engineered["driver_vehicle_age_gap"] = insured_age - vehicle_age
-    engineered["experience_vehicle_gap"] = driving_years - vehicle_age
-
-    for column in LOG1P_COLS:
-        if column in engineered.columns:
-            numeric = pd.to_numeric(engineered[column], errors="coerce").fillna(0).clip(lower=0)
-            engineered[f"{column}_log1p"] = np.log1p(numeric).astype(np.float32)
-
-    return engineered
 
 
 def prepare_features(
@@ -274,16 +211,13 @@ def prepare_features(
     feature_columns: list[str] | None = None,
     fill_values: dict[str, float] | None = None,
 ) -> pd.DataFrame:
-    feature_df = _ensure_raw_columns(df)
-    feature_df = _coerce_numeric(
-        feature_df,
-        RAW_NUMERIC_COLS + [TARGET_COLUMN, TARGET_AMOUNT_COLUMN],
-    )
-    feature_df = engineer_date_features(feature_df)
+    df = _ensure_raw_columns(df)
+    df = _coerce_numeric(df, RAW_NUMERIC_COLS + [TARGET_COLUMN, *AUXILIARY_LABEL_COLUMNS])
+    df = engineer_date_features(df)
 
     if raw_defaults is None:
-        fuel_mode = _infer_type_fuel_mode(feature_df)
-        length_defaults, global_length_median = _infer_length_defaults(feature_df)
+        fuel_mode = _infer_type_fuel_mode(df)
+        length_defaults, global_length_median = _infer_length_defaults(df)
     else:
         fuel_mode = str(raw_defaults.get("type_fuel_mode", "P")).upper()
         length_defaults = {
@@ -292,63 +226,46 @@ def prepare_features(
         }
         global_length_median = float(raw_defaults.get("global_length_median", 0.0))
 
-    feature_df["Type_fuel"] = _encode_type_fuel(feature_df["Type_fuel"], fuel_mode)
-    feature_df["Length"] = _apply_length_fill(feature_df, length_defaults, global_length_median)
-    feature_df["R_Claims_history"] = (
-        pd.to_numeric(feature_df.get("R_Claims_history"), errors="coerce")
-        .fillna(0)
-        .astype(np.float32)
+    df["Type_fuel"] = _encode_type_fuel(df["Type_fuel"], fuel_mode)
+    df["Length"] = _apply_length_fill(df, length_defaults, global_length_median)
+    df["R_Claims_history"] = (
+        pd.to_numeric(df.get("R_Claims_history"), errors="coerce").fillna(0).astype(np.float32)
     )
-    feature_df = _add_interaction_features(feature_df)
 
-    feature_df = feature_df.drop(columns=DROP_COLS, errors="ignore")
-
-    present_low_cardinality_cols = [
-        column for column in LOW_CARDINALITY_COLS if column in feature_df.columns
-    ]
-    for column in present_low_cardinality_cols:
-        numeric = pd.to_numeric(feature_df[column], errors="coerce").fillna(-1)
-        feature_df[column] = numeric.astype(np.int32).astype(str)
-
-    if present_low_cardinality_cols:
-        feature_df = pd.get_dummies(
-            feature_df,
-            columns=present_low_cardinality_cols,
-            prefix=present_low_cardinality_cols,
-            dtype=np.float32,
-        )
+    df.drop(columns=DROP_COLS, inplace=True, errors="ignore")
 
     if feature_columns is not None:
-        feature_df = feature_df.reindex(columns=feature_columns)
+        df = df.reindex(columns=feature_columns)
 
     if fill_values is None:
-        fill_values = _build_fill_values(feature_df)
+        fill_values = _build_fill_values(df)
 
-    for column in feature_df.columns:
-        numeric = pd.to_numeric(feature_df[column], errors="coerce")
-        feature_df[column] = numeric.fillna(float(fill_values.get(column, 0.0))).astype(np.float32)
+    for col in df.columns:
+        df[col] = pd.to_numeric(df[col], errors="coerce")
+        df[col] = df[col].fillna(fill_values.get(col, 0.0)).astype(np.float32)
 
-    for column in CLIP_COLS:
-        if column in feature_df.columns and feature_df[column].notna().any():
-            upper = feature_df[column].quantile(0.999)
+    for col in CLIP_COLS:
+        if col in df.columns:
+            upper = df[col].quantile(0.999)
             if pd.notna(upper):
-                feature_df[column] = feature_df[column].clip(upper=float(upper))
+                df[col] = df[col].clip(upper=float(upper))
 
-    return feature_df
+    return df
 
 
 def clean_and_engineer(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.Series]:
     if TARGET_COLUMN not in df.columns:
         raise KeyError(f"Missing target column: {TARGET_COLUMN}")
-    labels = (
-        pd.to_numeric(df[TARGET_COLUMN], errors="coerce").fillna(0).gt(0).astype(np.float32)
-    )
-    return prepare_features(df), labels
+    y_clf = pd.to_numeric(df[TARGET_COLUMN], errors="coerce").fillna(0).gt(0).astype(np.float32)
+    return prepare_features(df), y_clf
 
 
 def build_inference_reference(df_raw: pd.DataFrame) -> dict:
     raw_source = _ensure_raw_columns(df_raw.copy())
-    raw_source = _coerce_numeric(raw_source, RAW_NUMERIC_COLS + [TARGET_COLUMN, TARGET_AMOUNT_COLUMN])
+    raw_source = _coerce_numeric(
+        raw_source,
+        RAW_NUMERIC_COLS + [TARGET_COLUMN, *AUXILIARY_LABEL_COLUMNS],
+    )
 
     length_defaults, global_length_median = _infer_length_defaults(raw_source)
     raw_defaults = {
@@ -389,19 +306,19 @@ class InsuranceDataset(Dataset):
     def __len__(self) -> int:
         return len(self.features)
 
-    def __getitem__(self, index: int) -> tuple[torch.Tensor, torch.Tensor]:
-        return self.features[index], self.labels[index]
+    def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor]:
+        return self.features[idx], self.labels[idx]
 
 
 def build_dataloaders(
     csv_path: str,
-    batch_size: int = 512,
+    batch_size: int = 128,
     val_ratio: float = 0.15,
     test_ratio: float = 0.10,
     random_seed: int = 42,
     scaler_save_path: str = "scaler.pkl",
-    num_workers: int = 4,
-    balanced_sampling: bool = True,
+    num_workers: int = 2,
+    balanced_sampling: bool = False,
     sampler_alpha: float = 0.75,
 ) -> tuple[DataLoader, DataLoader, DataLoader, int]:
     dataset_path = Path(csv_path)
@@ -411,13 +328,13 @@ def build_dataloaders(
     print(f"[1/5] Loading dataset: {dataset_path}")
     df_raw = pd.read_csv(dataset_path)
 
-    print("[2/5] Building classification features")
+    print("[2/5] Data cleaning and feature engineering")
     feature_df, labels = clean_and_engineer(df_raw)
     features = feature_df.to_numpy(dtype=np.float32)
     labels_np = labels.to_numpy(dtype=np.float32)
 
-    print("[3/5] Creating train/val/test split")
-    x_train_val, x_test, y_train_val, y_test = train_test_split(
+    print("[3/5] Splitting dataset")
+    x_trainval, x_test, y_trainval, y_test = train_test_split(
         features,
         labels_np,
         test_size=test_ratio,
@@ -426,14 +343,14 @@ def build_dataloaders(
     )
     val_size = val_ratio / (1 - test_ratio)
     x_train, x_val, y_train, y_val = train_test_split(
-        x_train_val,
-        y_train_val,
+        x_trainval,
+        y_trainval,
         test_size=val_size,
         random_state=random_seed,
-        stratify=y_train_val,
+        stratify=y_trainval,
     )
 
-    print("[4/5] Fitting scaler")
+    print("[4/5] Feature scaling")
     scaler = StandardScaler()
     x_train = scaler.fit_transform(x_train).astype(np.float32)
     x_val = scaler.transform(x_val).astype(np.float32)
@@ -442,14 +359,14 @@ def build_dataloaders(
     with open(scaler_path, "wb") as file:
         pickle.dump(scaler, file)
 
-    print("[5/5] Building PyTorch dataloaders")
-    train_dataset = InsuranceDataset(x_train, y_train)
-    val_dataset = InsuranceDataset(x_val, y_val)
-    test_dataset = InsuranceDataset(x_test, y_test)
+    print("[5/5] Building dataloaders")
+    train_ds = InsuranceDataset(x_train, y_train)
+    val_ds = InsuranceDataset(x_val, y_val)
+    test_ds = InsuranceDataset(x_test, y_test)
 
     pin_memory = torch.cuda.is_available()
     train_sampler = None
-    if balanced_sampling and len(train_dataset) > 0:
+    if balanced_sampling and len(train_ds) > 0:
         train_labels = y_train.astype(np.int64)
         class_counts = np.bincount(train_labels, minlength=2).astype(np.float64)
         class_counts[class_counts == 0] = 1.0
@@ -462,36 +379,36 @@ def build_dataloaders(
         )
 
     train_loader = DataLoader(
-        train_dataset,
+        train_ds,
         batch_size=batch_size,
         shuffle=train_sampler is None,
         sampler=train_sampler,
         num_workers=num_workers,
         pin_memory=pin_memory,
-        drop_last=len(train_dataset) > batch_size,
+        drop_last=len(train_ds) > batch_size,
     )
     val_loader = DataLoader(
-        val_dataset,
+        val_ds,
         batch_size=batch_size * 2,
         shuffle=False,
         num_workers=num_workers,
         pin_memory=pin_memory,
     )
     test_loader = DataLoader(
-        test_dataset,
+        test_ds,
         batch_size=batch_size * 2,
         shuffle=False,
         num_workers=num_workers,
         pin_memory=pin_memory,
     )
 
-    input_dim = int(x_train.shape[1])
+    input_dim = x_train.shape[1]
     positive_rate = float(labels_np.mean()) if len(labels_np) else 0.0
     print(
-        f"Done. input_dim={input_dim}, train={len(train_dataset)}, val={len(val_dataset)}, "
-        f"test={len(test_dataset)}, positive_rate={positive_rate:.4f}"
+        f"Done. input_dim={input_dim}, train={len(train_ds)}, val={len(val_ds)}, "
+        f"test={len(test_ds)}, positive_rate={positive_rate:.4f}"
     )
-    return train_loader, val_loader, test_loader, input_dim
+    return train_loader, val_loader, test_loader, int(input_dim)
 
 
 def preprocess_single(
@@ -499,8 +416,7 @@ def preprocess_single(
     scaler_path: str = "scaler.pkl",
     reference: dict | None = None,
 ) -> torch.Tensor:
-    scaler_file = Path(scaler_path)
-    with open(scaler_file, "rb") as file:
+    with open(Path(scaler_path), "rb") as file:
         scaler = pickle.load(file)
 
     record_df = pd.DataFrame([record])
@@ -526,7 +442,7 @@ __all__ = [
     "DROP_COLS",
     "DATE_COLS",
     "TARGET_COLUMN",
-    "TARGET_AMOUNT_COLUMN",
+    "AUXILIARY_LABEL_COLUMNS",
     "REFERENCE_DATE",
     "RAW_FEATURE_COLS",
     "InsuranceDataset",

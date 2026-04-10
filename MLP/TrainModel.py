@@ -1,5 +1,15 @@
 from __future__ import annotations
 
+"""
+TrainModel.py
+车险理赔预测 —— 分类任务训练流程
+
+当前训练流程仅服务于分类任务：
+  - 使用 BCEWithLogitsLoss 完成理赔概率学习
+  - 输出 AUC、PR-AUC、F1、Precision、Recall 等分类指标
+  - 保留训练管理器依赖的 run_training 返回结构
+"""
+
 import logging
 import random
 import time
@@ -120,12 +130,12 @@ def safe_progress_callback(
 
 
 def add_scalar_if_not_none(
-    writer: SummaryWriter,
+    writer: Optional[SummaryWriter],
     tag: str,
     value: Optional[float],
     step: int,
 ) -> None:
-    if value is None:
+    if writer is None or value is None:
         return
     writer.add_scalar(tag, value, step)
 
@@ -171,10 +181,8 @@ def init_history() -> Dict[str, list]:
         "epochs": [],
         "trainLoss": [],
         "trainClfLoss": [],
-        "trainRegLoss": [],
         "valLoss": [],
         "valClfLoss": [],
-        "valRegLoss": [],
         "valAuc": [],
         "valPrAuc": [],
         "valAccuracy": [],
@@ -182,7 +190,6 @@ def init_history() -> Dict[str, list]:
         "valF1": [],
         "valPrecision": [],
         "valRecall": [],
-        "valRmse": [],
         "learningRate": [],
         "bestThreshold": [],
         "epochSeconds": [],
@@ -193,10 +200,8 @@ def append_history(history: Dict[str, list], epoch_record: Dict[str, Any]) -> No
     history["epochs"].append(epoch_record["epoch"])
     history["trainLoss"].append(epoch_record["trainLoss"])
     history["trainClfLoss"].append(epoch_record["trainClfLoss"])
-    history["trainRegLoss"].append(epoch_record["trainRegLoss"])
     history["valLoss"].append(epoch_record["valLoss"])
     history["valClfLoss"].append(epoch_record["valClfLoss"])
-    history["valRegLoss"].append(epoch_record["valRegLoss"])
     history["valAuc"].append(epoch_record["valAuc"])
     history["valPrAuc"].append(epoch_record["valPrAuc"])
     history["valAccuracy"].append(epoch_record["valAccuracy"])
@@ -204,7 +209,6 @@ def append_history(history: Dict[str, list], epoch_record: Dict[str, Any]) -> No
     history["valF1"].append(epoch_record["valF1"])
     history["valPrecision"].append(epoch_record["valPrecision"])
     history["valRecall"].append(epoch_record["valRecall"])
-    history["valRmse"].append(epoch_record["valRmse"])
     history["learningRate"].append(epoch_record["learningRate"])
     history["bestThreshold"].append(epoch_record["bestThreshold"])
     history["epochSeconds"].append(epoch_record["epochSeconds"])
@@ -218,10 +222,8 @@ def build_latest_epoch(history: Dict[str, list]) -> Optional[Dict[str, Any]]:
         "epoch": history["epochs"][last_idx],
         "trainLoss": history["trainLoss"][last_idx],
         "trainClfLoss": history["trainClfLoss"][last_idx],
-        "trainRegLoss": history["trainRegLoss"][last_idx],
         "valLoss": history["valLoss"][last_idx],
         "valClfLoss": history["valClfLoss"][last_idx],
-        "valRegLoss": history["valRegLoss"][last_idx],
         "valAuc": history["valAuc"][last_idx],
         "valPrAuc": history["valPrAuc"][last_idx],
         "valAccuracy": history["valAccuracy"][last_idx],
@@ -229,7 +231,6 @@ def build_latest_epoch(history: Dict[str, list]) -> Optional[Dict[str, Any]]:
         "valF1": history["valF1"][last_idx],
         "valPrecision": history["valPrecision"][last_idx],
         "valRecall": history["valRecall"][last_idx],
-        "valRmse": history["valRmse"][last_idx],
         "learningRate": history["learningRate"][last_idx],
         "bestThreshold": history["bestThreshold"][last_idx],
         "epochSeconds": history["epochSeconds"][last_idx],
@@ -287,11 +288,7 @@ def build_optimizer(model: nn.Module, cfg: Config) -> torch.optim.Optimizer:
     raise ValueError(f"Unsupported optimizer: {optimizer_cfg.optimizer}")
 
 
-def build_scheduler(
-    optimizer: torch.optim.Optimizer,
-    cfg: Config,
-    monitor_mode: str = "min",
-):
+def build_scheduler(optimizer: torch.optim.Optimizer, cfg: Config):
     scheduler_cfg = cfg.scheduler
     train_cfg = cfg.train
 
@@ -316,7 +313,7 @@ def build_scheduler(
     if scheduler_cfg.scheduler == "reduce_on_plateau":
         return ReduceLROnPlateau(
             optimizer,
-            mode=monitor_mode,
+            mode="min",
             factor=scheduler_cfg.plateau_factor,
             patience=scheduler_cfg.plateau_patience,
             min_lr=scheduler_cfg.plateau_min_lr,
@@ -330,7 +327,6 @@ def build_scheduler(
     if scheduler_cfg.scheduler == "none":
         return None, "none"
     raise ValueError(f"Unsupported scheduler: {scheduler_cfg.scheduler}")
-
 
 class EarlyStopping:
     def __init__(self, patience: int, min_delta: float = 1e-4, mode: str = "min"):
@@ -358,6 +354,19 @@ class EarlyStopping:
         return False
 
 
+def build_model_config_payload(cfg: Config) -> Dict[str, Any]:
+    return {
+        "architecture": "claim_classifier_residual_mlp",
+        "task_type": "classification_only",
+        "hidden_dims": list(cfg.model.hidden_dims),
+        "head_hidden_dim": cfg.model.head_hidden_dim,
+        "input_dropout": cfg.model.input_dropout,
+        "backbone_dropout": cfg.model.backbone_dropout,
+        "head_dropout": cfg.model.head_dropout,
+        "head_samples": cfg.model.head_samples,
+    }
+
+
 def save_checkpoint(
     path: str,
     epoch: int,
@@ -380,14 +389,7 @@ def save_checkpoint(
             "best_loss": best_monitor_value,
             "best_threshold": best_threshold,
             "input_dim": cfg.model.input_dim,
-            "model_config": {
-                "hidden_dims": list(cfg.model.hidden_dims),
-                "head_hidden_dim": cfg.model.head_hidden_dim,
-                "input_dropout": cfg.model.input_dropout,
-                "backbone_dropout": cfg.model.backbone_dropout,
-                "head_dropout": cfg.model.head_dropout,
-                "head_samples": cfg.model.head_samples,
-            },
+            "model_config": build_model_config_payload(cfg),
         },
         path,
     )
@@ -449,8 +451,8 @@ def train_one_epoch(
 
         optimizer.zero_grad(set_to_none=True)
         with autocast(enabled=use_amp):
-            logits = model(features, return_dummy_regression=False)
-            loss, clf_loss, _ = criterion(logits, labels)
+            logits = model(features)
+            loss, clf_loss = criterion(logits, labels)
 
         if use_amp:
             amp_scaler.scale(loss).backward()
@@ -482,7 +484,6 @@ def train_one_epoch(
     return {
         "loss": total_loss / max(total_samples, 1),
         "clf_loss": total_clf_loss / max(total_samples, 1),
-        "reg_loss": None,
     }
 
 
@@ -510,8 +511,8 @@ def evaluate(
         batch_size = int(features.size(0))
 
         with autocast(enabled=use_amp):
-            logits = model(features, return_dummy_regression=False)
-            loss, clf_loss, _ = criterion(logits, labels)
+            logits = model(features)
+            loss, clf_loss = criterion(logits, labels)
 
         all_probs.append(torch.sigmoid(logits).cpu().numpy())
         all_labels.append(labels.cpu().numpy())
@@ -534,11 +535,11 @@ def evaluate(
         if labels_int.size > 0 and np.unique(labels_int).size > 1
         else float(labels_int.mean()) if labels_int.size > 0 else 0.0
     )
+
     return {
         "split": split,
         "loss": total_loss / max(total_samples, 1),
         "clf_loss": total_clf_loss / max(total_samples, 1),
-        "reg_loss": None,
         "auc": auc,
         "pr_auc": pr_auc,
         "accuracy": accuracy_score(labels_int, preds) if labels_int.size else 0.0,
@@ -548,8 +549,6 @@ def evaluate(
         "f1": f1_score(labels_int, preds, zero_division=0) if labels_int.size else 0.0,
         "precision": precision_score(labels_int, preds, zero_division=0) if labels_int.size else 0.0,
         "recall": recall_score(labels_int, preds, zero_division=0) if labels_int.size else 0.0,
-        "rmse": None,
-        "log_rmse": None,
         "_probs": probs,
         "_labels": labels_int,
     }
@@ -560,7 +559,9 @@ def build_monitor_value(
     val_metrics: Dict[str, Any],
     threshold_metrics: Dict[str, float],
 ) -> float:
-    return float(threshold_metrics[monitor_key]) if monitor_key in threshold_metrics else float(val_metrics[monitor_key])
+    if monitor_key in threshold_metrics:
+        return float(threshold_metrics[monitor_key])
+    return float(val_metrics[monitor_key])
 
 
 def run_training(
@@ -601,20 +602,13 @@ def run_training(
         resolved_pos_weight = float(cfg.loss.pos_weight)
         if resolved_pos_weight <= 0 and positive_count > 0:
             resolved_pos_weight = negative_count / positive_count
-        if cfg.data.balanced_sampling:
-            resolved_pos_weight = float(np.sqrt(max(resolved_pos_weight, 1.0)))
         resolved_pos_weight = max(resolved_pos_weight, 1.0)
+
         logger.info(
             "Resolved pos_weight=%.6f (positive=%d, negative=%d)",
             resolved_pos_weight,
             int(positive_count),
             int(negative_count),
-        )
-        logger.info(
-            "Train positive_rate=%.4f, balanced_sampling=%s, sampler_alpha=%.3f",
-            float(positive_count / max(len(train_targets), 1)),
-            bool(cfg.data.balanced_sampling),
-            float(cfg.data.sampler_alpha),
         )
 
         model = InsuranceMLP(
@@ -629,18 +623,10 @@ def run_training(
         criterion = ClaimClassificationLoss(
             pos_weight=resolved_pos_weight,
             label_smoothing=cfg.loss.label_smoothing,
-            focal_gamma=cfg.loss.focal_gamma,
-            focal_alpha=cfg.loss.focal_alpha,
-            bce_weight=cfg.loss.bce_weight,
-            focal_weight=cfg.loss.focal_weight,
-            init_log_var_clf=cfg.loss.init_log_var_clf,
-            init_log_var_reg=cfg.loss.init_log_var_reg,
-            w_clf=cfg.loss.w_clf,
-            w_reg=cfg.loss.w_reg,
         ).to(device)
         optimizer = build_optimizer(model, cfg)
         monitor_key, monitor_mode = resolve_monitor_metric(cfg.train.early_stop_metric)
-        scheduler, scheduler_mode = build_scheduler(optimizer, cfg, monitor_mode=monitor_mode)
+        scheduler, scheduler_mode = build_scheduler(optimizer, cfg)
         amp_scaler = GradScaler(enabled=bool(cfg.train.use_amp and device.type == "cuda"))
         early_stopper = (
             EarlyStopping(cfg.train.patience, cfg.train.min_delta, mode=monitor_mode)
@@ -730,10 +716,10 @@ def run_training(
 
             current_lr = float(optimizer.param_groups[0]["lr"])
             elapsed = time.time() - epoch_start
+            monitor_value = build_monitor_value(monitor_key, val_metrics, threshold_metrics)
 
             logger.info(
-                "Epoch %03d/%03d lr=%.2e train_loss=%.4f val_loss=%.4f val_auc=%.4f "
-                "val_pr_auc=%.4f val_f1=%.4f val_precision=%.4f thr=%.3f",
+                "Epoch %03d/%03d lr=%.2e train_loss=%.4f val_loss=%.4f val_auc=%.4f val_pr_auc=%.4f val_f1=%.4f val_precision=%.4f val_recall=%.4f thr=%.3f",
                 epoch + 1,
                 cfg.train.num_epochs,
                 current_lr,
@@ -743,6 +729,7 @@ def run_training(
                 val_metrics["pr_auc"],
                 threshold_metrics["f1"],
                 threshold_metrics["precision"],
+                threshold_metrics["recall"],
                 best_threshold,
             )
 
@@ -753,20 +740,18 @@ def run_training(
             add_scalar_if_not_none(writer, "val/auc", val_metrics["auc"], epoch)
             add_scalar_if_not_none(writer, "val/pr_auc", val_metrics["pr_auc"], epoch)
             add_scalar_if_not_none(writer, "val/accuracy", threshold_metrics["accuracy"], epoch)
-            add_scalar_if_not_none(
-                writer, "val/balanced_accuracy", threshold_metrics["balanced_accuracy"], epoch
-            )
+            add_scalar_if_not_none(writer, "val/balanced_accuracy", threshold_metrics["balanced_accuracy"], epoch)
             add_scalar_if_not_none(writer, "val/f1", threshold_metrics["f1"], epoch)
             add_scalar_if_not_none(writer, "val/precision", threshold_metrics["precision"], epoch)
             add_scalar_if_not_none(writer, "val/recall", threshold_metrics["recall"], epoch)
             add_scalar_if_not_none(writer, "train/lr", current_lr, epoch)
             add_scalar_if_not_none(writer, "val/best_threshold", best_threshold, epoch)
 
-            monitor_value = build_monitor_value(monitor_key, val_metrics, threshold_metrics)
             if scheduler_mode == "epoch" and scheduler is not None:
                 scheduler.step()
             elif scheduler_mode == "plateau" and scheduler is not None:
-                scheduler.step(monitor_value)
+                scheduler.step(val_metrics["loss"])
+
             if early_stopper is not None:
                 is_best = early_stopper.step(monitor_value)
             elif monitor_mode == "max":
@@ -822,10 +807,8 @@ def run_training(
                 "epoch": epoch + 1,
                 "trainLoss": safe_round(train_metrics["loss"]),
                 "trainClfLoss": safe_round(train_metrics["clf_loss"]),
-                "trainRegLoss": None,
                 "valLoss": safe_round(val_metrics["loss"]),
                 "valClfLoss": safe_round(val_metrics["clf_loss"]),
-                "valRegLoss": None,
                 "valAuc": safe_round(val_metrics["auc"]),
                 "valPrAuc": safe_round(val_metrics["pr_auc"]),
                 "valAccuracy": safe_round(threshold_metrics["accuracy"]),
@@ -833,7 +816,6 @@ def run_training(
                 "valF1": safe_round(threshold_metrics["f1"]),
                 "valPrecision": safe_round(threshold_metrics["precision"]),
                 "valRecall": safe_round(threshold_metrics["recall"]),
-                "valRmse": None,
                 "learningRate": safe_round(current_lr, 8),
                 "bestThreshold": safe_round(best_threshold),
                 "epochSeconds": safe_round(elapsed, 2),
@@ -892,7 +874,6 @@ def run_training(
         final_metrics = {
             "loss": safe_round(test_metrics["loss"]),
             "clfLoss": safe_round(test_metrics["clf_loss"]),
-            "regLoss": None,
             "auc": safe_round(test_metrics["auc"]),
             "prAuc": safe_round(test_metrics["pr_auc"]),
             "accuracy": safe_round(accuracy_score(test_metrics["_labels"], test_preds)),
@@ -902,8 +883,6 @@ def run_training(
             "f1": safe_round(f1_score(test_metrics["_labels"], test_preds, zero_division=0)),
             "precision": safe_round(precision_score(test_metrics["_labels"], test_preds, zero_division=0)),
             "recall": safe_round(recall_score(test_metrics["_labels"], test_preds, zero_division=0)),
-            "rmse": None,
-            "logRmse": None,
         }
 
         report = classification_report(
@@ -915,7 +894,6 @@ def run_training(
         )
         logger.info("Classification report:\n%s", report)
 
-        task_weights = criterion.get_task_weights()
         summary = {
             "epochsCompleted": len(history["epochs"]),
             "configuredEpochs": cfg.train.num_epochs,
@@ -926,7 +904,7 @@ def run_training(
             "resolvedPosWeight": safe_round(resolved_pos_weight),
             "trainPositiveRate": safe_round(float(positive_count / max(len(train_targets), 1))),
             "finalMetrics": final_metrics,
-            "taskWeights": serialize_metrics(task_weights),
+            "lossConfig": serialize_metrics(criterion.get_loss_config()),
             "classificationReport": report,
         }
         artifacts = {
@@ -976,9 +954,9 @@ def train(cfg: Config):
 __all__ = [
     "EarlyStopping",
     "append_history",
+    "build_latest_epoch",
     "build_optimizer",
     "build_scheduler",
-    "build_latest_epoch",
     "evaluate",
     "init_history",
     "load_checkpoint",
