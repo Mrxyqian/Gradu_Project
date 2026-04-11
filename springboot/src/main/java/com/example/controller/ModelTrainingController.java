@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.ResponseEntity;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpSession;
@@ -40,5 +41,17 @@ public class ModelTrainingController {
                               @RequestBody Map<String, Object> payload,
                               HttpSession session) {
         return Result.success(modelTrainingService.saveWeights(jobId, payload, session));
+    }
+
+    @PostMapping("/jobs/{jobId}/discard")
+    public Result discard(@PathVariable String jobId, HttpSession session) {
+        return Result.success(modelTrainingService.discardJob(jobId, session));
+    }
+
+    @GetMapping("/jobs/{jobId}/figures/{figureKey}")
+    public ResponseEntity<byte[]> figure(@PathVariable String jobId,
+                                         @PathVariable String figureKey,
+                                         HttpSession session) {
+        return modelTrainingService.getFigure(jobId, figureKey, session);
     }
 }

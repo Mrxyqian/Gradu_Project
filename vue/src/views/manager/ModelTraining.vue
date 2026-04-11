@@ -4,8 +4,8 @@
       <div>
         <div class="hero-title">模型训练中心</div>
         <div class="hero-desc">
-          当前页面已经同步到旧风格单任务分类模型。管理员只需要配置常用训练参数，就可以直接启动训练、
-          按 epoch 查看进度、查看结果摘要并保存本次权重。
+          当前页面专注于发起单任务分类模型训练与查看实时进度。训练完成后，系统会自动跳转到结果页面，
+          集中展示测试指标、分类报告、超参数和权重保存入口。
         </div>
       </div>
       <div class="hero-meta">
@@ -21,41 +21,7 @@
           <div class="section-subtitle">保留旧风格模型真正有意义的训练参数，默认值已经按当前项目调整为可直接使用。</div>
 
           <el-form :model="trainForm" label-position="top" class="train-form">
-            <div class="group-title">数据与训练</div>
-            <el-row :gutter="12">
-              <el-col :span="12">
-                <el-form-item label="训练轮数">
-                  <el-input-number v-model="trainForm.numEpochs" :min="1" :max="500" controls-position="right" />
-                </el-form-item>
-              </el-col>
-              <el-col :span="12">
-                <el-form-item label="Batch Size">
-                  <el-input-number v-model="trainForm.batchSize" :min="8" :max="4096" controls-position="right" />
-                </el-form-item>
-              </el-col>
-              <el-col :span="12">
-                <el-form-item label="验证集比例">
-                  <el-input-number v-model="trainForm.valRatio" :min="0.05" :max="0.45" :step="0.01" :precision="2" controls-position="right" />
-                </el-form-item>
-              </el-col>
-              <el-col :span="12">
-                <el-form-item label="测试集比例">
-                  <el-input-number v-model="trainForm.testRatio" :min="0.05" :max="0.45" :step="0.01" :precision="2" controls-position="right" />
-                </el-form-item>
-              </el-col>
-              <el-col :span="12">
-                <el-form-item label="随机种子">
-                  <el-input-number v-model="trainForm.randomSeed" :min="0" :max="999999" controls-position="right" />
-                </el-form-item>
-              </el-col>
-              <el-col :span="12">
-                <el-form-item label="线程数">
-                  <el-input-number v-model="trainForm.numWorkers" :min="0" :max="8" controls-position="right" />
-                </el-form-item>
-              </el-col>
-            </el-row>
-
-            <div class="group-title">优化器与调度</div>
+            <div class="group-title">核心超参数</div>
             <el-row :gutter="12">
               <el-col :span="12">
                 <el-form-item label="优化器">
@@ -72,102 +38,13 @@
                 </el-form-item>
               </el-col>
               <el-col :span="12">
-                <el-form-item label="权重衰减">
-                  <el-input-number v-model="trainForm.weightDecay" :min="0" :max="1" :step="0.00001" :precision="6" controls-position="right" />
+                <el-form-item label="训练轮数">
+                  <el-input-number v-model="trainForm.numEpochs" :min="1" :max="500" controls-position="right" />
                 </el-form-item>
               </el-col>
               <el-col :span="12">
-                <el-form-item label="调度器">
-                  <el-select v-model="trainForm.scheduler">
-                    <el-option label="Cosine Warmup" value="cosine_warmup" />
-                    <el-option label="Reduce On Plateau" value="reduce_on_plateau" />
-                    <el-option label="StepLR" value="step" />
-                    <el-option label="不使用调度器" value="none" />
-                  </el-select>
-                </el-form-item>
-              </el-col>
-              <el-col :span="12">
-                <el-form-item label="Warmup Epochs">
-                  <el-input-number v-model="trainForm.warmupEpochs" :min="0" :max="100" controls-position="right" />
-                </el-form-item>
-              </el-col>
-              <el-col :span="12">
-                <el-form-item label="最小学习率">
-                  <el-input-number v-model="trainForm.minLr" :min="0" :max="1" :step="0.000001" :precision="6" controls-position="right" />
-                </el-form-item>
-              </el-col>
-              <el-col :span="12">
-                <el-form-item label="Step Size">
-                  <el-input-number v-model="trainForm.stepSize" :min="1" :max="200" controls-position="right" />
-                </el-form-item>
-              </el-col>
-              <el-col :span="12">
-                <el-form-item label="Gamma">
-                  <el-input-number v-model="trainForm.gamma" :min="0.01" :max="1" :step="0.05" :precision="2" controls-position="right" />
-                </el-form-item>
-              </el-col>
-              <el-col :span="12">
-                <el-form-item label="Plateau Factor">
-                  <el-input-number v-model="trainForm.plateauFactor" :min="0.1" :max="0.95" :step="0.05" :precision="2" controls-position="right" />
-                </el-form-item>
-              </el-col>
-              <el-col :span="12">
-                <el-form-item label="Plateau Patience">
-                  <el-input-number v-model="trainForm.plateauPatience" :min="1" :max="100" controls-position="right" />
-                </el-form-item>
-              </el-col>
-            </el-row>
-
-            <div class="group-title">模型与训练策略</div>
-            <el-row :gutter="12">
-              <el-col :span="12">
-                <el-form-item label="主干 Dropout">
-                  <el-input-number v-model="trainForm.backboneDropout" :min="0" :max="0.9" :step="0.05" :precision="2" controls-position="right" />
-                </el-form-item>
-              </el-col>
-              <el-col :span="12">
-                <el-form-item label="分类头 Dropout">
-                  <el-input-number v-model="trainForm.headDropout" :min="0" :max="0.9" :step="0.05" :precision="2" controls-position="right" />
-                </el-form-item>
-              </el-col>
-              <el-col :span="12">
-                <el-form-item label="正样本权重">
-                  <el-input-number v-model="trainForm.posWeight" :min="-1" :max="100" :step="0.1" :precision="2" controls-position="right" />
-                </el-form-item>
-              </el-col>
-              <el-col :span="12">
-                <el-form-item label="梯度裁剪">
-                  <el-input-number v-model="trainForm.gradClip" :min="0" :max="100" :step="0.1" :precision="2" controls-position="right" />
-                </el-form-item>
-              </el-col>
-              <el-col :span="12">
-                <el-form-item label="启用 Early Stopping">
-                  <el-switch v-model="trainForm.earlyStop" />
-                </el-form-item>
-              </el-col>
-              <el-col :span="12">
-                <el-form-item label="启用 AMP">
-                  <el-switch v-model="trainForm.useAmp" />
-                </el-form-item>
-              </el-col>
-              <el-col :span="12">
-                <el-form-item label="保存每个 Epoch">
-                  <el-switch v-model="trainForm.saveEveryEpoch" />
-                </el-form-item>
-              </el-col>
-              <el-col :span="12">
-                <el-form-item label="自动搜索阈值">
-                  <el-switch v-model="trainForm.autoThreshold" />
-                </el-form-item>
-              </el-col>
-              <el-col :span="12">
-                <el-form-item label="Early Stop Patience">
-                  <el-input-number v-model="trainForm.patience" :min="1" :max="200" controls-position="right" />
-                </el-form-item>
-              </el-col>
-              <el-col :span="12">
-                <el-form-item label="最小改进阈值">
-                  <el-input-number v-model="trainForm.minDelta" :min="0" :max="1" :step="0.0001" :precision="4" controls-position="right" />
+                <el-form-item label="Batch Size">
+                  <el-input-number v-model="trainForm.batchSize" :min="8" :max="4096" controls-position="right" />
                 </el-form-item>
               </el-col>
               <el-col :span="12">
@@ -186,11 +63,6 @@
                 </el-form-item>
               </el-col>
               <el-col :span="12">
-                <el-form-item label="固定分类阈值">
-                  <el-input-number v-model="trainForm.clfThreshold" :min="0.05" :max="0.95" :step="0.01" :precision="2" controls-position="right" />
-                </el-form-item>
-              </el-col>
-              <el-col :span="12">
                 <el-form-item label="阈值搜索目标">
                   <el-select v-model="trainForm.thresholdMetric">
                     <el-option label="F1" value="f1" />
@@ -199,9 +71,21 @@
                   </el-select>
                 </el-form-item>
               </el-col>
+            </el-row>
+
+            <div class="group-title">隐藏层配置</div>
+            <el-row :gutter="12">
               <el-col :span="12">
-                <el-form-item label="Threshold Beta">
-                  <el-input-number v-model="trainForm.thresholdBeta" :min="0.1" :max="5" :step="0.1" :precision="1" controls-position="right" />
+                <el-form-item label="主干隐藏层">
+                  <el-input
+                    v-model="trainForm.hiddenDimsText"
+                    placeholder="例如 256,512,512,256,256"
+                  />
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="分类头隐藏层">
+                  <el-input-number v-model="trainForm.headHiddenDim" :min="1" :max="2048" controls-position="right" />
                 </el-form-item>
               </el-col>
             </el-row>
@@ -211,46 +95,11 @@
                 {{ isRunning ? '训练进行中' : '开始训练' }}
               </el-button>
               <el-button :disabled="isRunning" @click="resetTrainForm">恢复默认配置</el-button>
-              <span class="form-tip">默认值已经按当前旧风格单任务模型调整，直接点击开始训练即可。</span>
+              <span class="form-tip">其余参数均使用系统默认值，调度器固定为 Cosine Warmup。</span>
             </div>
           </el-form>
         </div>
 
-        <div class="card section-card">
-          <div class="section-title">权重保存</div>
-          <div class="section-subtitle">训练完成后可以选择保存本次训练得到的 best 或 last 权重文件。</div>
-
-          <el-form :model="saveForm" label-position="top">
-            <el-row :gutter="12">
-              <el-col :span="10">
-                <el-form-item label="权重类型">
-                  <el-select v-model="saveForm.checkpointType" :disabled="!isCompleted">
-                    <el-option label="best" value="best" />
-                    <el-option label="last" value="last" />
-                  </el-select>
-                </el-form-item>
-              </el-col>
-              <el-col :span="14">
-                <el-form-item label="目标文件名">
-                  <el-input v-model="saveForm.fileName" :disabled="!isCompleted" placeholder="例如 claim-training-best.pth" />
-                </el-form-item>
-              </el-col>
-            </el-row>
-
-            <el-button type="success" :loading="savingWeights" :disabled="!isCompleted" @click="handleSaveWeights">
-              保存权重文件
-            </el-button>
-          </el-form>
-
-          <div v-if="savedWeights.length" class="saved-list">
-            <div class="saved-title">已保存的权重文件</div>
-            <div v-for="item in savedWeights" :key="`${item.filePath}-${item.savedAt}`" class="saved-item">
-              <div>{{ item.fileName }}（{{ item.checkpointType }}）</div>
-              <div class="saved-path">{{ item.filePath }}</div>
-              <div class="saved-time">{{ item.savedAt }}</div>
-            </div>
-          </div>
-        </div>
       </el-col>
 
       <el-col :xs="24" :lg="13">
@@ -265,6 +114,15 @@
           </div>
 
           <el-progress :percentage="progressPercent" :status="progressBarStatus" :stroke-width="16" />
+
+          <el-alert
+            v-if="currentJob?.status === 'completed'"
+            title="训练已经完成，结果页会自动展示完整指标与图表。"
+            type="success"
+            show-icon
+            :closable="false"
+            style="margin-top: 16px"
+          />
 
           <el-alert
             v-if="currentJob?.error"
@@ -298,132 +156,34 @@
 
           <el-empty v-else description="暂无训练任务，管理员可在左侧直接发起训练。" />
         </div>
-
-        <div v-if="summary" class="card section-card">
-          <div class="section-title">结果概览</div>
-
-          <div class="summary-grid">
-            <div class="summary-card blue-card">
-              <div class="summary-label">测试 AUC</div>
-              <div class="summary-value">{{ formatMetric(summary.finalMetrics?.auc) }}</div>
-            </div>
-            <div class="summary-card green-card">
-              <div class="summary-label">测试 PR-AUC</div>
-              <div class="summary-value">{{ formatMetric(summary.finalMetrics?.prAuc) }}</div>
-            </div>
-            <div class="summary-card orange-card">
-              <div class="summary-label">测试 F1</div>
-              <div class="summary-value">{{ formatMetric(summary.finalMetrics?.f1) }}</div>
-            </div>
-            <div class="summary-card rose-card">
-              <div class="summary-label">测试 Recall</div>
-              <div class="summary-value">{{ formatMetric(summary.finalMetrics?.recall) }}</div>
-            </div>
-          </div>
-
-          <el-descriptions :column="2" border style="margin-top: 16px">
-            <el-descriptions-item label="完成 Epoch">{{ summary.epochsCompleted }} / {{ summary.configuredEpochs }}</el-descriptions-item>
-            <el-descriptions-item label="是否提前停止">{{ summary.stoppedEarly ? '是' : '否' }}</el-descriptions-item>
-            <el-descriptions-item label="监控指标">{{ summary.monitorMetric }}</el-descriptions-item>
-            <el-descriptions-item label="最佳监控值">{{ formatMetric(summary.bestMonitorValue) }}</el-descriptions-item>
-            <el-descriptions-item label="最终分类阈值">{{ formatMetric(summary.finalThreshold) }}</el-descriptions-item>
-            <el-descriptions-item label="Precision / Recall">
-              {{ formatMetric(summary.finalMetrics?.precision) }} / {{ formatMetric(summary.finalMetrics?.recall) }}
-            </el-descriptions-item>
-            <el-descriptions-item label="输出目录" :span="2">{{ artifacts?.outputDir || '-' }}</el-descriptions-item>
-            <el-descriptions-item label="最佳权重路径" :span="2">{{ artifacts?.bestModelPath || '-' }}</el-descriptions-item>
-            <el-descriptions-item label="最新权重路径" :span="2">{{ artifacts?.lastModelPath || '-' }}</el-descriptions-item>
-          </el-descriptions>
-
-          <el-collapse style="margin-top: 16px">
-            <el-collapse-item title="查看详细分类报告" name="report">
-              <pre class="report-box">{{ summary.classificationReport }}</pre>
-            </el-collapse-item>
-          </el-collapse>
-        </div>
       </el-col>
     </el-row>
-
-    <div v-if="hasHistory" class="chart-grid">
-      <div class="card chart-card">
-        <div class="chart-title">训练损失曲线</div>
-        <div ref="trainLossRef" class="chart-body"></div>
-      </div>
-      <div class="card chart-card">
-        <div class="chart-title">验证损失曲线</div>
-        <div ref="valLossRef" class="chart-body"></div>
-      </div>
-      <div class="card chart-card">
-        <div class="chart-title">验证 AUC 曲线</div>
-        <div ref="valAucRef" class="chart-body"></div>
-      </div>
-      <div class="card chart-card">
-        <div class="chart-title">验证 F1 曲线</div>
-        <div ref="valF1Ref" class="chart-body"></div>
-      </div>
-    </div>
   </div>
 </template>
 
 <script setup>
-import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
-import * as echarts from 'echarts'
+import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import request from '@/utils/request'
+
+const router = useRouter()
 
 const defaultTrainForm = () => ({
   numEpochs: 100,
   batchSize: 128,
-  randomSeed: 42,
-  valRatio: 0.15,
-  testRatio: 0.10,
-  numWorkers: 0,
   optimizer: 'adamw',
   learningRate: 0.0002,
-  weightDecay: 0.00007,
-  scheduler: 'cosine_warmup',
-  warmupEpochs: 5,
-  minLr: 0.000001,
-  stepSize: 10,
-  gamma: 0.5,
-  plateauFactor: 0.5,
-  plateauPatience: 5,
-  plateauMinLr: 0.000001,
-  backboneDropout: 0.25,
-  headDropout: 0.15,
-  posWeight: 4.1,
-  earlyStop: true,
-  patience: 20,
-  minDelta: 0.0001,
   earlyStopMetric: 'auc',
-  useAmp: true,
-  gradClip: 1.0,
-  saveEveryEpoch: false,
-  autoThreshold: true,
-  clfThreshold: 0.5,
   thresholdMetric: 'f1',
-  thresholdBeta: 1.3,
+  hiddenDimsText: '256,512,512,256,256',
+  headHiddenDim: 64,
 })
 
 const trainForm = reactive(defaultTrainForm())
-const saveForm = reactive({
-  checkpointType: 'best',
-  fileName: '',
-})
-
 const currentJob = ref(null)
 const starting = ref(false)
-const savingWeights = ref(false)
-
-const trainLossRef = ref(null)
-const valLossRef = ref(null)
-const valAucRef = ref(null)
-const valF1Ref = ref(null)
-
-let trainLossChart = null
-let valLossChart = null
-let valAucChart = null
-let valF1Chart = null
+const trackedJobId = ref('')
 let pollTimer = null
 
 const statusText = computed(() => {
@@ -445,15 +205,9 @@ const statusTagType = computed(() => {
 })
 
 const isRunning = computed(() => currentJob.value?.status === 'running')
-const isCompleted = computed(() => currentJob.value?.status === 'completed')
 const currentEpoch = computed(() => Number(currentJob.value?.currentEpoch || 0))
 const totalEpochs = computed(() => Number(currentJob.value?.totalEpochs || 0))
 const latestEpoch = computed(() => currentJob.value?.latestEpoch || null)
-const summary = computed(() => currentJob.value?.summary || null)
-const artifacts = computed(() => currentJob.value?.artifacts || null)
-const savedWeights = computed(() => currentJob.value?.savedWeights || [])
-const history = computed(() => currentJob.value?.history || {})
-const hasHistory = computed(() => (history.value?.epochs || []).length > 0)
 const progressPercent = computed(() => {
   const progress = Number(currentJob.value?.progress || 0)
   return Math.min(100, Math.max(0, Number((progress * 100).toFixed(1))))
@@ -466,6 +220,24 @@ const progressBarStatus = computed(() => {
 
 const resetTrainForm = () => {
   Object.assign(trainForm, defaultTrainForm())
+}
+
+const parseHiddenDims = (value) => {
+  const tokens = String(value || '')
+    .split(',')
+    .map(item => item.trim())
+    .filter(Boolean)
+
+  if (!tokens.length) {
+    return null
+  }
+
+  const dims = tokens.map((item) => Number(item))
+  if (dims.some(item => !Number.isInteger(item) || item <= 0)) {
+    return null
+  }
+
+  return dims
 }
 
 const formatMetric = (value, digits = 4) => {
@@ -490,14 +262,20 @@ const stopPolling = () => {
   }
 }
 
+const openResultPage = async (jobId) => {
+  if (!jobId) return
+  await router.push({
+    name: 'ModelTrainingResult',
+    params: { jobId },
+  })
+}
+
 const loadLatestJob = async () => {
   const res = await request.get('/modelTraining/jobs/latest')
   if (res.code === '200' && res.data) {
     currentJob.value = res.data
-    if (!saveForm.fileName) {
-      saveForm.fileName = `claim-training-${res.data.jobId}.pth`
-    }
     if (res.data.status === 'running') {
+      trackedJobId.value = res.data.jobId
       startPolling()
     }
   }
@@ -523,17 +301,33 @@ const startPolling = () => {
 }
 
 const handleStartTraining = async () => {
-  if (Number(trainForm.valRatio) + Number(trainForm.testRatio) >= 0.8) {
-    ElMessage.warning('验证集与测试集比例之和必须小于 0.8')
+  const hiddenDims = parseHiddenDims(trainForm.hiddenDimsText)
+  if (!hiddenDims) {
+    ElMessage.warning('请输入合法的主干隐藏层配置，例如 256,512,512,256,256')
     return
+  }
+  if (!Number.isInteger(Number(trainForm.headHiddenDim)) || Number(trainForm.headHiddenDim) <= 0) {
+    ElMessage.warning('分类头隐藏层必须是正整数')
+    return
+  }
+
+  const payload = {
+    numEpochs: Number(trainForm.numEpochs),
+    batchSize: Number(trainForm.batchSize),
+    optimizer: trainForm.optimizer,
+    learningRate: Number(trainForm.learningRate),
+    earlyStopMetric: trainForm.earlyStopMetric,
+    thresholdMetric: trainForm.thresholdMetric,
+    hiddenDims,
+    headHiddenDim: Number(trainForm.headHiddenDim),
   }
 
   try {
     starting.value = true
-    const res = await request.post('/modelTraining/start', trainForm)
+    const res = await request.post('/modelTraining/start', payload)
     if (res.code === '200') {
+      trackedJobId.value = res.data.jobId
       currentJob.value = res.data
-      saveForm.fileName = `claim-training-${res.data.jobId}.pth`
       ElMessage.success('训练任务已启动')
       startPolling()
     } else {
@@ -547,145 +341,36 @@ const handleStartTraining = async () => {
   }
 }
 
-const handleSaveWeights = async () => {
-  if (!currentJob.value?.jobId) {
-    ElMessage.warning('当前没有可保存的训练任务')
-    return
-  }
-  if (!saveForm.fileName.trim()) {
-    ElMessage.warning('请输入目标权重文件名')
-    return
-  }
-
-  try {
-    savingWeights.value = true
-    const res = await request.post(`/modelTraining/jobs/${currentJob.value.jobId}/save-weights`, saveForm)
-    if (res.code === '200') {
-      ElMessage.success('权重文件保存成功')
-      await loadJob(currentJob.value.jobId)
-    } else {
-      ElMessage.error(res.msg || '保存权重失败')
-    }
-  } catch (error) {
-    console.error(error)
-    ElMessage.error('保存权重失败，请稍后重试')
-  } finally {
-    savingWeights.value = false
-  }
-}
-
-const buildLineOption = (title, xData, yData, color, formatter) => ({
-  tooltip: {
-    trigger: 'axis',
-    valueFormatter: formatter,
-  },
-  xAxis: {
-    type: 'category',
-    data: xData,
-    boundaryGap: false,
-    axisLabel: {
-      color: '#4b5563',
-    },
-  },
-  yAxis: {
-    type: 'value',
-    axisLabel: {
-      color: '#4b5563',
-    },
-    splitLine: {
-      lineStyle: {
-        color: '#eef2f7',
-      },
-    },
-  },
-  grid: {
-    left: 48,
-    right: 18,
-    top: 20,
-    bottom: 36,
-  },
-  series: [{
-    name: title,
-    type: 'line',
-    smooth: true,
-    symbol: 'circle',
-    symbolSize: 8,
-    data: yData,
-    lineStyle: {
-      width: 3,
-      color,
-    },
-    itemStyle: {
-      color,
-    },
-    areaStyle: {
-      color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-        { offset: 0, color: `${color}55` },
-        { offset: 1, color: `${color}08` },
-      ]),
-    },
-  }],
-})
-
-const renderCharts = () => {
-  const epochs = history.value?.epochs || []
-  if (!epochs.length) return
-
-  trainLossChart?.dispose()
-  valLossChart?.dispose()
-  valAucChart?.dispose()
-  valF1Chart?.dispose()
-
-  if (trainLossRef.value) {
-    trainLossChart = echarts.init(trainLossRef.value)
-    trainLossChart.setOption(buildLineOption('训练损失', epochs, history.value.trainLoss || [], '#2563eb'))
-  }
-  if (valLossRef.value) {
-    valLossChart = echarts.init(valLossRef.value)
-    valLossChart.setOption(buildLineOption('验证损失', epochs, history.value.valLoss || [], '#0f766e'))
-  }
-  if (valAucRef.value) {
-    valAucChart = echarts.init(valAucRef.value)
-    valAucChart.setOption(buildLineOption('验证 AUC', epochs, history.value.valAuc || [], '#f97316'))
-  }
-  if (valF1Ref.value) {
-    valF1Chart = echarts.init(valF1Ref.value)
-    valF1Chart.setOption(buildLineOption('验证 F1', epochs, history.value.valF1 || [], '#db2777'))
-  }
-}
-
-const handleResize = () => {
-  trainLossChart?.resize()
-  valLossChart?.resize()
-  valAucChart?.resize()
-  valF1Chart?.resize()
-}
-
 watch(
-  () => currentJob.value?.history,
-  () => {
-    nextTick(() => {
-      renderCharts()
-    })
-  },
-  { deep: true }
+  () => currentJob.value?.status,
+  async (status, previousStatus) => {
+    if (
+      previousStatus === 'running'
+      && status === 'completed'
+      && currentJob.value?.jobId
+      && currentJob.value.jobId === trackedJobId.value
+    ) {
+      ElMessage.success('训练完成，正在打开结果页面')
+      await openResultPage(currentJob.value.jobId)
+      return
+    }
+
+    if (
+      previousStatus === 'running'
+      && status === 'failed'
+      && currentJob.value?.jobId === trackedJobId.value
+    ) {
+      ElMessage.error('训练任务失败，请在当前页面查看报错信息')
+    }
+  }
 )
 
 onMounted(async () => {
   await loadLatestJob()
-  nextTick(() => {
-    renderCharts()
-  })
-  window.addEventListener('resize', handleResize)
 })
 
 onUnmounted(() => {
   stopPolling()
-  window.removeEventListener('resize', handleResize)
-  trainLossChart?.dispose()
-  valLossChart?.dispose()
-  valAucChart?.dispose()
-  valF1Chart?.dispose()
 })
 </script>
 

@@ -9,6 +9,10 @@ import cn.hutool.json.JSONUtil;
 import com.example.common.SessionUserUtil;
 import com.example.exception.CustomException;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import javax.servlet.http.HttpSession;
@@ -44,6 +48,39 @@ public class ModelTrainingService {
     public Object saveWeights(String jobId, Map<String, Object> payload, HttpSession session) {
         SessionUserUtil.requireAdmin(session);
         return postForData("/training/jobs/" + jobId + "/save-weights", payload);
+    }
+
+    public Object discardJob(String jobId, HttpSession session) {
+        SessionUserUtil.requireAdmin(session);
+        return postForData("/training/jobs/" + jobId + "/discard", new LinkedHashMap<>());
+    }
+
+    public ResponseEntity<byte[]> getFigure(String jobId, String figureKey, HttpSession session) {
+        SessionUserUtil.requireAdmin(session);
+        String url = fastApiBaseUrl + "/training/jobs/" + jobId + "/figures/" + figureKey;
+        try (HttpResponse response = HttpRequest.get(url)
+                .timeout(fastApiTimeout)
+                .execute()) {
+            if (response.getStatus() < 200 || response.getStatus() >= 300) {
+                throw new CustomException("获取训练图像失败: " + response.body());
+            }
+
+            String contentType = response.header("Content-Type");
+            MediaType mediaType = MediaType.APPLICATION_OCTET_STREAM;
+            if (contentType != null && !contentType.trim().isEmpty()) {
+                mediaType = MediaType.parseMediaType(contentType);
+            }
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_OCTET_STREAM.equals(mediaType) ? MediaType.IMAGE_PNG : mediaType);
+            headers.setCacheControl("no-cache, no-store, must-revalidate");
+            headers.set(HttpHeaders.CONTENT_DISPOSITION, "inline");
+            return new ResponseEntity<>(response.bodyBytes(), headers, HttpStatus.OK);
+        } catch (CustomException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new CustomException("调用 FastAPI 模型训练图像服务异常: " + e.getMessage());
+        }
     }
 
     private Object getForData(String path) {

@@ -1,0 +1,325 @@
+meta:
+  profile: default
+  source: replicated
+  theme: academic-color
+  layout: horizontal
+  canvas: auto
+  routing: orthogonal
+  title: Current Residual MLP for Vehicle Insurance Claim Classification
+  description: A classic-MLP-inspired redraw of the current InsuranceMLP architecture.
+  replication:
+    colorMode: preserve-original
+    background: '#FFFFFF'
+    palette:
+      - hex: '#5AA6E8'
+        role: connector stroke
+        appliesTo: edges
+        confidence: high
+      - hex: '#4B79A8'
+        role: input node stroke and text
+        appliesTo: nodes
+        confidence: high
+      - hex: '#79BE56'
+        role: backbone node stroke and text
+        appliesTo: nodes
+        confidence: high
+      - hex: '#D78137'
+        role: head and output node stroke and text
+        appliesTo: nodes
+        confidence: high
+    confidenceNotes:
+      - >-
+        The reference image uses a white canvas, blue connectors, blue input circles, green hidden nodes, and orange
+        output nodes.
+      - >-
+        This redraw preserves the visual language but replaces the generic hidden layer with the actual residual MLP
+        structure.
+modules:
+  - id: backbone
+    label: Shared Residual Backbone
+    style:
+      fillColor: '#F6FFF1'
+      strokeColor: '#B7D89B'
+      strokeWidth: 2
+      fontColor: '#4F8D32'
+nodes:
+  - id: x1
+    label: x1
+    type: user
+    size: xl
+    position:
+      x: 96
+      'y': 112
+    style:
+      fillColor: '#FFFFFF'
+      strokeColor: '#4B79A8'
+      fontColor: '#3E6488'
+      strokeWidth: 2
+      fontSize: 24
+  - id: x2
+    label: x2
+    type: user
+    size: xl
+    position:
+      x: 96
+      'y': 264
+    style:
+      fillColor: '#FFFFFF'
+      strokeColor: '#4B79A8'
+      fontColor: '#3E6488'
+      strokeWidth: 2
+      fontSize: 24
+  - id: xd
+    label: xd
+    type: user
+    size: xl
+    position:
+      x: 96
+      'y': 416
+    style:
+      fillColor: '#FFFFFF'
+      strokeColor: '#4B79A8'
+      fontColor: '#3E6488'
+      strokeWidth: 2
+      fontSize: 24
+  - id: proj
+    label: |-
+      Input Projection
+      Linear(d→256)
+      LayerNorm + GELU
+    type: user
+    size: xl
+    position:
+      x: 296
+      'y': 264
+    style:
+      fillColor: '#FFFFFF'
+      strokeColor: '#79BE56'
+      fontColor: '#5B9C3E'
+      strokeWidth: 2
+      fontSize: 16
+  - id: rb1
+    label: |-
+      ResBlock 1
+      256→512
+      fc1/fc2 + shortcut
+    type: user
+    module: backbone
+    size: xl
+    position:
+      x: 520
+      'y': 104
+    style:
+      fillColor: '#FFFFFF'
+      strokeColor: '#79BE56'
+      fontColor: '#5B9C3E'
+      strokeWidth: 2
+      fontSize: 15
+  - id: rb2
+    label: |-
+      ResBlock 2
+      512→512
+      fc1/fc2 + shortcut
+    type: user
+    module: backbone
+    size: xl
+    position:
+      x: 520
+      'y': 224
+    style:
+      fillColor: '#FFFFFF'
+      strokeColor: '#79BE56'
+      fontColor: '#5B9C3E'
+      strokeWidth: 2
+      fontSize: 15
+  - id: rb3
+    label: |-
+      ResBlock 3
+      512→256
+      fc1/fc2 + shortcut
+    type: user
+    module: backbone
+    size: xl
+    position:
+      x: 520
+      'y': 344
+    style:
+      fillColor: '#FFFFFF'
+      strokeColor: '#79BE56'
+      fontColor: '#5B9C3E'
+      strokeWidth: 2
+      fontSize: 15
+  - id: rb4
+    label: |-
+      ResBlock 4
+      256→256
+      fc1/fc2 + shortcut
+    type: user
+    module: backbone
+    size: xl
+    position:
+      x: 520
+      'y': 464
+    style:
+      fillColor: '#FFFFFF'
+      strokeColor: '#79BE56'
+      fontColor: '#5B9C3E'
+      strokeWidth: 2
+      fontSize: 15
+  - id: head
+    label: |-
+      Classification Head
+      256→64→1
+      LayerNorm + GELU
+      Dropout 0.15
+    type: output
+    size: xl
+    position:
+      x: 832
+      'y': 264
+    style:
+      fillColor: '#FFFFFF'
+      strokeColor: '#D78137'
+      fontColor: '#C96E1C'
+      strokeWidth: 2
+      fontSize: 15
+  - id: prob
+    label: |-
+      Sigmoid
+      Claim Probability
+    type: output
+    size: xl
+    position:
+      x: 1080
+      'y': 184
+    style:
+      fillColor: '#FFFFFF'
+      strokeColor: '#D78137'
+      fontColor: '#C96E1C'
+      strokeWidth: 2
+      fontSize: 18
+  - id: loss
+    label: |-
+      BCEWithLogitsLoss
+      pos_weight +
+      label smoothing
+    type: loss
+    size: xl
+    position:
+      x: 1080
+      'y': 360
+    style:
+      fillColor: '#FFF9F2'
+      strokeColor: '#D78137'
+      fontColor: '#B85F16'
+      strokeWidth: 2
+      fontSize: 16
+  - id: ytrue
+    label: 'y'
+    type: output
+    size: medium
+    position:
+      x: 1240
+      'y': 360
+    style:
+      fillColor: '#FFFFFF'
+      strokeColor: '#D78137'
+      fontColor: '#C96E1C'
+      strokeWidth: 2
+      fontSize: 22
+  - id: note
+    label: |-
+      Design Intent
+      Shared backbone
+      Residual shortcuts
+      LayerNorm + GELU
+      Dropout 0.25
+    type: document
+    size: xl
+    position:
+      x: 832
+      'y': 96
+    style:
+      fillColor: '#FCFFF8'
+      strokeColor: '#A8CD88'
+      fontColor: '#5B9C3E'
+      strokeWidth: 1.5
+      fontSize: 14
+edges:
+  - from: x1
+    to: proj
+    type: primary
+    style:
+      strokeColor: '#5AA6E8'
+      strokeWidth: 2
+  - from: x2
+    to: proj
+    type: primary
+    style:
+      strokeColor: '#5AA6E8'
+      strokeWidth: 2
+  - from: xd
+    to: proj
+    type: primary
+    style:
+      strokeColor: '#5AA6E8'
+      strokeWidth: 2
+  - from: proj
+    to: rb1
+    type: primary
+    style:
+      strokeColor: '#5AA6E8'
+      strokeWidth: 2
+  - from: rb1
+    to: rb2
+    type: primary
+    style:
+      strokeColor: '#5AA6E8'
+      strokeWidth: 2
+  - from: rb2
+    to: rb3
+    type: primary
+    style:
+      strokeColor: '#5AA6E8'
+      strokeWidth: 2
+  - from: rb3
+    to: rb4
+    type: primary
+    style:
+      strokeColor: '#5AA6E8'
+      strokeWidth: 2
+  - from: rb4
+    to: head
+    type: primary
+    style:
+      strokeColor: '#5AA6E8'
+      strokeWidth: 2
+  - from: head
+    to: prob
+    type: primary
+    label: logit → sigmoid
+    style:
+      strokeColor: '#5AA6E8'
+      strokeWidth: 2
+  - from: head
+    to: loss
+    type: primary
+    label: logit
+    labelPosition: start
+    style:
+      strokeColor: '#5AA6E8'
+      strokeWidth: 2
+  - from: ytrue
+    to: loss
+    type: primary
+    label: target
+    labelPosition: start
+    style:
+      strokeColor: '#5AA6E8'
+      strokeWidth: 2
+  - from: note
+    to: rb2
+    type: optional
+    style:
+      strokeColor: '#8FBF69'
+      strokeWidth: 1.5

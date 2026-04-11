@@ -17,14 +17,18 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Any, Callable, Dict, Optional
 
+import matplotlib
 import numpy as np
 import torch
 import torch.nn as nn
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
 from sklearn.metrics import (
     accuracy_score,
     average_precision_score,
     balanced_accuracy_score,
     classification_report,
+    confusion_matrix,
     f1_score,
     fbeta_score,
     precision_score,
@@ -140,6 +144,152 @@ def add_scalar_if_not_none(
     writer.add_scalar(tag, value, step)
 
 
+def save_professional_line_chart(
+    output_path: Path,
+    x_data: list[Any],
+    series_items: list[Dict[str, Any]],
+    title: str,
+    y_label: str,
+    y_lim: Optional[tuple[float, float]] = None,
+) -> None:
+    fig, ax = plt.subplots(figsize=(10, 6), dpi=180)
+    fig.patch.set_facecolor("#ffffff")
+    ax.set_facecolor("#f8fafc")
+
+    for item in series_items:
+        ax.plot(
+            x_data,
+            item["data"],
+            label=item["label"],
+            color=item["color"],
+            linewidth=2.2,
+            marker="o",
+            markersize=4,
+        )
+
+    ax.set_title(title, fontsize=15, fontweight="bold", pad=14)
+    ax.set_xlabel("Epoch", fontsize=11)
+    ax.set_ylabel(y_label, fontsize=11)
+    ax.grid(True, linestyle="--", linewidth=0.7, alpha=0.35)
+    ax.legend(frameon=False, fontsize=10)
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    if len(x_data) == 1:
+        single_epoch = float(x_data[0])
+        ax.set_xlim(single_epoch - 0.5, single_epoch + 0.5)
+    else:
+        ax.set_xlim(min(x_data), max(x_data))
+    if y_lim is not None:
+        ax.set_ylim(*y_lim)
+    ax.tick_params(labelsize=10)
+    fig.tight_layout()
+    fig.savefig(output_path, bbox_inches="tight")
+    plt.close(fig)
+
+
+def save_confusion_matrix_chart(
+    output_path: Path,
+    confusion_matrix_data: list[list[int]],
+    labels: list[str],
+) -> None:
+    matrix = np.asarray(confusion_matrix_data, dtype=np.int64)
+    fig, ax = plt.subplots(figsize=(7.2, 6.2), dpi=180)
+    fig.patch.set_facecolor("#ffffff")
+    image = ax.imshow(matrix, cmap="Blues")
+    fig.colorbar(image, ax=ax, fraction=0.046, pad=0.04)
+
+    ax.set_title("Confusion Matrix", fontsize=15, fontweight="bold", pad=14)
+    ax.set_xlabel("Predicted Label", fontsize=11)
+    ax.set_ylabel("True Label", fontsize=11)
+    ax.set_xticks(range(len(labels)))
+    ax.set_yticks(range(len(labels)))
+    ax.set_xticklabels(labels, fontsize=10)
+    ax.set_yticklabels(labels, fontsize=10)
+
+    threshold = matrix.max() / 2 if matrix.size else 0
+    for row in range(matrix.shape[0]):
+        for col in range(matrix.shape[1]):
+            value = int(matrix[row, col])
+            ax.text(
+                col,
+                row,
+                str(value),
+                ha="center",
+                va="center",
+                color="white" if value > threshold else "#0f172a",
+                fontsize=12,
+                fontweight="bold",
+            )
+
+    fig.tight_layout()
+    fig.savefig(output_path, bbox_inches="tight")
+    plt.close(fig)
+
+
+def generate_training_figure_artifacts(
+    output_dir: Path,
+    history: Dict[str, list],
+    summary: Dict[str, Any],
+) -> Dict[str, Any]:
+    epochs = history.get("epochs") or []
+    if not epochs:
+        return {}
+
+    figure_dir = output_dir / "figures"
+    figure_dir.mkdir(parents=True, exist_ok=True)
+
+    figure_files = {
+        "lossCurve": "loss_curve.png",
+        "accuracyCurve": "accuracy_curve.png",
+        "valPrAucCurve": "val_pr_auc_curve.png",
+        "confusionMatrix": "confusion_matrix.png",
+    }
+
+    save_professional_line_chart(
+        figure_dir / figure_files["lossCurve"],
+        epochs,
+        [
+            {"label": "Train Loss", "data": history.get("trainLoss", []), "color": "#2563eb"},
+            {"label": "Validation Loss", "data": history.get("valLoss", []), "color": "#059669"},
+        ],
+        title="Training and Validation Loss",
+        y_label="Loss",
+    )
+    save_professional_line_chart(
+        figure_dir / figure_files["accuracyCurve"],
+        epochs,
+        [
+            {"label": "Train Accuracy", "data": history.get("trainAccuracy", []), "color": "#7c3aed"},
+            {"label": "Validation Accuracy", "data": history.get("valAccuracy", []), "color": "#ea580c"},
+        ],
+        title="Training and Validation Accuracy",
+        y_label="Accuracy",
+        y_lim=(0.0, 1.0),
+    )
+    save_professional_line_chart(
+        figure_dir / figure_files["valPrAucCurve"],
+        epochs,
+        [
+            {"label": "Validation PR-AUC", "data": history.get("valPrAuc", []), "color": "#db2777"},
+        ],
+        title="Validation PR-AUC",
+        y_label="PR-AUC",
+        y_lim=(0.0, 1.0),
+    )
+
+    confusion_payload = summary.get("confusionMatrix") or {}
+    save_confusion_matrix_chart(
+        figure_dir / figure_files["confusionMatrix"],
+        confusion_payload.get("matrix") or [[0, 0], [0, 0]],
+        confusion_payload.get("labels") or ["No Claim", "Claim"],
+    )
+
+    return {
+        "figureDir": str(figure_dir.resolve()),
+        "figureFiles": figure_files,
+    }
+
+
 def search_best_threshold(
     probs: np.ndarray,
     labels: np.ndarray,
@@ -181,6 +331,7 @@ def init_history() -> Dict[str, list]:
         "epochs": [],
         "trainLoss": [],
         "trainClfLoss": [],
+        "trainAccuracy": [],
         "valLoss": [],
         "valClfLoss": [],
         "valAuc": [],
@@ -200,6 +351,7 @@ def append_history(history: Dict[str, list], epoch_record: Dict[str, Any]) -> No
     history["epochs"].append(epoch_record["epoch"])
     history["trainLoss"].append(epoch_record["trainLoss"])
     history["trainClfLoss"].append(epoch_record["trainClfLoss"])
+    history["trainAccuracy"].append(epoch_record["trainAccuracy"])
     history["valLoss"].append(epoch_record["valLoss"])
     history["valClfLoss"].append(epoch_record["valClfLoss"])
     history["valAuc"].append(epoch_record["valAuc"])
@@ -222,6 +374,7 @@ def build_latest_epoch(history: Dict[str, list]) -> Optional[Dict[str, Any]]:
         "epoch": history["epochs"][last_idx],
         "trainLoss": history["trainLoss"][last_idx],
         "trainClfLoss": history["trainClfLoss"][last_idx],
+        "trainAccuracy": history["trainAccuracy"][last_idx],
         "valLoss": history["valLoss"][last_idx],
         "valClfLoss": history["valClfLoss"][last_idx],
         "valAuc": history["valAuc"][last_idx],
@@ -443,6 +596,8 @@ def train_one_epoch(
     total_loss = 0.0
     total_clf_loss = 0.0
     total_samples = 0
+    all_probs: list[np.ndarray] = []
+    all_labels: list[np.ndarray] = []
 
     for batch_idx, (features, labels) in enumerate(loader, start=1):
         features = features.to(device, non_blocking=True)
@@ -470,6 +625,8 @@ def train_one_epoch(
         total_loss += float(loss.item()) * batch_size
         total_clf_loss += float(clf_loss.item()) * batch_size
         total_samples += batch_size
+        all_probs.append(torch.sigmoid(logits.detach()).cpu().numpy())
+        all_labels.append(labels.detach().cpu().numpy())
 
         if cfg.train.log_interval and batch_idx % cfg.train.log_interval == 0:
             logger.info(
@@ -481,9 +638,17 @@ def train_one_epoch(
                 float(clf_loss.item()),
             )
 
+    probs = np.concatenate(all_probs) if all_probs else np.empty(0, dtype=np.float32)
+    labels = np.concatenate(all_labels) if all_labels else np.empty(0, dtype=np.float32)
+    labels_int = labels.astype(int)
+    preds = (probs >= float(cfg.train.clf_threshold)).astype(int)
+
     return {
         "loss": total_loss / max(total_samples, 1),
         "clf_loss": total_clf_loss / max(total_samples, 1),
+        "accuracy": accuracy_score(labels_int, preds) if labels_int.size else 0.0,
+        "_probs": probs,
+        "_labels": labels_int,
     }
 
 
@@ -704,6 +869,12 @@ def run_training(
                 best_threshold = float(cfg.train.clf_threshold)
 
             threshold_preds = (val_metrics["_probs"] >= best_threshold).astype(int)
+            train_threshold_preds = (train_metrics["_probs"] >= best_threshold).astype(int)
+            train_accuracy = (
+                accuracy_score(train_metrics["_labels"], train_threshold_preds)
+                if train_metrics["_labels"].size
+                else 0.0
+            )
             threshold_metrics = {
                 "accuracy": accuracy_score(val_metrics["_labels"], threshold_preds),
                 "balanced_accuracy": balanced_accuracy_score(
@@ -719,14 +890,15 @@ def run_training(
             monitor_value = build_monitor_value(monitor_key, val_metrics, threshold_metrics)
 
             logger.info(
-                "Epoch %03d/%03d lr=%.2e train_loss=%.4f val_loss=%.4f val_auc=%.4f val_pr_auc=%.4f val_f1=%.4f val_precision=%.4f val_recall=%.4f thr=%.3f",
+                "Epoch %03d/%03d lr=%.2e train_loss=%.4f train_acc=%.4f val_loss=%.4f val_pr_auc=%.4f val_acc=%.4f val_f1=%.4f val_precision=%.4f val_recall=%.4f thr=%.3f",
                 epoch + 1,
                 cfg.train.num_epochs,
                 current_lr,
                 train_metrics["loss"],
+                train_accuracy,
                 val_metrics["loss"],
-                val_metrics["auc"],
                 val_metrics["pr_auc"],
+                threshold_metrics["accuracy"],
                 threshold_metrics["f1"],
                 threshold_metrics["precision"],
                 threshold_metrics["recall"],
@@ -735,6 +907,7 @@ def run_training(
 
             add_scalar_if_not_none(writer, "train/loss", train_metrics["loss"], epoch)
             add_scalar_if_not_none(writer, "train/clf_loss", train_metrics["clf_loss"], epoch)
+            add_scalar_if_not_none(writer, "train/accuracy", train_accuracy, epoch)
             add_scalar_if_not_none(writer, "val/loss", val_metrics["loss"], epoch)
             add_scalar_if_not_none(writer, "val/clf_loss", val_metrics["clf_loss"], epoch)
             add_scalar_if_not_none(writer, "val/auc", val_metrics["auc"], epoch)
@@ -807,6 +980,7 @@ def run_training(
                 "epoch": epoch + 1,
                 "trainLoss": safe_round(train_metrics["loss"]),
                 "trainClfLoss": safe_round(train_metrics["clf_loss"]),
+                "trainAccuracy": safe_round(train_accuracy),
                 "valLoss": safe_round(val_metrics["loss"]),
                 "valClfLoss": safe_round(val_metrics["clf_loss"]),
                 "valAuc": safe_round(val_metrics["auc"]),
@@ -892,6 +1066,7 @@ def run_training(
             digits=4,
             zero_division=0,
         )
+        cm = confusion_matrix(test_metrics["_labels"], test_preds, labels=[0, 1])
         logger.info("Classification report:\n%s", report)
 
         summary = {
@@ -906,7 +1081,21 @@ def run_training(
             "finalMetrics": final_metrics,
             "lossConfig": serialize_metrics(criterion.get_loss_config()),
             "classificationReport": report,
+            "confusionMatrix": {
+                "labels": ["No Claim", "Claim"],
+                "matrix": cm.astype(int).tolist(),
+            },
         }
+        figure_artifacts: Dict[str, Any] = {}
+        try:
+            figure_artifacts = generate_training_figure_artifacts(
+                output_dir=output_dir,
+                history=history,
+                summary=summary,
+            )
+        except Exception as exc:
+            logger.warning("Failed to generate matplotlib figures: %s", exc)
+
         artifacts = {
             "outputDir": str(output_dir.resolve()),
             "logFile": str(log_file.resolve()),
@@ -916,6 +1105,7 @@ def run_training(
             "lastModelPath": str(Path(cfg.path.last_model_path).resolve()),
             "bestThresholdPath": str(best_threshold_path.resolve()),
         }
+        artifacts.update(figure_artifacts)
 
         safe_progress_callback(
             progress_callback,

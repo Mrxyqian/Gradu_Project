@@ -58,6 +58,27 @@ class TrainingJobManager:
         self._active_job_id: Optional[str] = None
         self._load_latest_snapshot()
 
+    def _attach_figure_urls(self, job: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+        if not job:
+            return job
+        artifacts = job.get("artifacts") or {}
+        figure_files = artifacts.get("figureFiles") or {}
+        job_id = job.get("jobId")
+        if job_id and figure_files:
+            artifacts["figureUrls"] = {
+                key: f"/training/jobs/{job_id}/figures/{key}"
+                for key in figure_files.keys()
+            }
+            job["artifacts"] = artifacts
+        return job
+
+    def _resolve_run_dir(self, job: Dict[str, Any]) -> Path:
+        run_dir = Path(job["runDir"]).resolve()
+        base_dir = self.base_dir.resolve()
+        if base_dir not in run_dir.parents:
+            raise ValueError("训练任务目录不在允许的输出范围内")
+        return run_dir
+
     def _load_latest_snapshot(self) -> None:
         snapshot_files = sorted(
             self.base_dir.glob("*/job_state.json"),
@@ -95,6 +116,10 @@ class TrainingJobManager:
         cfg.data.test_ratio = float(params.get("testRatio", cfg.data.test_ratio))
         cfg.data.num_workers = int(params.get("numWorkers", cfg.data.num_workers))
 
+        hidden_dims = params.get("hiddenDims")
+        if hidden_dims:
+            cfg.model.hidden_dims = tuple(int(dim) for dim in hidden_dims)
+        cfg.model.head_hidden_dim = int(params.get("headHiddenDim", cfg.model.head_hidden_dim))
         cfg.model.backbone_dropout = float(params.get("backboneDropout", cfg.model.backbone_dropout))
         cfg.model.head_dropout = float(params.get("headDropout", cfg.model.head_dropout))
 
@@ -104,7 +129,7 @@ class TrainingJobManager:
         cfg.optimizer.lr = float(params.get("learningRate", cfg.optimizer.lr))
         cfg.optimizer.weight_decay = float(params.get("weightDecay", cfg.optimizer.weight_decay))
 
-        cfg.scheduler.scheduler = str(params.get("scheduler", cfg.scheduler.scheduler))
+        cfg.scheduler.scheduler = "cosine_warmup"
         cfg.scheduler.warmup_epochs = int(params.get("warmupEpochs", cfg.scheduler.warmup_epochs))
         cfg.scheduler.min_lr = float(params.get("minLr", cfg.scheduler.min_lr))
         cfg.scheduler.step_size = int(params.get("stepSize", cfg.scheduler.step_size))
@@ -167,6 +192,7 @@ class TrainingJobManager:
                     "epochs": [],
                     "trainLoss": [],
                     "trainClfLoss": [],
+                    "trainAccuracy": [],
                     "valLoss": [],
                     "valClfLoss": [],
                     "valAuc": [],
@@ -224,6 +250,7 @@ class TrainingJobManager:
                         "epoch": result["history"]["epochs"][last_idx],
                         "trainLoss": result["history"]["trainLoss"][last_idx],
                         "trainClfLoss": result["history"]["trainClfLoss"][last_idx],
+                        "trainAccuracy": result["history"]["trainAccuracy"][last_idx],
                         "valLoss": result["history"]["valLoss"][last_idx],
                         "valClfLoss": result["history"]["valClfLoss"][last_idx],
                         "valAuc": result["history"]["valAuc"][last_idx],
@@ -239,6 +266,7 @@ class TrainingJobManager:
                     }
                 job["summary"] = make_json_safe(result["summary"])
                 job["artifacts"] = make_json_safe(result["artifacts"])
+                self._attach_figure_urls(job)
                 job["error"] = None
                 self._active_job_id = None
                 self._persist_job(job_id)
@@ -258,19 +286,19 @@ class TrainingJobManager:
     def get_job(self, job_id: str) -> Optional[Dict[str, Any]]:
         with self._lock:
             job = self._jobs.get(job_id)
-            return deepcopy(job) if job else None
+            return self._attach_figure_urls(deepcopy(job)) if job else None
 
     def get_latest_job(self) -> Optional[Dict[str, Any]]:
         with self._lock:
             if self._active_job_id and self._active_job_id in self._jobs:
-                return deepcopy(self._jobs[self._active_job_id])
+                return self._attach_figure_urls(deepcopy(self._jobs[self._active_job_id]))
             if not self._jobs:
                 return None
             latest_job = max(
                 self._jobs.values(),
                 key=lambda item: item.get("createdAt") or "",
             )
-            return deepcopy(latest_job)
+            return self._attach_figure_urls(deepcopy(latest_job))
 
     def save_weights(self, job_id: str, checkpoint_type: str, file_name: str) -> Dict[str, Any]:
         with self._lock:
@@ -330,6 +358,50 @@ class TrainingJobManager:
                 self._persist_job(job_id)
 
         return saved_record
+
+    def get_figure_file(self, job_id: str, figure_key: str) -> Path:
+        with self._lock:
+            job = self._jobs.get(job_id)
+            if not job:
+                raise ValueError("未找到对应的训练任务")
+            artifacts = job.get("artifacts") or {}
+            figure_files = artifacts.get("figureFiles") or {}
+            file_name = figure_files.get(figure_key)
+            if not file_name:
+                raise ValueError("未找到对应的图像文件")
+            run_dir = self._resolve_run_dir(job)
+
+        figure_path = (run_dir / "figures" / file_name).resolve()
+        if run_dir not in figure_path.parents:
+            raise ValueError("图像文件路径不合法")
+        if not figure_path.exists() or not figure_path.is_file():
+            raise ValueError("图像文件不存在")
+        return figure_path
+
+    def discard_job(self, job_id: str) -> Dict[str, Any]:
+        with self._lock:
+            job = self._jobs.get(job_id)
+            if not job:
+                raise ValueError("未找到对应的训练任务")
+            if job.get("status") == "running":
+                raise ValueError("训练任务仍在运行中，暂不支持丢弃")
+            if job.get("savedWeights"):
+                raise ValueError("当前训练成果已保存，不能直接丢弃")
+            run_dir = self._resolve_run_dir(job)
+
+        if run_dir.exists():
+            shutil.rmtree(run_dir)
+
+        with self._lock:
+            self._jobs.pop(job_id, None)
+            if self._active_job_id == job_id:
+                self._active_job_id = None
+
+        return {
+            "jobId": job_id,
+            "discarded": True,
+            "discardedAt": iso_now(),
+        }
 
 
 training_manager = TrainingJobManager()

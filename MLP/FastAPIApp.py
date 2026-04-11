@@ -15,6 +15,8 @@ from collections import Counter
 from typing import Any, Dict, Literal, Optional
 
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 if __package__:
@@ -35,6 +37,12 @@ app = FastAPI(
 )
 
 service = InsuranceInferenceService()
+
+app.mount(
+    "/training/artifacts",
+    StaticFiles(directory=str(training_manager.base_dir)),
+    name="training-artifacts",
+)
 
 
 class PolicyRecordInput(BaseModel):
@@ -165,46 +173,26 @@ class BatchPredictionResponse(BaseModel):
 class TrainingStartRequest(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
-    numEpochs: int = Field(100, ge=1, le=500, description="??? epoch ?")
-    batchSize: int = Field(128, ge=8, le=4096, description="?? batch size")
-    randomSeed: int = Field(42, ge=0, le=999999, description="????")
-    valRatio: float = Field(0.15, gt=0, lt=0.5, description="?????")
-    testRatio: float = Field(0.10, gt=0, lt=0.5, description="?????")
-    numWorkers: int = Field(0, ge=0, le=8, description="DataLoader ?????")
-    optimizer: Literal["adamw", "adam", "sgd"] = Field("adamw", description="???")
-    learningRate: float = Field(2e-4, gt=0, le=1, description="???")
-    weightDecay: float = Field(7e-5, ge=0, le=1, description="????")
-    scheduler: Literal["cosine_warmup", "reduce_on_plateau", "step", "none"] = Field(
-        "cosine_warmup", description="??????"
-    )
-    warmupEpochs: int = Field(5, ge=0, le=100, description="Warmup epoch ?")
-    minLr: float = Field(1e-6, ge=0, le=1, description="?????")
-    stepSize: int = Field(10, ge=1, le=200, description="StepLR ??")
-    gamma: float = Field(0.5, gt=0, le=1, description="StepLR ????")
-    plateauFactor: float = Field(0.5, gt=0, lt=1, description="Plateau ????")
-    plateauPatience: int = Field(5, ge=1, le=100, description="Plateau patience")
-    plateauMinLr: float = Field(1e-6, ge=0, le=1, description="Plateau ?????")
-    backboneDropout: float = Field(0.25, ge=0, lt=1, description="???? Dropout")
-    headDropout: float = Field(0.15, ge=0, lt=1, description="??? Dropout")
-    posWeight: float = Field(4.10, ge=-1, le=100, description="?????")
-    earlyStop: bool = Field(True, description="???? Early Stopping")
-    patience: int = Field(20, ge=1, le=200, description="Early Stopping patience")
-    minDelta: float = Field(1e-4, ge=0, le=1, description="Early Stopping ??????")
+    numEpochs: int = Field(100, ge=1, le=500, description="训练轮数")
+    batchSize: int = Field(128, ge=8, le=4096, description="批大小")
+    optimizer: Literal["adamw", "adam", "sgd"] = Field("adamw", description="优化器")
+    learningRate: float = Field(2e-4, gt=0, le=1, description="学习率")
     earlyStopMetric: Literal["auc", "pr_auc", "loss", "clf_loss", "accuracy", "balanced_accuracy", "f1", "precision", "recall"] = Field(
-        "auc", description="Early Stopping ????"
+        "auc", description="监控指标"
     )
-    useAmp: bool = Field(True, description="???? AMP")
-    gradClip: float = Field(1.0, ge=0, le=100, description="??????")
-    saveEveryEpoch: bool = Field(False, description="???? epoch ?????")
-    autoThreshold: bool = Field(True, description="????????????")
-    clfThreshold: float = Field(0.5, gt=0, lt=1, description="??????")
-    thresholdMetric: Literal["f1", "precision", "recall"] = Field("f1", description="??????")
-    thresholdBeta: float = Field(1.3, gt=0, le=5, description="F-beta ? beta ??")
+    thresholdMetric: Literal["f1", "precision", "recall"] = Field("f1", description="阈值搜索目标")
+    hiddenDims: list[int] = Field(
+        default_factory=lambda: [256, 512, 512, 256, 256],
+        min_length=1,
+        max_length=10,
+        description="主干隐藏层维度列表",
+    )
+    headHiddenDim: int = Field(64, ge=1, le=4096, description="分类头隐藏层维度")
 
     @model_validator(mode="after")
-    def validate_dataset_split(self) -> "TrainingStartRequest":
-        if self.valRatio + self.testRatio >= 0.8:
-            raise ValueError("??????????????? 0.8")
+    def validate_hidden_dims(self) -> "TrainingStartRequest":
+        if any(int(dim) <= 0 for dim in self.hiddenDims):
+            raise ValueError("hiddenDims 中的每一项都必须是正整数")
         return self
 
 
@@ -357,6 +345,41 @@ def save_training_weights(job_id: str, request: SaveWeightsRequest) -> Dict[str,
     return {
         "code": "200",
         "msg": "权重文件保存成功",
+        "data": result,
+    }
+
+
+@app.get("/training/jobs/{job_id}/figures/{figure_key}", tags=["训练"])
+def get_training_figure(job_id: str, figure_key: str) -> FileResponse:
+    try:
+        figure_path = training_manager.get_figure_file(job_id, figure_key)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+    return FileResponse(
+        path=figure_path,
+        media_type="image/png",
+        headers={
+            "Content-Disposition": "inline",
+            "Cache-Control": "no-store",
+        },
+    )
+
+
+@app.post("/training/jobs/{job_id}/discard", tags=["训练"])
+def discard_training_job(job_id: str) -> Dict[str, Any]:
+    try:
+        result = training_manager.discard_job(job_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+    return {
+        "code": "200",
+        "msg": "训练任务成果已丢弃",
         "data": result,
     }
 

@@ -1,0 +1,215 @@
+{
+  "version": 1,
+  "title": "当前保险理赔分类残差式 MLP 结构图",
+  "type": "module-diagram",
+  "source": "replicated",
+  "profile": "default",
+  "theme": "academic-color",
+  "layout": "horizontal",
+  "counts": {
+    "nodes": 13,
+    "edges": 12,
+    "modules": 1
+  },
+  "nodes": [
+    {
+      "id": "x1",
+      "label": "x1",
+      "type": "user",
+      "size": "xl"
+    },
+    {
+      "id": "x2",
+      "label": "x2",
+      "type": "user",
+      "size": "xl"
+    },
+    {
+      "id": "xd",
+      "label": "xd",
+      "type": "user",
+      "size": "xl"
+    },
+    {
+      "id": "proj",
+      "label": "输入投影\nLinear(d->256)\nLN + GELU",
+      "type": "user",
+      "size": "xl"
+    },
+    {
+      "id": "rb1",
+      "label": "残差块1\n256->512\nfc1/fc2 + shortcut",
+      "type": "user",
+      "module": "backbone",
+      "size": "xl"
+    },
+    {
+      "id": "rb2",
+      "label": "残差块2\n512->512\nfc1/fc2 + shortcut",
+      "type": "user",
+      "module": "backbone",
+      "size": "xl"
+    },
+    {
+      "id": "rb3",
+      "label": "残差块3\n512->256\nfc1/fc2 + shortcut",
+      "type": "user",
+      "module": "backbone",
+      "size": "xl"
+    },
+    {
+      "id": "rb4",
+      "label": "残差块4\n256->256\nfc1/fc2 + shortcut",
+      "type": "user",
+      "module": "backbone",
+      "size": "xl"
+    },
+    {
+      "id": "head",
+      "label": "分类头\n256->64->1\nLN + GELU\nDropout 0.15",
+      "type": "output",
+      "size": "xl"
+    },
+    {
+      "id": "prob",
+      "label": "Sigmoid\n理赔概率",
+      "type": "output",
+      "size": "xl"
+    },
+    {
+      "id": "loss",
+      "label": "BCEWithLogitsLoss\npos_weight +\nlabel smoothing",
+      "type": "loss",
+      "size": "xl"
+    },
+    {
+      "id": "ytrue",
+      "label": "y",
+      "type": "output",
+      "size": "medium"
+    },
+    {
+      "id": "note",
+      "label": "设计要点\n共享主干\n残差捷径\nLayerNorm + GELU\nDropout 0.25",
+      "type": "document",
+      "size": "xl"
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-1",
+      "from": "x1",
+      "to": "proj",
+      "type": "primary"
+    },
+    {
+      "id": "edge-2",
+      "from": "x2",
+      "to": "proj",
+      "type": "primary"
+    },
+    {
+      "id": "edge-3",
+      "from": "xd",
+      "to": "proj",
+      "type": "primary"
+    },
+    {
+      "id": "edge-4",
+      "from": "proj",
+      "to": "rb1",
+      "type": "primary"
+    },
+    {
+      "id": "edge-5",
+      "from": "rb1",
+      "to": "rb2",
+      "type": "primary"
+    },
+    {
+      "id": "edge-6",
+      "from": "rb2",
+      "to": "rb3",
+      "type": "primary"
+    },
+    {
+      "id": "edge-7",
+      "from": "rb3",
+      "to": "rb4",
+      "type": "primary"
+    },
+    {
+      "id": "edge-8",
+      "from": "rb4",
+      "to": "head",
+      "type": "primary"
+    },
+    {
+      "id": "edge-9",
+      "from": "head",
+      "to": "prob",
+      "type": "primary",
+      "label": "logit -> sigmoid"
+    },
+    {
+      "id": "edge-10",
+      "from": "head",
+      "to": "loss",
+      "type": "primary",
+      "label": "logit"
+    },
+    {
+      "id": "edge-11",
+      "from": "ytrue",
+      "to": "loss",
+      "type": "primary",
+      "label": "target"
+    },
+    {
+      "id": "edge-12",
+      "from": "note",
+      "to": "rb2",
+      "type": "optional"
+    }
+  ],
+  "modules": [
+    {
+      "id": "backbone",
+      "label": "共享残差主干"
+    }
+  ],
+  "replication": {
+    "colorMode": "preserve-original",
+    "background": "#FFFFFF",
+    "palette": [
+      {
+        "hex": "#5AA6E8",
+        "role": "connector stroke",
+        "appliesTo": "edges",
+        "confidence": "high"
+      },
+      {
+        "hex": "#4B79A8",
+        "role": "input node stroke and text",
+        "appliesTo": "nodes",
+        "confidence": "high"
+      },
+      {
+        "hex": "#79BE56",
+        "role": "backbone node stroke and text",
+        "appliesTo": "nodes",
+        "confidence": "high"
+      },
+      {
+        "hex": "#D78137",
+        "role": "head and output node stroke and text",
+        "appliesTo": "nodes",
+        "confidence": "high"
+      }
+    ],
+    "confidenceNotes": [
+      "保留参考图的白底、蓝色输入与连线、绿色隐藏层、橙色输出层视觉语言。",
+      "将经典 MLP 的抽象隐藏层替换为当前项目中的共享残差主干和单分类头。"
+    ]
+  }
+}
