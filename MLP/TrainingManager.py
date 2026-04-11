@@ -58,24 +58,19 @@ class TrainingJobManager:
         self._active_job_id: Optional[str] = None
         self._load_latest_snapshot()
 
-    def _attach_figure_urls(self, job: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    @staticmethod
+    def _sanitize_job_snapshot(job: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
         if not job:
             return job
-        artifacts = job.get("artifacts") or {}
-        figure_files = artifacts.get("figureFiles") or {}
-        job_id = job.get("jobId")
-        if job_id and figure_files:
-            artifacts["figureUrls"] = {
-                key: f"/training/jobs/{job_id}/figures/{key}"
-                for key in figure_files.keys()
-            }
-            job["artifacts"] = artifacts
+        artifacts = job.get("artifacts")
+        if isinstance(artifacts, dict):
+            artifacts.pop("figureUrls", None)
         return job
 
     def _resolve_run_dir(self, job: Dict[str, Any]) -> Path:
         run_dir = Path(job["runDir"]).resolve()
         base_dir = self.base_dir.resolve()
-        if base_dir not in run_dir.parents:
+        if run_dir != base_dir and base_dir not in run_dir.parents:
             raise ValueError("训练任务目录不在允许的输出范围内")
         return run_dir
 
@@ -88,6 +83,7 @@ class TrainingJobManager:
         for snapshot_file in snapshot_files:
             try:
                 snapshot = json.loads(snapshot_file.read_text(encoding="utf-8"))
+                self._sanitize_job_snapshot(snapshot)
                 if snapshot.get("status") == "running":
                     snapshot["status"] = "failed"
                     snapshot["finishedAt"] = iso_now()
@@ -158,6 +154,7 @@ class TrainingJobManager:
         job = self._jobs.get(job_id)
         if not job:
             return
+        self._sanitize_job_snapshot(job)
         snapshot_path = Path(job["runDir"]) / "job_state.json"
         write_json(snapshot_path, job)
 
@@ -167,11 +164,13 @@ class TrainingJobManager:
             if not job:
                 return
             job.update(make_json_safe(payload))
+            self._sanitize_job_snapshot(job)
             self._persist_job(job_id)
 
     def start_training(self, params: Dict[str, Any]) -> Dict[str, Any]:
         with self._lock:
-            if self._active_job_id and self._jobs.get(self._active_job_id, {}).get("status") == "running":
+            active_job = self._jobs.get(self._active_job_id or "", {})
+            if self._active_job_id and active_job.get("status") == "running":
                 raise RuntimeError("当前已有训练任务在运行，请等待完成后再启动新的训练")
 
             job_id = f"{datetime.now().strftime('%Y%m%d%H%M%S')}-{uuid4().hex[:6]}"
@@ -213,6 +212,7 @@ class TrainingJobManager:
                 "resolvedConfig": make_json_safe(dataclasses.asdict(cfg)),
                 "runDir": str(run_dir.resolve()),
                 "error": None,
+                "errorDetail": None,
             }
             self._jobs[job_id] = job
             self._active_job_id = job_id
@@ -237,37 +237,45 @@ class TrainingJobManager:
                 job = self._jobs.get(job_id)
                 if not job:
                     return
+
+                history = make_json_safe(result["history"])
+                summary = make_json_safe(result["summary"])
+                artifacts = make_json_safe(result["artifacts"])
+                latest_epoch = None
+                if result["history"]["epochs"]:
+                    index = -1
+                    latest_epoch = {
+                        "epoch": history["epochs"][index],
+                        "trainLoss": history["trainLoss"][index],
+                        "trainClfLoss": history["trainClfLoss"][index],
+                        "trainAccuracy": history["trainAccuracy"][index],
+                        "valLoss": history["valLoss"][index],
+                        "valClfLoss": history["valClfLoss"][index],
+                        "valAuc": history["valAuc"][index],
+                        "valPrAuc": history["valPrAuc"][index],
+                        "valAccuracy": history["valAccuracy"][index],
+                        "valBalancedAccuracy": history["valBalancedAccuracy"][index],
+                        "valF1": history["valF1"][index],
+                        "valPrecision": history["valPrecision"][index],
+                        "valRecall": history["valRecall"][index],
+                        "learningRate": history["learningRate"][index],
+                        "bestThreshold": history["bestThreshold"][index],
+                        "epochSeconds": history["epochSeconds"][index],
+                    }
+
                 job["status"] = "completed"
                 job["message"] = "训练完成"
                 job["finishedAt"] = iso_now()
                 job["progress"] = 1.0
-                job["currentEpoch"] = result["summary"]["epochsCompleted"]
-                job["totalEpochs"] = result["summary"]["configuredEpochs"]
-                job["history"] = make_json_safe(result["history"])
-                if result["history"]["epochs"]:
-                    last_idx = -1
-                    job["latestEpoch"] = {
-                        "epoch": result["history"]["epochs"][last_idx],
-                        "trainLoss": result["history"]["trainLoss"][last_idx],
-                        "trainClfLoss": result["history"]["trainClfLoss"][last_idx],
-                        "trainAccuracy": result["history"]["trainAccuracy"][last_idx],
-                        "valLoss": result["history"]["valLoss"][last_idx],
-                        "valClfLoss": result["history"]["valClfLoss"][last_idx],
-                        "valAuc": result["history"]["valAuc"][last_idx],
-                        "valPrAuc": result["history"]["valPrAuc"][last_idx],
-                        "valAccuracy": result["history"]["valAccuracy"][last_idx],
-                        "valBalancedAccuracy": result["history"]["valBalancedAccuracy"][last_idx],
-                        "valF1": result["history"]["valF1"][last_idx],
-                        "valPrecision": result["history"]["valPrecision"][last_idx],
-                        "valRecall": result["history"]["valRecall"][last_idx],
-                        "learningRate": result["history"]["learningRate"][last_idx],
-                        "bestThreshold": result["history"]["bestThreshold"][last_idx],
-                        "epochSeconds": result["history"]["epochSeconds"][last_idx],
-                    }
-                job["summary"] = make_json_safe(result["summary"])
-                job["artifacts"] = make_json_safe(result["artifacts"])
-                self._attach_figure_urls(job)
+                job["currentEpoch"] = summary["epochsCompleted"]
+                job["totalEpochs"] = summary["configuredEpochs"]
+                job["history"] = history
+                job["latestEpoch"] = latest_epoch
+                job["summary"] = summary
+                job["artifacts"] = artifacts
                 job["error"] = None
+                job["errorDetail"] = None
+                self._sanitize_job_snapshot(job)
                 self._active_job_id = None
                 self._persist_job(job_id)
         except Exception as exc:
@@ -286,19 +294,19 @@ class TrainingJobManager:
     def get_job(self, job_id: str) -> Optional[Dict[str, Any]]:
         with self._lock:
             job = self._jobs.get(job_id)
-            return self._attach_figure_urls(deepcopy(job)) if job else None
+            return self._sanitize_job_snapshot(deepcopy(job)) if job else None
 
     def get_latest_job(self) -> Optional[Dict[str, Any]]:
         with self._lock:
             if self._active_job_id and self._active_job_id in self._jobs:
-                return self._attach_figure_urls(deepcopy(self._jobs[self._active_job_id]))
+                return self._sanitize_job_snapshot(deepcopy(self._jobs[self._active_job_id]))
             if not self._jobs:
                 return None
             latest_job = max(
                 self._jobs.values(),
                 key=lambda item: item.get("createdAt") or "",
             )
-            return self._attach_figure_urls(deepcopy(latest_job))
+            return self._sanitize_job_snapshot(deepcopy(latest_job))
 
     def save_weights(self, job_id: str, checkpoint_type: str, file_name: str) -> Dict[str, Any]:
         with self._lock:
@@ -307,15 +315,17 @@ class TrainingJobManager:
                 raise ValueError("未找到对应的训练任务")
             if job.get("status") != "completed":
                 raise ValueError("仅支持在训练完成后保存权重文件")
-            artifacts = job.get("artifacts") or {}
+            artifacts = deepcopy(job.get("artifacts") or {})
+            self._sanitize_job_snapshot({"artifacts": artifacts})
 
         checkpoint_map = {
             "best": artifacts.get("bestModelPath"),
             "last": artifacts.get("lastModelPath"),
         }
-        source_path = checkpoint_map.get(checkpoint_type)
         if checkpoint_type not in checkpoint_map:
             raise ValueError("checkpointType 仅支持 best 或 last")
+
+        source_path = checkpoint_map[checkpoint_type]
         if not source_path or not Path(source_path).exists():
             raise ValueError("待保存的权重文件不存在")
 
@@ -337,7 +347,7 @@ class TrainingJobManager:
             "filePath": str(target_path.resolve()),
             "savedAt": iso_now(),
             "sourcePath": str(Path(source_path).resolve()),
-            "summary": artifacts and self.get_job(job_id).get("summary"),
+            "summary": self.get_job(job_id).get("summary"),
             "relatedArtifacts": artifacts,
         }
         metadata_path = target_path.with_suffix(".json")

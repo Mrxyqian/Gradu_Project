@@ -4,7 +4,7 @@
       <div>
         <div class="hero-title">训练结果总览</div>
         <div class="hero-desc">
-          页面集中展示本次训练的测试指标、详细分类报告、实际生效的超参数以及模型权重保存入口。
+          这里集中展示本次训练的测试指标、分类评估报告、实际生效的超参数，以及由 Python 生成并保存的评估图像。
         </div>
       </div>
       <div class="hero-meta">
@@ -17,7 +17,7 @@
       <div class="section-head">
         <div>
           <div class="section-title">结果操作</div>
-          <div class="section-subtitle">保存当前训练权重，或返回训练页面重新发起新一轮训练。</div>
+          <div class="section-subtitle">可以保存当前训练权重，或返回训练页面继续发起新的训练任务。</div>
         </div>
       </div>
 
@@ -29,10 +29,19 @@
           </el-select>
         </el-col>
         <el-col :xs="24" :sm="16" :lg="10">
-          <el-input v-model="saveForm.fileName" :disabled="!isCompleted" placeholder="请输入保存的权重文件名" />
+          <el-input
+            v-model="saveForm.fileName"
+            :disabled="!isCompleted"
+            placeholder="请输入保存的权重文件名"
+          />
         </el-col>
         <el-col :xs="24" :sm="24" :lg="8" class="action-buttons">
-          <el-button type="primary" :loading="savingWeights" :disabled="!isCompleted" @click="handleSaveWeights">
+          <el-button
+            type="primary"
+            :loading="savingWeights"
+            :disabled="!isCompleted"
+            @click="handleSaveWeights"
+          >
             保存当前权重
           </el-button>
           <el-button @click="goBack">返回训练页面</el-button>
@@ -41,7 +50,11 @@
 
       <div v-if="savedWeights.length" class="saved-list">
         <div class="saved-title">已保存权重</div>
-        <div v-for="item in savedWeights" :key="`${item.fileName}-${item.savedAt}`" class="saved-item">
+        <div
+          v-for="item in savedWeights"
+          :key="`${item.fileName}-${item.savedAt}`"
+          class="saved-item"
+        >
           <div>文件名：{{ item.fileName }}</div>
           <div>类型：{{ item.checkpointType }}</div>
           <div class="saved-path">路径：{{ item.filePath }}</div>
@@ -64,7 +77,7 @@
 
       <el-alert
         v-if="isRunning"
-        title="任务仍在执行中，页面会自动刷新状态，训练完成后指标和图表会完整呈现。"
+        title="任务仍在执行中，页面会自动刷新状态，训练完成后指标和图像会完整展示。"
         type="info"
         show-icon
         :closable="false"
@@ -72,7 +85,7 @@
       />
 
       <el-alert
-        v-if="currentJob?.error"
+        v-if="currentJob.error"
         :title="currentJob.error"
         type="error"
         show-icon
@@ -83,7 +96,12 @@
 
     <template v-if="summary">
       <div class="metric-grid">
-        <div v-for="card in metricCards" :key="card.label" class="metric-card" :style="{ background: card.background }">
+        <div
+          v-for="card in metricCards"
+          :key="card.label"
+          class="metric-card"
+          :style="{ background: card.background }"
+        >
           <div class="metric-label">{{ card.label }}</div>
           <div class="metric-value">{{ card.value }}</div>
         </div>
@@ -93,7 +111,9 @@
         <el-col :xs="24" :lg="12">
           <div class="card section-card">
             <div class="section-title">分类别评估报告</div>
-            <div class="section-subtitle">展示测试集上 No Claim 与 Claim 两个类别的 precision、recall、f1-score 与 support。</div>
+            <div class="section-subtitle">
+              展示测试集上 No Claim 和 Claim 两个类别的 precision、recall、f1-score 与 support。
+            </div>
             <pre class="report-box">{{ summary.classificationReport || '暂无分类报告' }}</pre>
           </div>
         </el-col>
@@ -117,13 +137,17 @@
 
       <div class="card section-card">
         <div class="section-title">本次训练使用的超参数</div>
-        <div class="section-subtitle">以下为本轮训练最终生效的超参数；未在训练页手动修改的部分，表示沿用了系统默认值。</div>
+        <div class="section-subtitle">以下内容为本轮训练最终实际生效的配置，包括默认值和手动调整项。</div>
 
         <div class="parameter-grid">
           <div v-for="group in hyperParameterGroups" :key="group.title" class="parameter-card">
             <div class="parameter-title">{{ group.title }}</div>
             <el-descriptions :column="1" border size="small">
-              <el-descriptions-item v-for="item in group.items" :key="item.label" :label="item.label">
+              <el-descriptions-item
+                v-for="item in group.items"
+                :key="item.label"
+                :label="item.label"
+              >
                 {{ item.value }}
               </el-descriptions-item>
             </el-descriptions>
@@ -132,29 +156,33 @@
       </div>
 
       <div class="card section-card">
-        <div class="section-title">训练曲线</div>
-        <div class="section-subtitle">损失与关键指标曲线已经从训练页迁移到这里，便于在训练结束后统一查看。</div>
+        <div class="section-title">训练评估图像</div>
+        <div class="section-subtitle">
+          图像由 Python 在训练结束后生成，并保存在当前训练任务目录下，前端直接按任务读取展示。
+        </div>
 
         <div class="chart-grid">
           <div v-for="figure in figureCards" :key="figure.key" class="chart-card image-card">
             <div class="chart-title">{{ figure.title }}</div>
             <div class="image-meta">{{ figure.fileName || '图像文件待生成' }}</div>
-            <img v-if="figure.url" :src="figure.url" :alt="figure.title" class="chart-image">
+            <img v-if="figure.url" :src="figure.url" :alt="figure.title" class="chart-image" />
             <el-empty v-else :description="`${figure.title} 暂无图像`" />
           </div>
         </div>
       </div>
     </template>
 
-    <el-empty v-else-if="!loading" description="未查询到训练结果，请返回训练页重新发起任务。" />
+    <el-empty
+      v-else-if="!loading"
+      description="未查询到训练结果，请返回训练页面重新发起任务。"
+    />
   </div>
 </template>
 
 <script setup>
-import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import * as echarts from 'echarts'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import request from '@/utils/request'
 
 const route = useRoute()
@@ -163,40 +191,12 @@ const router = useRouter()
 const currentJob = ref(null)
 const loading = ref(false)
 const savingWeights = ref(false)
-
 const saveForm = reactive({
   checkpointType: 'best',
   fileName: '',
 })
 
-const lossChartRef = ref(null)
-const accuracyChartRef = ref(null)
-const prAucChartRef = ref(null)
-const confusionMatrixRef = ref(null)
-
-let lossChart = null
-let accuracyChart = null
-let prAucChart = null
-let confusionMatrixChart = null
 let pollTimer = null
-
-const statusText = computed(() => {
-  const map = {
-    running: '训练中',
-    completed: '已完成',
-    failed: '训练失败',
-  }
-  return map[currentJob.value?.status] || '加载中'
-})
-
-const statusTagType = computed(() => {
-  const map = {
-    running: 'warning',
-    completed: 'success',
-    failed: 'danger',
-  }
-  return map[currentJob.value?.status] || 'info'
-})
 
 const isCompleted = computed(() => currentJob.value?.status === 'completed')
 const isRunning = computed(() => currentJob.value?.status === 'running')
@@ -211,19 +211,28 @@ const progressBarStatus = computed(() => {
   if (currentJob.value?.status === 'completed') return 'success'
   return ''
 })
+const statusText = computed(() => {
+  const map = {
+    running: '训练中',
+    completed: '已完成',
+    failed: '训练失败',
+  }
+  return map[currentJob.value?.status] || '加载中'
+})
+const statusTagType = computed(() => {
+  const map = {
+    running: 'warning',
+    completed: 'success',
+    failed: 'danger',
+  }
+  return map[currentJob.value?.status] || 'info'
+})
 const summary = computed(() => currentJob.value?.summary || null)
-const history = computed(() => currentJob.value?.history || {})
 const savedWeights = computed(() => currentJob.value?.savedWeights || [])
+const hasSavedWeights = computed(() => savedWeights.value.length > 0)
 const resolvedConfig = computed(() => currentJob.value?.resolvedConfig || {})
-const figureUrls = computed(() => currentJob.value?.artifacts?.figureUrls || {})
 const figureFiles = computed(() => currentJob.value?.artifacts?.figureFiles || {})
 const assetVersion = computed(() => currentJob.value?.finishedAt || currentJob.value?.currentEpoch || 'latest')
-const hasHistory = computed(() => (history.value?.epochs || []).length > 0)
-const confusionMatrixData = computed(() => summary.value?.confusionMatrix || null)
-const hasConfusionMatrix = computed(() => {
-  const matrix = confusionMatrixData.value?.matrix
-  return Array.isArray(matrix) && matrix.length === 2
-})
 
 const formatMetric = (value, digits = 4) => {
   if (value === undefined || value === null || value === '') return '-'
@@ -236,28 +245,30 @@ const formatPercent = (value) => {
 }
 
 const formatDisplayValue = (value) => {
-  if (Array.isArray(value)) {
-    return value.length ? value.join(' -> ') : '-'
-  }
-  if (typeof value === 'boolean') {
-    return value ? '是' : '否'
-  }
-  if (value === undefined || value === null || value === '') {
-    return '-'
-  }
-  if (typeof value === 'number') {
-    if (Math.abs(value) >= 1000 || (Math.abs(value) > 0 && Math.abs(value) < 0.001)) {
-      return Number(value).toExponential(2)
-    }
-    return Number(value).toString()
+  if (Array.isArray(value)) return value.length ? value.join(' -> ') : '-'
+  if (typeof value === 'boolean') return value ? '是' : '否'
+  if (value === undefined || value === null || value === '') return '-'
+  if (typeof value === 'number' && (Math.abs(value) >= 1000 || (Math.abs(value) > 0 && Math.abs(value) < 0.001))) {
+    return Number(value).toExponential(2)
   }
   return String(value)
 }
 
-const resolveAssetUrl = (path) => {
-  if (!path) return ''
-  const baseUrl = request.defaults.baseURL || window.location.origin
-  const url = new URL(path, baseUrl)
+const getBackendBaseUrl = () => {
+  const configuredBaseUrl = request.defaults.baseURL
+  if (!configuredBaseUrl) return window.location.origin
+  try {
+    return new URL(configuredBaseUrl, window.location.origin).toString()
+  } catch (error) {
+    return window.location.origin
+  }
+}
+
+const buildFigureUrl = (figureKey) => {
+  const jobId = currentJob.value?.jobId || route.params.jobId
+  if (!jobId || !figureKey) return ''
+  const relativePath = `/modelTraining/jobs/${encodeURIComponent(jobId)}/figures/${encodeURIComponent(figureKey)}`
+  const url = new URL(relativePath, getBackendBaseUrl())
   url.searchParams.set('v', String(assetVersion.value))
   return url.toString()
 }
@@ -265,31 +276,11 @@ const resolveAssetUrl = (path) => {
 const metricCards = computed(() => {
   const metrics = summary.value?.finalMetrics || {}
   return [
-    {
-      label: 'Accuracy',
-      value: formatPercent(metrics.accuracy),
-      background: 'linear-gradient(135deg, #2563eb, #38bdf8)',
-    },
-    {
-      label: 'Precision',
-      value: formatPercent(metrics.precision),
-      background: 'linear-gradient(135deg, #0f766e, #34d399)',
-    },
-    {
-      label: 'Recall',
-      value: formatPercent(metrics.recall),
-      background: 'linear-gradient(135deg, #d97706, #f59e0b)',
-    },
-    {
-      label: 'F1 Score',
-      value: formatPercent(metrics.f1),
-      background: 'linear-gradient(135deg, #c026d3, #ec4899)',
-    },
-    {
-      label: 'TestLoss',
-      value: formatMetric(metrics.loss),
-      background: 'linear-gradient(135deg, #475569, #0f172a)',
-    },
+    { label: 'Accuracy', value: formatPercent(metrics.accuracy), background: 'linear-gradient(135deg, #2563eb, #38bdf8)' },
+    { label: 'Precision', value: formatPercent(metrics.precision), background: 'linear-gradient(135deg, #0f766e, #34d399)' },
+    { label: 'Recall', value: formatPercent(metrics.recall), background: 'linear-gradient(135deg, #d97706, #f59e0b)' },
+    { label: 'F1 Score', value: formatPercent(metrics.f1), background: 'linear-gradient(135deg, #c026d3, #ec4899)' },
+    { label: 'TestLoss', value: formatMetric(metrics.loss), background: 'linear-gradient(135deg, #475569, #0f172a)' },
   ]
 })
 
@@ -350,189 +341,21 @@ const hyperParameterGroups = computed(() => {
   ]
 })
 
-const figureCards = computed(() => {
-  const definitions = [
-    { key: 'lossCurve', title: '训练损失 / 验证损失' },
-    { key: 'accuracyCurve', title: '训练准确率 / 验证准确率' },
-    { key: 'valPrAucCurve', title: '验证 PR-AUC' },
-    { key: 'confusionMatrix', title: '混淆矩阵' },
-  ]
-
-  return definitions.map(item => ({
-    ...item,
-    fileName: figureFiles.value?.[item.key] || '',
-    url: resolveAssetUrl(figureUrls.value?.[item.key]),
-  }))
-})
+const figureCards = computed(() => ([
+  { key: 'lossCurve', title: '训练损失 / 验证损失' },
+  { key: 'accuracyCurve', title: '训练准确率 / 验证准确率' },
+  { key: 'valPrAucCurve', title: '验证 PR-AUC' },
+  { key: 'confusionMatrix', title: '混淆矩阵' },
+]).map((item) => ({
+  ...item,
+  fileName: figureFiles.value?.[item.key] || '',
+  url: figureFiles.value?.[item.key] ? buildFigureUrl(item.key) : '',
+})))
 
 const stopPolling = () => {
-  if (pollTimer) {
-    clearInterval(pollTimer)
-    pollTimer = null
-  }
-}
-
-const buildMultiLineOption = (title, xData, seriesItems) => ({
-  tooltip: {
-    trigger: 'axis',
-  },
-  legend: {
-    top: 0,
-  },
-  xAxis: {
-    type: 'category',
-    data: xData,
-    boundaryGap: false,
-    axisLabel: {
-      color: '#475569',
-    },
-  },
-  yAxis: {
-    type: 'value',
-    axisLabel: {
-      color: '#475569',
-    },
-    splitLine: {
-      lineStyle: {
-        color: '#e2e8f0',
-      },
-    },
-  },
-  grid: {
-    left: 46,
-    right: 20,
-    top: 54,
-    bottom: 34,
-  },
-  series: seriesItems.map(item => ({
-    name: item.name,
-    type: 'line',
-    smooth: true,
-    symbol: 'circle',
-    symbolSize: 7,
-    data: item.data,
-    lineStyle: {
-      width: 3,
-      color: item.color,
-    },
-    itemStyle: {
-      color: item.color,
-    },
-  })),
-})
-
-const buildSingleLineOption = (title, xData, yData, color) => buildMultiLineOption(title, xData, [
-  { name: title, data: yData, color },
-])
-
-const buildConfusionMatrixOption = (matrixPayload) => {
-  const labels = matrixPayload?.labels || ['No Claim', 'Claim']
-  const matrix = matrixPayload?.matrix || [[0, 0], [0, 0]]
-  const chartData = [
-    [0, 0, matrix[0]?.[0] ?? 0],
-    [1, 0, matrix[0]?.[1] ?? 0],
-    [0, 1, matrix[1]?.[0] ?? 0],
-    [1, 1, matrix[1]?.[1] ?? 0],
-  ]
-  const maxValue = Math.max(...chartData.map(item => Number(item[2] || 0)), 1)
-
-  return {
-    tooltip: {
-      formatter: ({ data }) => {
-        const predicted = labels[data[0]] || '-'
-        const actual = labels[data[1]] || '-'
-        return `实际: ${actual}<br/>预测: ${predicted}<br/>样本数: ${data[2]}`
-      },
-    },
-    grid: {
-      left: 70,
-      right: 24,
-      top: 24,
-      bottom: 44,
-    },
-    xAxis: {
-      type: 'category',
-      data: labels,
-      name: '预测类别',
-      nameLocation: 'middle',
-      nameGap: 28,
-      axisLabel: {
-        color: '#475569',
-      },
-    },
-    yAxis: {
-      type: 'category',
-      data: labels,
-      name: '真实类别',
-      nameLocation: 'middle',
-      nameGap: 46,
-      axisLabel: {
-        color: '#475569',
-      },
-    },
-    visualMap: {
-      min: 0,
-      max: maxValue,
-      calculable: true,
-      orient: 'horizontal',
-      left: 'center',
-      bottom: 0,
-      inRange: {
-        color: ['#e0f2fe', '#38bdf8', '#1d4ed8'],
-      },
-    },
-    series: [{
-      type: 'heatmap',
-      data: chartData,
-      label: {
-        show: true,
-        color: '#0f172a',
-        fontWeight: 700,
-      },
-      itemStyle: {
-        borderWidth: 1,
-        borderColor: '#fff',
-      },
-    }],
-  }
-}
-
-const renderCharts = () => {
-  lossChart?.dispose()
-  accuracyChart?.dispose()
-  prAucChart?.dispose()
-  confusionMatrixChart?.dispose()
-
-  const epochs = history.value?.epochs || []
-  if (epochs.length && lossChartRef.value) {
-    lossChart = echarts.init(lossChartRef.value)
-    lossChart.setOption(buildMultiLineOption('损失曲线', epochs, [
-      { name: '训练损失', data: history.value.trainLoss || [], color: '#2563eb' },
-      { name: '验证损失', data: history.value.valLoss || [], color: '#059669' },
-    ]))
-  }
-  if (epochs.length && accuracyChartRef.value) {
-    accuracyChart = echarts.init(accuracyChartRef.value)
-    accuracyChart.setOption(buildMultiLineOption('准确率曲线', epochs, [
-      { name: '训练准确率', data: history.value.trainAccuracy || [], color: '#7c3aed' },
-      { name: '验证准确率', data: history.value.valAccuracy || [], color: '#ea580c' },
-    ]))
-  }
-  if (epochs.length && prAucChartRef.value) {
-    prAucChart = echarts.init(prAucChartRef.value)
-    prAucChart.setOption(buildSingleLineOption('验证 PR-AUC', epochs, history.value.valPrAuc || [], '#db2777'))
-  }
-  if (hasConfusionMatrix.value && confusionMatrixRef.value) {
-    confusionMatrixChart = echarts.init(confusionMatrixRef.value)
-    confusionMatrixChart.setOption(buildConfusionMatrixOption(confusionMatrixData.value))
-  }
-}
-
-const handleResize = () => {
-  lossChart?.resize()
-  accuracyChart?.resize()
-  prAucChart?.resize()
-  confusionMatrixChart?.resize()
+  if (!pollTimer) return
+  clearInterval(pollTimer)
+  pollTimer = null
 }
 
 const loadJob = async () => {
@@ -540,16 +363,16 @@ const loadJob = async () => {
   try {
     loading.value = true
     const res = await request.get(`/modelTraining/jobs/${route.params.jobId}`)
-    if (res.code === '200') {
-      currentJob.value = res.data
-      if (!saveForm.fileName && res.data?.jobId) {
-        saveForm.fileName = `claim-training-${res.data.jobId}.pth`
-      }
-      if (res.data?.status === 'running' && !pollTimer) {
-        startPolling()
-      }
-    } else {
+    if (String(res.code) !== '200') {
       ElMessage.error(res.msg || '训练结果加载失败')
+      return
+    }
+    currentJob.value = res.data
+    if (!saveForm.fileName && res.data?.jobId) {
+      saveForm.fileName = `claim-training-${res.data.jobId}.pth`
+    }
+    if (res.data?.status === 'running' && !pollTimer) {
+      startPolling()
     }
   } catch (error) {
     console.error(error)
@@ -582,12 +405,12 @@ const handleSaveWeights = async () => {
   try {
     savingWeights.value = true
     const res = await request.post(`/modelTraining/jobs/${currentJob.value.jobId}/save-weights`, saveForm)
-    if (res.code === '200') {
-      ElMessage.success('权重文件保存成功')
-      await loadJob()
-    } else {
+    if (String(res.code) !== '200') {
       ElMessage.error(res.msg || '保存权重失败')
+      return
     }
+    ElMessage.success('权重文件保存成功')
+    await loadJob()
   } catch (error) {
     console.error(error)
     ElMessage.error('保存权重失败，请稍后重试')
@@ -596,19 +419,33 @@ const handleSaveWeights = async () => {
   }
 }
 
-const goBack = () => {
-  router.push({ name: 'ModelTraining' })
+const discardCurrentJob = async () => {
+  if (!currentJob.value?.jobId) return
+  await request.post(`/modelTraining/jobs/${currentJob.value.jobId}/discard`)
 }
 
-watch(
-  () => [currentJob.value?.history, currentJob.value?.summary],
-  () => {
-    nextTick(() => {
-      renderCharts()
+const goBack = async () => {
+  if (!isCompleted.value || hasSavedWeights.value) {
+    router.push({ name: 'ModelTraining' })
+    return
+  }
+
+  try {
+    await ElMessageBox.confirm('是否丢弃本次训练权重？', '返回训练页面', {
+      confirmButtonText: '丢弃并返回',
+      cancelButtonText: '继续查看',
+      type: 'warning',
+      closeOnClickModal: false,
     })
-  },
-  { deep: true }
-)
+    await discardCurrentJob()
+    ElMessage.success('本次训练成果已丢弃')
+    router.push({ name: 'ModelTraining' })
+  } catch (error) {
+    if (error === 'cancel' || error === 'close') return
+    console.error(error)
+    ElMessage.error('丢弃训练成果失败，请稍后重试')
+  }
+}
 
 watch(
   () => route.params.jobId,
@@ -622,16 +459,10 @@ watch(
 
 onMounted(async () => {
   await loadJob()
-  window.addEventListener('resize', handleResize)
 })
 
 onUnmounted(() => {
   stopPolling()
-  window.removeEventListener('resize', handleResize)
-  lossChart?.dispose()
-  accuracyChart?.dispose()
-  prAucChart?.dispose()
-  confusionMatrixChart?.dispose()
 })
 </script>
 
@@ -643,9 +474,7 @@ onUnmounted(() => {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  background:
-    linear-gradient(135deg, rgba(15, 118, 110, 0.08), rgba(59, 130, 246, 0.16)),
-    #fff;
+  background: linear-gradient(135deg, rgba(15, 118, 110, 0.08), rgba(59, 130, 246, 0.16)), #fff;
 }
 
 .hero-title {
@@ -849,10 +678,6 @@ onUnmounted(() => {
   color: #64748b;
   font-size: 12px;
   word-break: break-all;
-}
-
-.chart-body {
-  height: 280px;
 }
 
 .chart-image {

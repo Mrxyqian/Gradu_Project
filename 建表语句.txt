@@ -58,19 +58,21 @@ CREATE TABLE motor_insurance (
     Weight INT DEFAULT NULL COMMENT '车重（千克）'
 );
 
+DROP TABLE IF EXISTS insur_pred;
+
 CREATE TABLE insur_pred (
     pred_id INT NOT NULL AUTO_INCREMENT COMMENT '预测记录主键',
-    ID INT NOT NULL COMMENT '业务关联保单ID',
-    claim_probability DECIMAL(8,6) NOT NULL COMMENT '理赔概率(0~1)',
-    claim_flag TINYINT NOT NULL COMMENT '是否理赔预测标签(0/1)',
-    risk_level VARCHAR(20) NOT NULL COMMENT '风险等级: LOW/MEDIUM/HIGH',
-    expected_claim_amount DECIMAL(12,2) NOT NULL COMMENT '预计理赔金额',
-    threshold_used DECIMAL(8,6) NOT NULL COMMENT '分类阈值',
-    model_version VARCHAR(128) NOT NULL COMMENT '模型版本',
+    ID INT NOT NULL COMMENT '业务保单ID',
+    claim_probability DECIMAL(10,6) NOT NULL COMMENT '理赔概率，取值范围 0~1',
+    claim_flag TINYINT NOT NULL COMMENT '分类预测标签，0=不理赔，1=理赔',
+    risk_level VARCHAR(20) NOT NULL COMMENT '风险等级：LOW/MEDIUM/HIGH',
+    threshold_used DECIMAL(10,6) NOT NULL COMMENT '本次预测使用的分类阈值',
+    model_version VARCHAR(255) NOT NULL COMMENT '预测所用模型版本',
     prediction_time DATETIME NOT NULL COMMENT '预测时间',
     PRIMARY KEY (pred_id),
     KEY idx_insur_pred_id (ID),
     KEY idx_insur_pred_risk_level (risk_level),
+    KEY idx_insur_pred_model_version (model_version),
     KEY idx_insur_pred_prediction_time (prediction_time)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='车险理赔率预测记录表';
 

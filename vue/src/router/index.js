@@ -28,7 +28,7 @@ const router = createRouter({
         { path: '/predictionManage', name: 'PredictionManage', component: () => import('@/views/manager/PredictionManage.vue') },
         { path: '/predictionStatistics', name: 'PredictionStatistics', component: () => import('@/views/manager/PredictionStatistics.vue') },
         { path: '/modelTraining', name: 'ModelTraining', component: () => import('@/views/manager/ModelTraining.vue'), meta: { adminOnly: true } },
-        { path: '/modelTraining/result/:jobId', name: 'ModelTrainingResult', component: () => import('@/views/manager/ModelTrainingResult.clean.vue'), meta: { adminOnly: true } },
+        { path: '/modelTraining/result/:jobId', name: 'ModelTrainingResult', component: () => import('@/views/manager/ModelTrainingResult.vue'), meta: { adminOnly: true } },
         { path: '/userManage', name: 'UserManage', component: () => import('@/views/manager/UserManage.vue'), meta: { adminOnly: true } },
       ]
     },

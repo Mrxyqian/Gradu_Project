@@ -1,6 +1,6 @@
 <mxfile host="Electron" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/25.0.2 Chrome/128.0.6613.186 Electron/32.2.5 Safari/537.36" version="25.0.2">
   <diagram id="vehic-insur-claim-er" name="Page-1">
-    <mxGraphModel dx="1008" dy="690" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1050" math="0" shadow="0">
+    <mxGraphModel dx="2057" dy="1127" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1050" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -88,7 +88,7 @@
         <mxCell id="p_risk" value="risk_level" style="ellipse;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Consolas;fontSize=24;strokeColor=#000000;strokeWidth=1.5;fillColor=#ffffff;" parent="1" vertex="1">
           <mxGeometry x="1303" y="710" width="170" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="p_amt" value="expected_claim_amount" style="ellipse;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Consolas;fontSize=24;strokeColor=#000000;strokeWidth=1.5;fillColor=#ffffff;" parent="1" vertex="1">
+        <mxCell id="p_amt" value="claim_flag" style="ellipse;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Consolas;fontSize=24;strokeColor=#000000;strokeWidth=1.5;fillColor=#ffffff;" parent="1" vertex="1">
           <mxGeometry x="1231" y="886" width="290" height="100" as="geometry" />
         </mxCell>
         <mxCell id="p_time" value="prediction_time" style="ellipse;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Consolas;fontSize=24;strokeColor=#000000;strokeWidth=1.5;fillColor=#ffffff;" parent="1" vertex="1">
@@ -201,9 +201,6 @@
         </mxCell>
         <mxCell id="edge_p_time" style="endArrow=none;startArrow=none;html=1;strokeColor=#000000;strokeWidth=1.5;fontSize=24;" parent="1" source="pred" target="p_time" edge="1">
           <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="note_bottom" value="注：表 motor_insurance由于字段过多，此处仅展示 5 个代表性段字段" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=24;fontColor=#333333;whiteSpace=wrap;" parent="1" vertex="1">
-          <mxGeometry x="40" y="980" width="420" height="24" as="geometry" />
         </mxCell>
         <mxCell id="zO51o9krBfBwoQMypsSu-2" value="" style="endArrow=none;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.75;entryDx=0;entryDy=0;fontSize=24;" parent="1" source="rel_generate" target="pred" edge="1">
           <mxGeometry width="50" height="50" relative="1" as="geometry">

@@ -16,7 +16,6 @@ from typing import Any, Dict, Literal, Optional
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
-from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 if __package__:
@@ -37,12 +36,6 @@ app = FastAPI(
 )
 
 service = InsuranceInferenceService()
-
-app.mount(
-    "/training/artifacts",
-    StaticFiles(directory=str(training_manager.base_dir)),
-    name="training-artifacts",
-)
 
 
 class PolicyRecordInput(BaseModel):
@@ -156,12 +149,6 @@ class SinglePredictionResponse(BaseModel):
     code: str = "200"
     msg: str = "预测成功"
     data: PredictionResult
-
-
-class BatchPredictionSummary(BaseModel):
-    total: int
-    riskLevelDistribution: Dict[str, int]
-    averageClaimProbability: float
 
 
 class BatchPredictionResponse(BaseModel):
