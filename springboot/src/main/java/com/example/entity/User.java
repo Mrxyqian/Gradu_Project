@@ -9,6 +9,7 @@ public class User {
     private String registerCode;
     private String lastLoginTime;
     private String createTime;
+    private String homeShortcuts;
 
     public Integer getId() {
         return id;
@@ -72,5 +73,13 @@ public class User {
 
     public void setCreateTime(String createTime) {
         this.createTime = createTime;
+    }
+
+    public String getHomeShortcuts() {
+        return homeShortcuts;
+    }
+
+    public void setHomeShortcuts(String homeShortcuts) {
+        this.homeShortcuts = homeShortcuts;
     }
 }

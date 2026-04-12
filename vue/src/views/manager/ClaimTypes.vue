@@ -19,7 +19,7 @@
           <el-table-column prop="costClaimsByType" label="按类型索赔成本" width="150" />
           <el-table-column label="操作" width="180" fixed="right">
             <template #default="scope">
-              <el-button type="primary" plain size="small" @click="handleEdit(scope.row)">编辑</el-button>
+              <el-button class="edit-action-btn" type="primary" plain size="small" @click="handleEdit(scope.row)">编辑</el-button>
               <el-button v-if="canDelete" type="danger" plain size="small" @click="del(scope.row.id)">删除</el-button>
             </template>
           </el-table-column>
@@ -158,3 +158,18 @@ const del = (id) => {
   }).catch(res => {})
 }
 </script>
+
+<style scoped>
+.edit-action-btn {
+  color: #1f5a4c;
+  border-color: rgba(47, 125, 107, 0.28);
+  background: rgba(228, 242, 236, 0.95);
+}
+
+.edit-action-btn:hover,
+.edit-action-btn:focus {
+  color: #173f35;
+  border-color: rgba(47, 125, 107, 0.42);
+  background: rgba(214, 234, 227, 0.98);
+}
+</style>

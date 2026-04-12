@@ -2,6 +2,7 @@ package com.example.service;
 
 import cn.hutool.crypto.SecureUtil;
 import com.example.entity.User;
+import com.example.entity.UserHomeShortcutRequest;
 import com.example.exception.CustomException;
 import com.example.mapper.UserMapper;
 import org.springframework.stereotype.Service;
@@ -11,9 +12,13 @@ import javax.annotation.Resource;
 import javax.servlet.http.HttpSession;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedHashSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -25,7 +30,21 @@ public class UserService {
     private static final String DEFAULT_ADMIN_PASSWORD = "admin123";
     private static final String ROLE_ADMIN = "ADMIN";
     private static final String ROLE_USER = "USER";
+    private static final int MAX_HOME_SHORTCUTS = 4;
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    private static final List<String> USER_ALLOWED_SHORTCUTS = Arrays.asList(
+            "/motorInsurance",
+            "/motorInsuranceStatistics",
+            "/claimTypes",
+            "/claimStatistics",
+            "/vehicleInfo",
+            "/predictionManage",
+            "/predictionStatistics"
+    );
+    private static final List<String> ADMIN_ONLY_SHORTCUTS = Arrays.asList(
+            "/modelTraining",
+            "/userManage"
+    );
 
     @Resource
     private UserMapper userMapper;
@@ -33,6 +52,10 @@ public class UserService {
     @PostConstruct
     public void init() {
         userMapper.createTableIfNotExists();
+        Integer shortcutColumnCount = userMapper.countHomeShortcutsColumn();
+        if (shortcutColumnCount == null || shortcutColumnCount == 0) {
+            userMapper.addHomeShortcutsColumn();
+        }
         User admin = new User();
         admin.setEmployeeNo(DEFAULT_ADMIN_EMPLOYEE_NO);
         admin.setName("管理员");
@@ -139,10 +162,61 @@ public class UserService {
         updateUser.setId(dbUser.getId());
         updateUser.setName(user.getName());
         updateUser.setRole(user.getRole());
+        updateUser.setHomeShortcuts(joinShortcutPaths(sanitizeShortcutPaths(user.getRole(), parseShortcutPaths(dbUser.getHomeShortcuts()))));
         updateUser.setPassword((user.getPassword() == null || user.getPassword().trim().isEmpty())
                 ? dbUser.getPassword()
                 : encodePassword(user.getPassword()));
         userMapper.updateById(updateUser);
+    }
+
+    public Map<String, Object> getHomeShortcuts(HttpSession session) {
+        User currentUser = requireLogin(session);
+        User dbUser = userMapper.selectById(currentUser.getId());
+        if (dbUser == null) {
+            throw new CustomException("用户不存在");
+        }
+
+        List<String> selectedPaths = sanitizeShortcutPaths(dbUser.getRole(), parseShortcutPaths(dbUser.getHomeShortcuts()));
+        String normalizedValue = joinShortcutPaths(selectedPaths);
+        if (!normalizedValue.equals(dbUser.getHomeShortcuts() == null ? "" : dbUser.getHomeShortcuts())) {
+            dbUser.setHomeShortcuts(normalizedValue);
+            userMapper.updateHomeShortcuts(dbUser);
+        }
+
+        User safeUser = buildSafeUser(dbUser);
+        session.setAttribute(CURRENT_USER, safeUser);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("selectedPaths", selectedPaths);
+        result.put("user", safeUser);
+        return result;
+    }
+
+    public Map<String, Object> updateHomeShortcuts(UserHomeShortcutRequest request, HttpSession session) {
+        User currentUser = requireLogin(session);
+        User dbUser = userMapper.selectById(currentUser.getId());
+        if (dbUser == null) {
+            throw new CustomException("用户不存在");
+        }
+
+        List<String> selectedPaths = sanitizeShortcutPaths(dbUser.getRole(), request == null ? null : request.getSelectedPaths());
+        if (selectedPaths.size() > MAX_HOME_SHORTCUTS) {
+            throw new CustomException("快捷入口最多只能保存 4 个");
+        }
+
+        User updateUser = new User();
+        updateUser.setId(dbUser.getId());
+        updateUser.setHomeShortcuts(joinShortcutPaths(selectedPaths));
+        userMapper.updateHomeShortcuts(updateUser);
+
+        dbUser.setHomeShortcuts(updateUser.getHomeShortcuts());
+        User safeUser = buildSafeUser(dbUser);
+        session.setAttribute(CURRENT_USER, safeUser);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("selectedPaths", selectedPaths);
+        result.put("user", safeUser);
+        return result;
     }
 
     public void deleteUser(Integer id, HttpSession session) {
@@ -172,6 +246,7 @@ public class UserService {
         safeUser.setRole(user.getRole());
         safeUser.setLastLoginTime(user.getLastLoginTime());
         safeUser.setCreateTime(user.getCreateTime());
+        safeUser.setHomeShortcuts(joinShortcutPaths(sanitizeShortcutPaths(user.getRole(), parseShortcutPaths(user.getHomeShortcuts()))));
         return safeUser;
     }
 
@@ -200,15 +275,60 @@ public class UserService {
     }
 
     private User requireAdmin(HttpSession session) {
-        Object currentUserObj = session.getAttribute(CURRENT_USER);
-        if (!(currentUserObj instanceof User)) {
-            throw new CustomException("请先登录");
-        }
-        User currentUser = (User) currentUserObj;
+        User currentUser = requireLogin(session);
         if (!ROLE_ADMIN.equals(currentUser.getRole())) {
             throw new CustomException("无权限操作该功能");
         }
         return currentUser;
+    }
+
+    private User requireLogin(HttpSession session) {
+        Object currentUserObj = session.getAttribute(CURRENT_USER);
+        if (!(currentUserObj instanceof User)) {
+            throw new CustomException("请先登录");
+        }
+        return (User) currentUserObj;
+    }
+
+    private List<String> sanitizeShortcutPaths(String role, List<String> shortcutPaths) {
+        List<String> rawPaths = shortcutPaths == null ? new ArrayList<>() : shortcutPaths;
+        Set<String> allowedPaths = new LinkedHashSet<>(USER_ALLOWED_SHORTCUTS);
+        if (ROLE_ADMIN.equals(role)) {
+            allowedPaths.addAll(ADMIN_ONLY_SHORTCUTS);
+        }
+
+        LinkedHashSet<String> normalized = new LinkedHashSet<>();
+        for (String path : rawPaths) {
+            String trimmedPath = path == null ? "" : path.trim();
+            if (trimmedPath.isEmpty()) {
+                continue;
+            }
+            if (!allowedPaths.contains(trimmedPath)) {
+                continue;
+            }
+            normalized.add(trimmedPath);
+            if (normalized.size() == MAX_HOME_SHORTCUTS) {
+                break;
+            }
+        }
+        return new ArrayList<>(normalized);
+    }
+
+    private List<String> parseShortcutPaths(String homeShortcuts) {
+        if (homeShortcuts == null || homeShortcuts.trim().isEmpty()) {
+            return new ArrayList<>();
+        }
+        return Arrays.stream(homeShortcuts.split(","))
+                .map(String::trim)
+                .filter(item -> !item.isEmpty())
+                .collect(Collectors.toList());
+    }
+
+    private String joinShortcutPaths(List<String> shortcutPaths) {
+        if (shortcutPaths == null || shortcutPaths.isEmpty()) {
+            return "";
+        }
+        return String.join(",", shortcutPaths);
     }
 
     private String encodePassword(String password) {

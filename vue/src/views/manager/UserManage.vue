@@ -39,7 +39,13 @@
       </el-table-column>
     </el-table>
 
-    <el-dialog v-model="dialogVisible" :title="form.id ? '修改用户' : '新增用户'" width="460px">
+    <el-dialog
+      v-model="dialogVisible"
+      :title="form.id ? '修改用户' : '新增用户'"
+      width="460px"
+      append-to-body
+      destroy-on-close
+    >
       <el-form ref="formRef" :model="form" :rules="rules" label-width="88px">
         <el-form-item label="工号" prop="employeeNo">
           <el-input v-model="form.employeeNo" :disabled="!!form.id" maxlength="6" />

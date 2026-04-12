@@ -3,9 +3,6 @@
     <div class="card hero-card">
       <div>
         <div class="hero-title">训练结果总览</div>
-        <div class="hero-desc">
-          这里集中展示本次训练的测试指标、分类评估报告、实际生效的超参数，以及由 Python 生成并保存的评估图像。
-        </div>
       </div>
       <div class="hero-meta">
         <el-tag size="large" :type="statusTagType">{{ statusText }}</el-tag>
@@ -17,7 +14,6 @@
       <div class="section-head">
         <div>
           <div class="section-title">结果操作</div>
-          <div class="section-subtitle">可以保存当前训练权重，或返回训练页面继续发起新的训练任务。</div>
         </div>
       </div>
 
@@ -111,9 +107,6 @@
         <el-col :xs="24" :lg="12">
           <div class="card section-card">
             <div class="section-title">分类别评估报告</div>
-            <div class="section-subtitle">
-              展示测试集上 No Claim 和 Claim 两个类别的 precision、recall、f1-score 与 support。
-            </div>
             <pre class="report-box">{{ summary.classificationReport || '暂无分类报告' }}</pre>
           </div>
         </el-col>
@@ -137,7 +130,6 @@
 
       <div class="card section-card">
         <div class="section-title">本次训练使用的超参数</div>
-        <div class="section-subtitle">以下内容为本轮训练最终实际生效的配置，包括默认值和手动调整项。</div>
 
         <div class="parameter-grid">
           <div v-for="group in hyperParameterGroups" :key="group.title" class="parameter-card">
@@ -157,9 +149,6 @@
 
       <div class="card section-card">
         <div class="section-title">训练评估图像</div>
-        <div class="section-subtitle">
-          图像由 Python 在训练结束后生成，并保存在当前训练任务目录下，前端直接按任务读取展示。
-        </div>
 
         <div class="chart-grid">
           <div v-for="figure in figureCards" :key="figure.key" class="chart-card image-card">
@@ -483,12 +472,6 @@ onUnmounted(() => {
   color: #0f766e;
 }
 
-.hero-desc {
-  margin-top: 8px;
-  color: #475569;
-  line-height: 1.8;
-}
-
 .hero-meta {
   min-width: 220px;
   text-align: right;
@@ -520,12 +503,6 @@ onUnmounted(() => {
   font-size: 18px;
   font-weight: 700;
   color: #1f2937;
-}
-
-.section-subtitle {
-  margin-top: 6px;
-  color: #6b7280;
-  font-size: 13px;
 }
 
 .save-row {

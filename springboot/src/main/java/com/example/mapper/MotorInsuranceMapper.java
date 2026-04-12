@@ -53,8 +53,15 @@ public interface MotorInsuranceMapper {
     @Select("SELECT Payment as payment, COUNT(*) as count, SUM(Premium) as totalPremium FROM motor_insurance GROUP BY Payment")
     List<Map<String, Object>> statisticsByPayment();
 
-    @Select("SELECT SUM(Premium) as totalPremium, SUM(Cost_claims_year) as totalClaimsCost, " +
-            "SUM(N_claims_year) as totalClaimsCount, AVG(R_Claims_history) as avgClaimsRatio FROM motor_insurance")
+    @Select("SELECT " +
+            "COALESCE(SUM(Premium), 0) as totalPremium, " +
+            "CASE " +
+            "WHEN COALESCE(SUM(Premium), 0) = 0 THEN 0 " +
+            "ELSE (SUM(Premium) - COALESCE(SUM(Cost_claims_year), 0)) / SUM(Premium) " +
+            "END as premiumProfitRate, " +
+            "SUM(CASE WHEN RIGHT(TRIM(Date_start_contract), 4) = '2018' THEN 1 ELSE 0 END) as policyCount2018, " +
+            "COALESCE(AVG(COALESCE(N_claims_history, 0)), 0) as avgHistoryClaimRate " +
+            "FROM motor_insurance")
     Map<String, Object> overallStatistics();
 
     @Select("SELECT Type_fuel as typeFuel, COUNT(*) as count, AVG(Power) as avgPower, " +

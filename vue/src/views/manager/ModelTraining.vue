@@ -3,10 +3,6 @@
     <div class="card hero-card">
       <div>
         <div class="hero-title">模型训练中心</div>
-        <div class="hero-desc">
-          当前页面专注于发起单任务分类模型训练与查看实时进度。训练完成后，系统会自动跳转到结果页面，
-          集中展示测试指标、分类报告、超参数和权重保存入口。
-        </div>
       </div>
       <div class="hero-meta">
         <el-tag size="large" :type="statusTagType">{{ statusText }}</el-tag>
@@ -18,7 +14,6 @@
       <el-col :xs="24" :lg="11">
         <div class="card section-card">
           <div class="section-title">训练参数</div>
-          <div class="section-subtitle">保留旧风格模型真正有意义的训练参数，默认值已经按当前项目调整为可直接使用。</div>
 
           <el-form :model="trainForm" label-position="top" class="train-form">
             <div class="group-title">核心超参数</div>
@@ -393,12 +388,6 @@ onUnmounted(() => {
   color: #1d4ed8;
 }
 
-.hero-desc {
-  margin-top: 8px;
-  color: #475569;
-  line-height: 1.8;
-}
-
 .hero-meta {
   min-width: 220px;
   text-align: right;
@@ -418,12 +407,6 @@ onUnmounted(() => {
   font-size: 18px;
   font-weight: 700;
   color: #1f2937;
-}
-
-.section-subtitle {
-  margin-top: 6px;
-  color: #6b7280;
-  font-size: 13px;
 }
 
 .train-form {

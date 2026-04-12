@@ -2,6 +2,7 @@ package com.example.controller;
 
 import com.example.common.Result;
 import com.example.entity.User;
+import com.example.entity.UserHomeShortcutRequest;
 import com.example.service.UserService;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,6 +19,16 @@ public class UserController {
     @GetMapping("/selectAll")
     public Result selectAll(HttpSession session) {
         return Result.success(userService.selectAll(session));
+    }
+
+    @GetMapping("/homeShortcuts")
+    public Result homeShortcuts(HttpSession session) {
+        return Result.success(userService.getHomeShortcuts(session));
+    }
+
+    @PutMapping("/homeShortcuts")
+    public Result updateHomeShortcuts(@RequestBody UserHomeShortcutRequest request, HttpSession session) {
+        return Result.success(userService.updateHomeShortcuts(request, session));
     }
 
     @PostMapping("/add")

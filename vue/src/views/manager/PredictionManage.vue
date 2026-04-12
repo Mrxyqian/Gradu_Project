@@ -3,9 +3,6 @@
     <div class="card prediction-banner">
       <div>
         <div class="banner-title">理赔率预测管理</div>
-        <div class="banner-desc">
-          从保单库中勾选 1 到 10 条记录执行预测，可选择管理员保存的模型权重版本，系统会自动保存本次理赔概率预测记录。
-        </div>
       </div>
       <div class="banner-actions">
         <div class="version-picker">
@@ -33,7 +30,6 @@
 
     <div class="card" style="margin-bottom: 12px;">
       <div class="section-title">可选保单列表</div>
-      <div class="section-subtitle">支持跨页勾选，超过 10 条后将禁止继续选择。</div>
       <el-table
         ref="policyTableRef"
         :data="policyTableData"
@@ -78,7 +74,6 @@
 
     <div class="card" style="margin-bottom: 12px;">
       <div class="section-title">历史预测记录</div>
-      <div class="section-subtitle">仅保留理赔概率预测结果，可按记录主键删除历史。</div>
       <el-table :data="historyTableData" style="width: 100%; margin-top: 12px;">
         <el-table-column prop="predId" label="记录ID" width="100" />
         <el-table-column prop="id" label="保单ID" width="100" />
@@ -377,11 +372,6 @@ loadModelVersions()
   color: #14532d;
 }
 
-.banner-desc {
-  margin-top: 6px;
-  color: #4b5563;
-}
-
 .banner-actions {
   display: flex;
   align-items: center;
@@ -417,12 +407,6 @@ loadModelVersions()
   font-size: 18px;
   font-weight: bold;
   color: #1f2937;
-}
-
-.section-subtitle {
-  margin-top: 4px;
-  color: #6b7280;
-  font-size: 13px;
 }
 
 .result-grid {
