@@ -6,10 +6,15 @@ import cn.hutool.json.JSONArray;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONNull;
 import cn.hutool.json.JSONUtil;
+import com.example.entity.ClaimTypes;
 import com.example.entity.InsurPred;
 import com.example.entity.MotorInsurance;
+import com.example.entity.VehicleInfo;
 import com.example.exception.CustomException;
+import com.example.mapper.ClaimTypesMapper;
 import com.example.mapper.InsurPredMapper;
+import com.example.mapper.MotorInsuranceMapper;
+import com.example.mapper.VehicleInfoMapper;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import org.springframework.beans.factory.annotation.Value;
@@ -18,22 +23,21 @@ import org.springframework.stereotype.Service;
 import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 @Service
 public class InsurPredService {
 
     @Resource
     private InsurPredMapper insurPredMapper;
-
     @Resource
-    private MotorInsuranceService motorInsuranceService;
+    private MotorInsuranceMapper motorInsuranceMapper;
+    @Resource
+    private ClaimTypesMapper claimTypesMapper;
+    @Resource
+    private VehicleInfoMapper vehicleInfoMapper;
 
     @Value("${fastapi.base-url:http://localhost:8000}")
     private String fastApiBaseUrl;
@@ -41,22 +45,27 @@ public class InsurPredService {
     @Value("${fastapi.timeout:30000}")
     private Integer fastApiTimeout;
 
-    public List<InsurPred> predictAndSave(List<Integer> ids, String modelVersion) {
-        validatePredictIds(ids);
-
-        List<Integer> distinctIds = ids.stream().distinct().collect(Collectors.toList());
-        List<MotorInsurance> motorInsuranceList = motorInsuranceService.selectByIds(distinctIds);
-        validatePoliciesFound(distinctIds, motorInsuranceList);
-
-        JSONArray resultArray = callFastApiBatchPredict(motorInsuranceList, modelVersion);
-        List<InsurPred> savedList = new ArrayList<>();
-        for (int i = 0; i < resultArray.size(); i++) {
-            JSONObject item = resultArray.getJSONObject(i);
-            InsurPred insurPred = convertToInsurPred(item);
-            insurPredMapper.insert(insurPred);
-            savedList.add(insurPredMapper.selectByPredId(insurPred.getPredId()));
+    public InsurPred predictAndSave(MotorInsurance record, String modelVersion) {
+        if (record == null) {
+            throw new CustomException("预测记录不能为空");
         }
-        return savedList;
+
+        JSONObject resultObject = callFastApiPredict(record, modelVersion);
+        InsurPred insurPred = convertToInsurPred(resultObject, 0);
+        insurPredMapper.insert(insurPred);
+        return insurPredMapper.selectByPredId(insurPred.getPredId());
+    }
+
+    public InsurPred predictAndSaveByPolicyId(Integer id, String modelVersion) {
+        if (id == null || id <= 0) {
+            throw new CustomException("保单ID不能为空且必须大于0");
+        }
+
+        MotorInsurance record = buildPredictionRecordById(id);
+        JSONObject resultObject = callFastApiPredict(record, modelVersion);
+        InsurPred insurPred = convertToInsurPred(resultObject, id);
+        insurPredMapper.insert(insurPred);
+        return insurPredMapper.selectByPredId(insurPred.getPredId());
     }
 
     public void deleteByPredId(Integer predId) {
@@ -85,11 +94,6 @@ public class InsurPredService {
         return insurPredMapper.overallStatistics();
     }
 
-    public List<Map<String, Object>> countByBusinessIds(List<Integer> ids) {
-        validatePredictIds(ids);
-        return insurPredMapper.countByBusinessIds(ids.stream().distinct().collect(Collectors.toList()));
-    }
-
     public Object listModelVersions() {
         String url = fastApiBaseUrl + "/models/versions";
         try (HttpResponse response = HttpRequest.get(url)
@@ -97,65 +101,27 @@ public class InsurPredService {
                 .execute()) {
 
             if (response.getStatus() < 200 || response.getStatus() >= 300) {
-                throw new CustomException("FastAPI 模型版本服务调用失败，HTTP 状态码: " + response.getStatus());
+                throw new CustomException("FastAPI model versions request failed, HTTP status: " + response.getStatus());
             }
 
             JSONObject responseObj = JSONUtil.parseObj(response.body());
             if (!"200".equals(responseObj.getStr("code"))) {
-                throw new CustomException("FastAPI 模型版本服务返回异常: " + responseObj.getStr("msg"));
+                throw new CustomException("FastAPI model versions service returned error: " + responseObj.getStr("msg"));
             }
 
             return normalizeJsonValue(responseObj.get("data"));
         } catch (CustomException e) {
             throw e;
         } catch (Exception e) {
-            throw new CustomException("调用 FastAPI 模型版本服务异常: " + e.getMessage());
+            throw new CustomException("Failed to call FastAPI model versions service: " + e.getMessage());
         }
     }
 
-    private void validatePredictIds(List<Integer> ids) {
-        if (ids == null || ids.isEmpty()) {
-            throw new CustomException("请至少传入 1 条保单 ID");
-        }
-        if (ids.size() > 10) {
-            throw new CustomException("单次最多支持 10 条保单预测");
-        }
-        for (Integer id : ids) {
-            if (id == null) {
-                throw new CustomException("保单 ID 不能为空");
-            }
-        }
-    }
+    private JSONObject callFastApiPredict(MotorInsurance record, String modelVersion) {
+        String url = fastApiBaseUrl + "/predict";
 
-    private void validatePoliciesFound(List<Integer> requestedIds, List<MotorInsurance> motorInsuranceList) {
-        Set<Integer> foundIds = new HashSet<>();
-        for (MotorInsurance motorInsurance : motorInsuranceList) {
-            foundIds.add(motorInsurance.getId());
-        }
-
-        List<Integer> missingIds = new ArrayList<>();
-        for (Integer requestedId : requestedIds) {
-            if (!foundIds.contains(requestedId)) {
-                missingIds.add(requestedId);
-            }
-        }
-
-        if (!missingIds.isEmpty()) {
-            throw new CustomException("以下保单 ID 不存在，无法预测: " + missingIds);
-        }
-    }
-
-    private JSONArray callFastApiBatchPredict(List<MotorInsurance> motorInsuranceList, String modelVersion) {
-        String url = fastApiBaseUrl + "/predict/batch";
-
-        List<Object> recordList = new ArrayList<>();
-        for (MotorInsurance motorInsurance : motorInsuranceList) {
-            JSONObject recordMap = JSONUtil.parseObj(motorInsurance);
-            recordList.add(recordMap);
-        }
-
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("records", recordList);
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("record", JSONUtil.parseObj(record));
         payload.put("modelVersion", modelVersion);
 
         try (HttpResponse response = HttpRequest.post(url)
@@ -165,35 +131,77 @@ public class InsurPredService {
                 .execute()) {
 
             if (response.getStatus() < 200 || response.getStatus() >= 300) {
-                throw new CustomException("FastAPI 预测服务调用失败，HTTP 状态码: " + response.getStatus());
+                throw new CustomException("FastAPI prediction request failed, HTTP status: " + response.getStatus());
             }
 
             JSONObject responseObj = JSONUtil.parseObj(response.body());
             if (!"200".equals(responseObj.getStr("code"))) {
-                throw new CustomException("FastAPI 预测服务返回异常: " + responseObj.getStr("msg"));
+                throw new CustomException("FastAPI prediction service returned error: " + responseObj.getStr("msg"));
             }
 
-            JSONObject dataObj = responseObj.getJSONObject("data");
-            if (dataObj == null) {
-                throw new CustomException("FastAPI 预测服务未返回 data 数据");
+            JSONObject result = responseObj.getJSONObject("data");
+            if (result == null || result.isEmpty()) {
+                throw new CustomException("FastAPI prediction response is empty");
             }
-
-            JSONArray results = dataObj.getJSONArray("results");
-            if (results == null || results.isEmpty()) {
-                throw new CustomException("FastAPI 预测服务未返回有效预测结果");
-            }
-
-            return results;
+            return result;
         } catch (CustomException e) {
             throw e;
         } catch (Exception e) {
-            throw new CustomException("调用 FastAPI 预测服务异常: " + e.getMessage());
+            throw new CustomException("Failed to call FastAPI prediction service: " + e.getMessage());
         }
     }
 
-    private InsurPred convertToInsurPred(JSONObject item) {
+    private MotorInsurance buildPredictionRecordById(Integer id) {
+        MotorInsurance motorInsurance = motorInsuranceMapper.selectById(id);
+        if (motorInsurance == null) {
+            throw new CustomException("未找到对应的保单信息，无法执行预测");
+        }
+
+        ClaimTypes claimRecord = claimTypesMapper.selectById(id);
+        if (claimRecord == null) {
+            throw new CustomException("该ID缺少理赔记录信息，无法执行预测");
+        }
+
+        VehicleInfo vehicleInfo = vehicleInfoMapper.selectById(id);
+        if (vehicleInfo == null) {
+            throw new CustomException("该ID缺少车辆信息，无法执行预测");
+        }
+
+        MotorInsurance record = new MotorInsurance();
+        record.setId(motorInsurance.getId());
+        record.setDateStartContract(motorInsurance.getDateStartContract());
+        record.setDateLastRenewal(motorInsurance.getDateLastRenewal());
+        record.setDateNextRenewal(motorInsurance.getDateNextRenewal());
+        record.setDateBirth(motorInsurance.getDateBirth());
+        record.setDateDrivingLicence(motorInsurance.getDateDrivingLicence());
+        record.setDistributionChannel(motorInsurance.getDistributionChannel());
+        record.setSeniority(motorInsurance.getSeniority());
+        record.setPoliciesInForce(motorInsurance.getPoliciesInForce());
+        record.setMaxPolicies(motorInsurance.getMaxPolicies());
+        record.setMaxProducts(motorInsurance.getMaxProducts());
+        record.setLapse(motorInsurance.getLapse());
+        record.setDateLapse(motorInsurance.getDateLapse());
+        record.setPayment(motorInsurance.getPayment());
+        record.setPremium(motorInsurance.getPremium());
+        record.setNClaimsHistory(claimRecord.getNClaimsHistory());
+        record.setRClaimsHistory(claimRecord.getRClaimsHistory());
+        record.setTypeRisk(claimRecord.getTypeRisk() != null ? claimRecord.getTypeRisk() : motorInsurance.getTypeRisk());
+        record.setArea(claimRecord.getArea() != null ? claimRecord.getArea() : motorInsurance.getArea());
+        record.setSecondDriver(motorInsurance.getSecondDriver());
+        record.setYearMatriculation(vehicleInfo.getYearMatriculation());
+        record.setPower(vehicleInfo.getPower());
+        record.setCylinderCapacity(vehicleInfo.getCylinderCapacity());
+        record.setValueVehicle(vehicleInfo.getValueVehicle());
+        record.setNDoors(vehicleInfo.getNDoors());
+        record.setTypeFuel(vehicleInfo.getTypeFuel());
+        record.setLength(vehicleInfo.getLength());
+        record.setWeight(vehicleInfo.getWeight());
+        return record;
+    }
+
+    private InsurPred convertToInsurPred(JSONObject item, Integer businessId) {
         InsurPred insurPred = new InsurPred();
-        insurPred.setId(item.getInt("sourceId"));
+        insurPred.setId(businessId == null ? 0 : businessId);
         insurPred.setClaimProbability(toBigDecimal(item.get("claimProbability")));
         insurPred.setClaimFlag(item.getInt("claimFlag", 0));
         insurPred.setRiskLevel(item.getStr("riskLevel"));

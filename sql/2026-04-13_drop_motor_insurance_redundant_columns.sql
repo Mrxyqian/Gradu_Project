@@ -1,0 +1,13 @@
+ALTER TABLE motor_insurance
+    DROP COLUMN Cost_claims_year,
+    DROP COLUMN N_claims_year,
+    DROP COLUMN N_claims_history,
+    DROP COLUMN R_Claims_history,
+    DROP COLUMN Year_matriculation,
+    DROP COLUMN Power,
+    DROP COLUMN Cylinder_capacity,
+    DROP COLUMN Value_vehicle,
+    DROP COLUMN N_doors,
+    DROP COLUMN Type_fuel,
+    DROP COLUMN Length,
+    DROP COLUMN Weight;

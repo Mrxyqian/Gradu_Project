@@ -29,8 +29,8 @@ if __package__:
         DEFAULT_ABLATION_HEAD_HIDDEN_DIM,
         DEFAULT_ABLATION_HIDDEN_DIMS,
     )
-    from .AblationTrainModel import run_ablation_training
-    from .TrainConfig import Config, DEFAULT_OUTPUT_DIR
+    from .ExperimentAblationTrainModel import run_ablation_training
+    from .ExperimentTrainConfig import Config, DEFAULT_OUTPUT_DIR
 else:
     from AblationModel import (
         AblationLossOptions,
@@ -38,8 +38,8 @@ else:
         DEFAULT_ABLATION_HEAD_HIDDEN_DIM,
         DEFAULT_ABLATION_HIDDEN_DIMS,
     )
-    from AblationTrainModel import run_ablation_training
-    from TrainConfig import Config, DEFAULT_OUTPUT_DIR
+    from ExperimentAblationTrainModel import run_ablation_training
+    from ExperimentTrainConfig import Config, DEFAULT_OUTPUT_DIR
 
 
 AVAILABLE_GROUPS = ("components", "imbalance")
@@ -547,7 +547,7 @@ def main() -> None:
     meta = {
         "createdAt": now_text(),
         "baseDir": str(base_dir.resolve()),
-        "datasetPath": args.csv_path or str(Config().path.csv_path),
+        "csvPath": args.csv_path or str(Config().path.csv_path),
         "groups": groups,
         "seeds": seeds,
         "fixedSettings": {

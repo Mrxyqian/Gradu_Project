@@ -15,15 +15,15 @@ from pathlib import Path
 
 
 BASE_DIR = Path(__file__).resolve().parent
-DEFAULT_DATASET_PATH = BASE_DIR / "DataSet" / "Motor vehicle insurance data.csv"
 DEFAULT_OUTPUT_DIR = BASE_DIR / "outputs"
 
 
 @dataclass
 class PathConfig:
-    csv_path: str = str(DEFAULT_DATASET_PATH)
+    train_table: str = "train_data"
     output_dir: str = str(DEFAULT_OUTPUT_DIR)
     scaler_path: str = str(DEFAULT_OUTPUT_DIR / "scaler.pkl")
+    reference_path: str = str(DEFAULT_OUTPUT_DIR / "preprocess_reference.pkl")
     best_model_path: str = str(DEFAULT_OUTPUT_DIR / "best_model.pth")
     last_model_path: str = str(DEFAULT_OUTPUT_DIR / "last_model.pth")
     log_dir: str = str(DEFAULT_OUTPUT_DIR / "runs")
@@ -122,7 +122,6 @@ class Config:
 
 __all__ = [
     "BASE_DIR",
-    "DEFAULT_DATASET_PATH",
     "DEFAULT_OUTPUT_DIR",
     "PathConfig",
     "DataConfig",

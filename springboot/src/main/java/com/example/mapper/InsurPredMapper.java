@@ -4,7 +4,6 @@ import com.example.entity.InsurPred;
 import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Options;
-import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 
 import java.util.List;
@@ -12,16 +11,17 @@ import java.util.Map;
 
 public interface InsurPredMapper {
 
-    @Insert("INSERT INTO insur_pred (ID, claim_probability, claim_flag, risk_level, " +
-            "threshold_used, model_version, prediction_time) VALUES (#{id}, #{claimProbability}, #{claimFlag}, " +
-            "#{riskLevel}, #{thresholdUsed}, #{modelVersion}, #{predictionTime})")
+    @Insert("INSERT INTO insur_pred (ID, claim_probability, claim_flag, risk_level, threshold_used, model_version, prediction_time) " +
+            "VALUES (#{id}, #{claimProbability}, #{claimFlag}, #{riskLevel}, #{thresholdUsed}, #{modelVersion}, #{predictionTime})")
     @Options(useGeneratedKeys = true, keyProperty = "predId", keyColumn = "pred_id")
     void insert(InsurPred insurPred);
 
     @Delete("DELETE FROM insur_pred WHERE pred_id = #{predId}")
     void deleteByPredId(Integer predId);
 
-    @Select("SELECT * FROM insur_pred WHERE pred_id = #{predId}")
+    @Select("SELECT pred_id as predId, ID as id, claim_probability as claimProbability, claim_flag as claimFlag, " +
+            "risk_level as riskLevel, threshold_used as thresholdUsed, model_version as modelVersion, " +
+            "prediction_time as predictionTime FROM insur_pred WHERE pred_id = #{predId}")
     InsurPred selectByPredId(Integer predId);
 
     List<InsurPred> selectAll(InsurPred insurPred);
@@ -43,6 +43,4 @@ public interface InsurPredMapper {
             "AVG(CASE WHEN claim_flag = 1 THEN 1 ELSE 0 END) as positivePredictionRate " +
             "FROM insur_pred")
     Map<String, Object> overallStatistics();
-
-    List<Map<String, Object>> countByBusinessIds(@Param("ids") List<Integer> ids);
 }

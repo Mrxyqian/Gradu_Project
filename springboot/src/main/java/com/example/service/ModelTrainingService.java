@@ -13,8 +13,10 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.Resource;
 import javax.servlet.http.HttpSession;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -30,8 +32,12 @@ public class ModelTrainingService {
     @Value("${fastapi.timeout:30000}")
     private Integer fastApiTimeout;
 
+    @Resource
+    private JdbcTemplate jdbcTemplate;
+
     public Object startTraining(Map<String, Object> payload, HttpSession session) {
         SessionUserUtil.requireAdmin(session);
+        ensureTrainDataTableInitialized();
         return postForData("/training/start", payload);
     }
 
@@ -81,6 +87,145 @@ public class ModelTrainingService {
         } catch (Exception e) {
             throw new CustomException("调用 FastAPI 模型训练图像服务异常: " + e.getMessage());
         }
+    }
+
+    public Object getTrainDataOverview(HttpSession session) {
+        SessionUserUtil.requireAdmin(session);
+        ensureTrainDataTableInitialized();
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("totalCount", jdbcTemplate.queryForObject("SELECT COUNT(*) FROM train_data", Integer.class));
+        result.put("distinctIdCount", jdbcTemplate.queryForObject("SELECT COUNT(DISTINCT ID) FROM train_data", Integer.class));
+        result.put("availableYears", jdbcTemplate.queryForList(
+                "SELECT DISTINCT RIGHT(TRIM(Date_start_contract), 4) AS contractYear " +
+                        "FROM motor_insurance WHERE Date_start_contract IS NOT NULL AND TRIM(Date_start_contract) <> '' " +
+                        "ORDER BY contractYear DESC",
+                String.class
+        ));
+        return result;
+    }
+
+    public Object importTrainData(Integer contractYear, HttpSession session) {
+        SessionUserUtil.requireAdmin(session);
+        ensureTrainDataTableInitialized();
+
+        String candidateWhere = buildYearWhere("m", contractYear);
+        String eligibleFrom =
+                " FROM motor_insurance m " +
+                "INNER JOIN claim_record c ON c.ID = m.ID " +
+                "INNER JOIN vehicle_info v ON v.ID = m.ID " +
+                buildYearWhere("m", contractYear);
+        String skippedWhere = buildSkippedWhere(contractYear);
+        Object[] yearArgs = buildYearArgs(contractYear);
+
+        Integer candidateCount = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM motor_insurance m" + candidateWhere,
+                Integer.class,
+                yearArgs
+        );
+        Integer eligibleCount = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*)" + eligibleFrom,
+                Integer.class,
+                yearArgs
+        );
+        Integer existingCount = jdbcTemplate.queryForObject(
+                "SELECT COUNT(DISTINCT t.ID) FROM train_data t INNER JOIN (SELECT m.ID" + eligibleFrom + ") eligible ON eligible.ID = t.ID",
+                Integer.class,
+                yearArgs
+        );
+        List<Integer> skippedIds = jdbcTemplate.queryForList(
+                "SELECT m.ID FROM motor_insurance m " +
+                        "LEFT JOIN claim_record c ON c.ID = m.ID " +
+                        "LEFT JOIN vehicle_info v ON v.ID = m.ID" +
+                        skippedWhere +
+                        " ORDER BY m.ID",
+                Integer.class,
+                yearArgs
+        );
+
+        if (eligibleCount != null && eligibleCount > 0) {
+            jdbcTemplate.update(
+                    "DELETE t FROM train_data t INNER JOIN (SELECT m.ID" + eligibleFrom + ") eligible ON eligible.ID = t.ID",
+                    yearArgs
+            );
+            jdbcTemplate.update(
+                    "INSERT INTO train_data (" +
+                            "ID, Date_start_contract, Date_last_renewal, Date_next_renewal, Date_birth, Date_driving_licence, " +
+                            "Distribution_channel, Seniority, Policies_in_force, Max_policies, Max_products, Lapse, Date_lapse, Payment, Premium, " +
+                            "Cost_claims_year, N_claims_year, N_claims_history, R_Claims_history, Type_risk, Area, Second_driver, " +
+                            "Year_matriculation, Power, Cylinder_capacity, Value_vehicle, N_doors, Type_fuel, Length, Weight) " +
+                            "SELECT m.ID, m.Date_start_contract, m.Date_last_renewal, m.Date_next_renewal, m.Date_birth, m.Date_driving_licence, " +
+                            "m.Distribution_channel, m.Seniority, m.Policies_in_force, m.Max_policies, m.Max_products, m.Lapse, m.Date_lapse, m.Payment, m.Premium, " +
+                            "c.Cost_claims_year, c.N_claims_year, c.N_claims_history, c.R_Claims_history, c.Type_risk, c.Area, m.Second_driver, " +
+                            "v.Year_matriculation, v.Power, v.Cylinder_capacity, v.Value_vehicle, v.N_doors, v.Type_fuel, v.Length, v.Weight" +
+                            eligibleFrom,
+                    yearArgs
+            );
+        }
+
+        int processedCount = eligibleCount == null ? 0 : eligibleCount;
+        int updatedCount = existingCount == null ? 0 : existingCount;
+        int insertedCount = Math.max(processedCount - updatedCount, 0);
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("contractYear", contractYear);
+        result.put("candidateCount", candidateCount == null ? 0 : candidateCount);
+        result.put("processedCount", processedCount);
+        result.put("insertedCount", insertedCount);
+        result.put("updatedCount", updatedCount);
+        result.put("skippedCount", skippedIds.size());
+        result.put("skippedIds", skippedIds);
+        result.put("trainDataTotalCount", jdbcTemplate.queryForObject("SELECT COUNT(*) FROM train_data", Integer.class));
+        result.put("trainDataDistinctIdCount", jdbcTemplate.queryForObject("SELECT COUNT(DISTINCT ID) FROM train_data", Integer.class));
+        return result;
+    }
+
+    private void ensureTrainDataTableInitialized() {
+        Integer backupExists = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'motor_insurance_backup_20260413_idfix'",
+                Integer.class
+        );
+        if (backupExists == null || backupExists == 0) {
+            throw new CustomException("训练备份表 motor_insurance_backup_20260413_idfix 不存在");
+        }
+
+        Integer trainDataExists = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'train_data'",
+                Integer.class
+        );
+        if (trainDataExists == null || trainDataExists == 0) {
+            jdbcTemplate.execute("CREATE TABLE train_data LIKE motor_insurance_backup_20260413_idfix");
+            jdbcTemplate.execute("INSERT INTO train_data SELECT * FROM motor_insurance_backup_20260413_idfix");
+        }
+
+        Integer idIndexExists = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM information_schema.statistics WHERE table_schema = DATABASE() AND table_name = 'train_data' AND index_name = 'idx_train_data_id'",
+                Integer.class
+        );
+        if (idIndexExists == null || idIndexExists == 0) {
+            jdbcTemplate.execute("CREATE INDEX idx_train_data_id ON train_data (ID)");
+        }
+    }
+
+    private Object[] buildYearArgs(Integer contractYear) {
+        if (contractYear == null) {
+            return new Object[0];
+        }
+        return new Object[]{String.valueOf(contractYear)};
+    }
+
+    private String buildYearWhere(String alias, Integer contractYear) {
+        if (contractYear == null) {
+            return "";
+        }
+        return " WHERE RIGHT(TRIM(" + alias + ".Date_start_contract), 4) = ?";
+    }
+
+    private String buildSkippedWhere(Integer contractYear) {
+        if (contractYear == null) {
+            return " WHERE (c.ID IS NULL OR v.ID IS NULL)";
+        }
+        return " WHERE RIGHT(TRIM(m.Date_start_contract), 4) = ? AND (c.ID IS NULL OR v.ID IS NULL)";
     }
 
     private Object getForData(String path) {

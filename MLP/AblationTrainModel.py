@@ -202,12 +202,13 @@ def run_ablation_training(
         logger.info("Using device: %s", device)
 
         train_loader, val_loader, test_loader, input_dim = build_dataloaders(
-            csv_path=cfg.path.csv_path,
+            table_name=cfg.path.train_table,
             batch_size=cfg.data.batch_size,
             val_ratio=cfg.data.val_ratio,
             test_ratio=cfg.data.test_ratio,
             random_seed=cfg.data.random_seed,
             scaler_save_path=cfg.path.scaler_path,
+            reference_save_path=cfg.path.reference_path,
             num_workers=cfg.data.num_workers,
             balanced_sampling=cfg.data.balanced_sampling,
             sampler_alpha=cfg.data.sampler_alpha,

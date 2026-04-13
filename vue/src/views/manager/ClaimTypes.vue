@@ -75,20 +75,22 @@
         <el-form-item label="历史出险率" prop="rClaimsHistory">
           <el-input-number v-model="data.form.rClaimsHistory" :precision="2" :min="0" style="width: 100%" />
         </el-form-item>
-        <el-form-item label="风险类型" prop="typeRisk">
-          <el-select v-model="data.form.typeRisk" style="width: 100%">
-            <el-option label="摩托车" :value="1" />
-            <el-option label="货车" :value="2" />
-            <el-option label="乘用车" :value="3" />
-            <el-option label="农用车" :value="4" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="地区" prop="area">
-          <el-select v-model="data.form.area" style="width: 100%">
-            <el-option label="农村" :value="0" />
-            <el-option label="城市" :value="1" />
-          </el-select>
-        </el-form-item>
+        <template v-if="data.formMode === 'edit'">
+          <el-form-item label="风险类型" prop="typeRisk">
+            <el-select v-model="data.form.typeRisk" style="width: 100%">
+              <el-option label="摩托车" :value="1" />
+              <el-option label="货车" :value="2" />
+              <el-option label="乘用车" :value="3" />
+              <el-option label="农用车" :value="4" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="地区" prop="area">
+            <el-select v-model="data.form.area" style="width: 100%">
+              <el-option label="农村" :value="0" />
+              <el-option label="城市" :value="1" />
+            </el-select>
+          </el-form-item>
+        </template>
       </el-form>
       <template #footer>
         <span class="dialog-footer">
@@ -129,8 +131,6 @@ const rules = reactive({
   nClaimsYear: [{ required: true, message: '请输入本年度索赔次数', trigger: 'blur' }],
   nClaimsHistory: [{ required: true, message: '请输入历史索赔次数', trigger: 'blur' }],
   rClaimsHistory: [{ required: true, message: '请输入历史出险率', trigger: 'blur' }],
-  typeRisk: [{ required: true, message: '请选择风险类型', trigger: 'change' }],
-  area: [{ required: true, message: '请选择地区', trigger: 'change' }],
 })
 
 const formRef = ref()

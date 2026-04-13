@@ -1,6 +1,7 @@
 package com.example.service;
 
 import com.example.common.SessionUserUtil;
+import com.example.entity.MotorInsurance;
 import com.example.entity.VehicleInfo;
 import com.example.exception.CustomException;
 import com.example.mapper.MotorInsuranceMapper;
@@ -27,12 +28,14 @@ public class VehicleInfoService {
         if (vehicleInfo.getId() == null) {
             throw new CustomException("ID不能为空");
         }
-        if (motorInsuranceMapper.selectById(vehicleInfo.getId()) == null) {
+        MotorInsurance motorInsurance = motorInsuranceMapper.selectById(vehicleInfo.getId());
+        if (motorInsurance == null) {
             throw new CustomException("该ID在保单信息中不存在，请先新增对应保单记录");
         }
         if (vehicleInfoMapper.selectById(vehicleInfo.getId()) != null) {
             throw new CustomException("该ID的车辆信息已存在");
         }
+        vehicleInfo.setTypeRisk(motorInsurance.getTypeRisk());
         vehicleInfoMapper.insert(vehicleInfo);
     }
 

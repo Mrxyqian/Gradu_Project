@@ -34,11 +34,11 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, List
 
 if __package__:
-    from .TrainConfig import Config, DEFAULT_OUTPUT_DIR
-    from .TrainModel import run_training
+    from .ExperimentTrainConfig import Config, DEFAULT_OUTPUT_DIR
+    from .ExperimentTrainModel import run_training
 else:
-    from TrainConfig import Config, DEFAULT_OUTPUT_DIR
-    from TrainModel import run_training
+    from ExperimentTrainConfig import Config, DEFAULT_OUTPUT_DIR
+    from ExperimentTrainModel import run_training
 
 
 DEFAULT_BACKBONES = [
@@ -391,7 +391,7 @@ def main() -> None:
     meta = {
         "createdAt": now_text(),
         "baseDir": str(base_dir.resolve()),
-        "datasetPath": args.csv_path or str(Config().path.csv_path),
+        "csvPath": args.csv_path or str(Config().path.csv_path),
         "fixedSettings": {
             "numEpochs": args.num_epochs,
             "batchSize": args.batch_size,

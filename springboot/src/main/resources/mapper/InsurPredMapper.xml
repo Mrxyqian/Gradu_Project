@@ -5,23 +5,22 @@
 <mapper namespace="com.example.mapper.InsurPredMapper">
 
     <select id="selectAll" resultType="com.example.entity.InsurPred">
-        select * from insur_pred
+        select
+            pred_id as predId,
+            ID as id,
+            claim_probability as claimProbability,
+            claim_flag as claimFlag,
+            risk_level as riskLevel,
+            threshold_used as thresholdUsed,
+            model_version as modelVersion,
+            prediction_time as predictionTime
+        from insur_pred
         <where>
             <if test="predId != null">and pred_id = #{predId}</if>
             <if test="id != null">and ID = #{id}</if>
             <if test="riskLevel != null and riskLevel != ''">and risk_level = #{riskLevel}</if>
         </where>
         order by pred_id desc
-    </select>
-
-    <select id="countByBusinessIds" resultType="map">
-        select ID as id, count(*) as count
-        from insur_pred
-        where ID in
-        <foreach collection="ids" item="id" open="(" separator="," close=")">
-            #{id}
-        </foreach>
-        group by ID
     </select>
 
 </mapper>

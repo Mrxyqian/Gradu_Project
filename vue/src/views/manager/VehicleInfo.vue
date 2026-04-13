@@ -70,7 +70,7 @@
               <el-input v-model="data.form.id" :disabled="data.formMode === 'edit'" autocomplete="off" />
             </el-form-item>
           </el-col>
-          <el-col :span="12">
+          <el-col v-if="data.formMode === 'edit'" :span="12">
             <el-form-item label="车辆类型" prop="typeRisk">
               <el-select v-model="data.form.typeRisk" style="width: 100%">
                 <el-option label="摩托车" :value="1"></el-option>
@@ -169,7 +169,6 @@ const data = reactive({
 
 const rules = reactive({
   id: [{ required: true, message: '请输入ID', trigger: 'blur' }],
-  typeRisk: [{ required: true, message: '请选择车辆类型', trigger: 'change' }],
   yearMatriculation: [{ required: true, message: '请输入注册年份', trigger: 'blur' }],
   power: [{ required: true, message: '请输入车辆功率', trigger: 'blur' }],
   cylinderCapacity: [{ required: true, message: '请输入发动机排量', trigger: 'blur' }],

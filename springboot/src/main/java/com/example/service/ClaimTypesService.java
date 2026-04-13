@@ -2,6 +2,7 @@ package com.example.service;
 
 import com.example.common.SessionUserUtil;
 import com.example.entity.ClaimTypes;
+import com.example.entity.MotorInsurance;
 import com.example.exception.CustomException;
 import com.example.mapper.ClaimTypesMapper;
 import com.example.mapper.MotorInsuranceMapper;
@@ -27,12 +28,15 @@ public class ClaimTypesService {
         if (claimTypes.getId() == null) {
             throw new CustomException("ID不能为空");
         }
-        if (motorInsuranceMapper.selectById(claimTypes.getId()) == null) {
+        MotorInsurance motorInsurance = motorInsuranceMapper.selectById(claimTypes.getId());
+        if (motorInsurance == null) {
             throw new CustomException("该ID在保单信息中不存在，请先新增对应保单记录");
         }
         if (claimTypesMapper.selectById(claimTypes.getId()) != null) {
             throw new CustomException("该ID的理赔记录已存在");
         }
+        claimTypes.setTypeRisk(motorInsurance.getTypeRisk());
+        claimTypes.setArea(motorInsurance.getArea());
         claimTypesMapper.insert(claimTypes);
     }
 

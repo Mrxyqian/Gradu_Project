@@ -11,14 +11,10 @@ public interface MotorInsuranceMapper {
 
     @Insert("INSERT INTO motor_insurance (ID, Date_start_contract, Date_last_renewal, Date_next_renewal, " +
             "Date_birth, Date_driving_licence, Distribution_channel, Seniority, Policies_in_force, " +
-            "Max_policies, Max_products, Lapse, Date_lapse, Payment, Premium, Cost_claims_year, " +
-            "N_claims_year, N_claims_history, R_Claims_history, Type_risk, Area, Second_driver, " +
-            "Year_matriculation, Power, Cylinder_capacity, Value_vehicle, N_doors, Type_fuel, Length, Weight) " +
+            "Max_policies, Max_products, Lapse, Date_lapse, Payment, Premium, Type_risk, Area, Second_driver) " +
             "VALUES (#{id}, #{dateStartContract}, #{dateLastRenewal}, #{dateNextRenewal}, " +
             "#{dateBirth}, #{dateDrivingLicence}, #{distributionChannel}, #{seniority}, #{policiesInForce}, " +
-            "#{maxPolicies}, #{maxProducts}, #{lapse}, #{dateLapse}, #{payment}, #{premium}, #{costClaimsYear}, " +
-            "#{nClaimsYear}, #{nClaimsHistory}, #{rClaimsHistory}, #{typeRisk}, #{area}, #{secondDriver}, " +
-            "#{yearMatriculation}, #{power}, #{cylinderCapacity}, #{valueVehicle}, #{nDoors}, #{typeFuel}, #{length}, #{weight})")
+            "#{maxPolicies}, #{maxProducts}, #{lapse}, #{dateLapse}, #{payment}, #{premium}, #{typeRisk}, #{area}, #{secondDriver})")
     void insert(MotorInsurance motorInsurance);
 
     @Delete("DELETE FROM motor_insurance WHERE ID = #{id}")
@@ -28,11 +24,8 @@ public interface MotorInsuranceMapper {
             "Date_next_renewal = #{dateNextRenewal}, Date_birth = #{dateBirth}, Date_driving_licence = #{dateDrivingLicence}, " +
             "Distribution_channel = #{distributionChannel}, Seniority = #{seniority}, Policies_in_force = #{policiesInForce}, " +
             "Max_policies = #{maxPolicies}, Max_products = #{maxProducts}, Lapse = #{lapse}, Date_lapse = #{dateLapse}, " +
-            "Payment = #{payment}, Premium = #{premium}, Cost_claims_year = #{costClaimsYear}, N_claims_year = #{nClaimsYear}, " +
-            "N_claims_history = #{nClaimsHistory}, R_Claims_history = #{rClaimsHistory}, Type_risk = #{typeRisk}, " +
-            "Area = #{area}, Second_driver = #{secondDriver}, Year_matriculation = #{yearMatriculation}, Power = #{power}, " +
-            "Cylinder_capacity = #{cylinderCapacity}, Value_vehicle = #{valueVehicle}, N_doors = #{nDoors}, Type_fuel = #{typeFuel}, " +
-            "Length = #{length}, Weight = #{weight} WHERE ID = #{id}")
+            "Payment = #{payment}, Premium = #{premium}, Type_risk = #{typeRisk}, " +
+            "Area = #{area}, Second_driver = #{secondDriver} WHERE ID = #{id}")
     void updateById(MotorInsurance motorInsurance);
 
     @Select("SELECT * FROM motor_insurance WHERE ID = #{id}")
@@ -42,34 +35,40 @@ public interface MotorInsuranceMapper {
 
     List<MotorInsurance> selectByIds(List<Integer> ids);
 
-    @Select("SELECT Type_risk as typeRisk, COUNT(*) as count, SUM(Premium) as totalPremium, " +
-            "SUM(Cost_claims_year) as totalClaimsCost FROM motor_insurance GROUP BY Type_risk")
+    @Select("SELECT Type_risk as typeRisk, COUNT(*) as count, SUM(Cost_claims_year) as totalClaimsCost, " +
+            "SUM(N_claims_year) as totalClaimsCount FROM claim_record GROUP BY Type_risk")
     List<Map<String, Object>> statisticsByRiskType();
 
-    @Select("SELECT Area as area, COUNT(*) as count, SUM(Premium) as totalPremium, " +
-            "SUM(Cost_claims_year) as totalClaimsCost FROM motor_insurance GROUP BY Area")
+    @Select("SELECT Area as area, COUNT(*) as count, SUM(Cost_claims_year) as totalClaimsCost, " +
+            "SUM(N_claims_year) as totalClaimsCount FROM claim_record GROUP BY Area")
     List<Map<String, Object>> statisticsByArea();
 
     @Select("SELECT Payment as payment, COUNT(*) as count, SUM(Premium) as totalPremium FROM motor_insurance GROUP BY Payment")
     List<Map<String, Object>> statisticsByPayment();
 
     @Select("SELECT " +
-            "COALESCE(SUM(Premium), 0) as totalPremium, " +
+            "stats.totalPremium as totalPremium, " +
             "CASE " +
-            "WHEN COALESCE(SUM(Premium), 0) = 0 THEN 0 " +
-            "ELSE (SUM(Premium) - COALESCE(SUM(Cost_claims_year), 0)) / SUM(Premium) " +
+            "WHEN stats.totalPremium = 0 THEN 0 " +
+            "ELSE (stats.totalPremium - stats.totalClaimsCost) / stats.totalPremium " +
             "END as premiumProfitRate, " +
-            "SUM(CASE WHEN RIGHT(TRIM(Date_start_contract), 4) = '2018' THEN 1 ELSE 0 END) as policyCount2018, " +
-            "COALESCE(AVG(COALESCE(N_claims_history, 0)), 0) as avgHistoryClaimRate " +
-            "FROM motor_insurance")
+            "stats.policyCount2018 as policyCount2018, " +
+            "stats.avgHistoryClaimRate as avgHistoryClaimRate " +
+            "FROM (" +
+            "SELECT " +
+            "COALESCE((SELECT SUM(Premium) FROM motor_insurance), 0) as totalPremium, " +
+            "COALESCE((SELECT SUM(Cost_claims_year) FROM claim_record), 0) as totalClaimsCost, " +
+            "COALESCE((SELECT SUM(CASE WHEN RIGHT(TRIM(Date_start_contract), 4) = '2018' THEN 1 ELSE 0 END) FROM motor_insurance), 0) as policyCount2018, " +
+            "COALESCE((SELECT AVG(COALESCE(N_claims_history, 0)) FROM claim_record), 0) as avgHistoryClaimRate" +
+            ") stats")
     Map<String, Object> overallStatistics();
 
     @Select("SELECT Type_fuel as typeFuel, COUNT(*) as count, AVG(Power) as avgPower, " +
-            "AVG(Cylinder_capacity) as avgCylinderCapacity FROM motor_insurance GROUP BY Type_fuel")
+            "AVG(Cylinder_capacity) as avgCylinderCapacity FROM vehicle_info GROUP BY Type_fuel")
     List<Map<String, Object>> statisticsByFuelType();
 
     @Select("SELECT Year_matriculation as yearMatriculation, COUNT(*) as count, " +
-            "AVG(Value_vehicle) as avgVehicleValue FROM motor_insurance GROUP BY Year_matriculation ORDER BY Year_matriculation")
+            "AVG(Value_vehicle) as avgVehicleValue FROM vehicle_info GROUP BY Year_matriculation ORDER BY Year_matriculation")
     List<Map<String, Object>> statisticsByMatriculationYear();
 
     @Select("SELECT Distribution_channel as distributionChannel, COUNT(*) as count, " +

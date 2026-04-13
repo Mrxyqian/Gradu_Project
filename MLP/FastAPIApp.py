@@ -1,17 +1,5 @@
-"""
-FastAPIApp.py
-车险理赔预测 —— FastAPI 接口入口
+﻿from __future__ import annotations
 
-运行示例：
-    uvicorn FastAPIApp:app --host 0.0.0.0 --port 8000 --reload
-
-若从项目根目录启动：
-    uvicorn MLP.FastAPIApp:app --host 0.0.0.0 --port 8000 --reload
-"""
-
-from __future__ import annotations
-
-from collections import Counter
 from typing import Any, Dict, Literal, Optional
 
 from fastapi import FastAPI, HTTPException
@@ -27,12 +15,9 @@ else:
 
 
 app = FastAPI(
-    title="车险理赔预测 FastAPI 服务",
-    version="1.1.0",
-    description=(
-        "负责加载已训练好的 MLP 分类模型，"
-        "对业务系统传入的 motor_insurance 保单记录执行单条或批量在线推理。"
-    ),
+    title="Motor Insurance Claim Prediction FastAPI",
+    version="2.0.0",
+    description="MLP classification service for model training management and manual prediction.",
 )
 
 service = InsuranceInferenceService()
@@ -43,7 +28,6 @@ class PolicyRecordInput(BaseModel):
         extra="ignore",
         json_schema_extra={
             "example": {
-                "id": 100001,
                 "dateStartContract": "2019-01-01",
                 "dateLastRenewal": "2019-12-01",
                 "dateNextRenewal": "2020-12-01",
@@ -71,71 +55,53 @@ class PolicyRecordInput(BaseModel):
                 "length": 4.6,
                 "weight": 1450,
             }
-        }
+        },
     )
 
-    id: Optional[int] = Field(None, description="保单 ID，仅用于结果回传")
-    dateStartContract: Optional[str] = Field(None, description="合同开始日期，推荐 YYYY-MM-DD")
-    dateLastRenewal: Optional[str] = Field(None, description="最后续保日期，推荐 YYYY-MM-DD")
-    dateNextRenewal: Optional[str] = Field(None, description="下次续保日期，推荐 YYYY-MM-DD")
-    distributionChannel: Optional[int] = Field(None, description="分销渠道：0 代理人，1 保险经纪")
-    dateBirth: Optional[str] = Field(None, description="被保险人出生日期，推荐 YYYY-MM-DD")
-    dateDrivingLicence: Optional[str] = Field(None, description="驾照签发日期，推荐 YYYY-MM-DD")
-    seniority: Optional[int] = Field(None, description="与保险机构关联总年数")
-    policiesInForce: Optional[int] = Field(None, description="当前有效保单数")
-    maxPolicies: Optional[int] = Field(None, description="历史最高保单数")
-    maxProducts: Optional[int] = Field(None, description="历史最高产品数")
-    lapse: Optional[int] = Field(None, description="失效保单数")
-    dateLapse: Optional[str] = Field(None, description="合同终止日期，推理时忽略")
-    payment: Optional[int] = Field(None, description="缴费方式：0 年缴，1 半年缴")
-    premium: Optional[float] = Field(None, description="净保费")
-    costClaimsYear: Optional[float] = Field(None, description="当年索赔成本，推理时忽略")
-    nClaimsYear: Optional[int] = Field(None, description="当年索赔次数，推理时忽略")
-    nClaimsHistory: Optional[int] = Field(None, description="历史索赔次数")
-    rClaimsHistory: Optional[float] = Field(None, description="历史索赔频率比")
-    typeRisk: Optional[int] = Field(None, description="风险类型：1 摩托车，2 货车，3 乘用车，4 农用车")
-    area: Optional[int] = Field(None, description="区域：0 农村，1 城市")
-    secondDriver: Optional[int] = Field(None, description="是否有第二驾驶员：0 否，1 是")
-    yearMatriculation: Optional[int] = Field(None, description="车辆注册年份")
-    power: Optional[int] = Field(None, description="车辆马力")
-    cylinderCapacity: Optional[int] = Field(None, description="车辆排量")
-    valueVehicle: Optional[float] = Field(None, description="车辆价值")
-    nDoors: Optional[int] = Field(None, description="车门数")
-    typeFuel: Optional[str] = Field(None, description="燃料类型：P 汽油，D 柴油")
-    length: Optional[float] = Field(None, description="车辆长度")
-    weight: Optional[int] = Field(None, description="车辆重量")
+    dateStartContract: Optional[str] = Field(None)
+    dateLastRenewal: Optional[str] = Field(None)
+    dateNextRenewal: Optional[str] = Field(None)
+    distributionChannel: Optional[int] = Field(None)
+    dateBirth: Optional[str] = Field(None)
+    dateDrivingLicence: Optional[str] = Field(None)
+    seniority: Optional[int] = Field(None)
+    policiesInForce: Optional[int] = Field(None)
+    maxPolicies: Optional[int] = Field(None)
+    maxProducts: Optional[int] = Field(None)
+    lapse: Optional[int] = Field(None)
+    payment: Optional[int] = Field(None)
+    premium: Optional[float] = Field(None)
+    nClaimsHistory: Optional[int] = Field(None)
+    rClaimsHistory: Optional[float] = Field(None)
+    typeRisk: Optional[int] = Field(None)
+    area: Optional[int] = Field(None)
+    secondDriver: Optional[int] = Field(None)
+    yearMatriculation: Optional[int] = Field(None)
+    power: Optional[int] = Field(None)
+    cylinderCapacity: Optional[int] = Field(None)
+    valueVehicle: Optional[float] = Field(None)
+    nDoors: Optional[int] = Field(None)
+    typeFuel: Optional[str] = Field(None)
+    length: Optional[float] = Field(None)
+    weight: Optional[int] = Field(None)
 
     @model_validator(mode="before")
     def convert_raw_dataset_keys(cls, values: Dict[str, Any]) -> Dict[str, Any]:
         if not isinstance(values, dict):
             return values
-
-        normalized = {}
+        normalized: Dict[str, Any] = {}
         for key, value in values.items():
-            camel_key = RAW_TO_CAMEL.get(key, key)
-            if camel_key == "policyId":
-                camel_key = "id"
-            normalized[camel_key] = value
+            normalized[RAW_TO_CAMEL.get(key, key)] = value
         return normalized
 
+
 class SinglePredictionRequest(BaseModel):
-    modelVersion: Optional[str] = Field(None, description="指定模型权重版本，不传则默认使用最新已保存版本")
+    modelVersion: Optional[str] = Field(None)
     record: PolicyRecordInput
-
-
-class BatchPredictionRequest(BaseModel):
-    modelVersion: Optional[str] = Field(None, description="指定模型权重版本，不传则默认使用最新已保存版本")
-    records: list[PolicyRecordInput] = Field(
-        ...,
-        description="待预测保单列表，单次最多 10 条",
-        min_length=1,
-        max_length=10,
-    )
 
 
 class PredictionResult(BaseModel):
     requestIndex: int
-    sourceId: Optional[int]
     claimProbability: float
     claimProbabilityPercent: float
     claimFlag: int
@@ -147,45 +113,42 @@ class PredictionResult(BaseModel):
 
 class SinglePredictionResponse(BaseModel):
     code: str = "200"
-    msg: str = "预测成功"
+    msg: str = "ok"
     data: PredictionResult
-
-
-class BatchPredictionResponse(BaseModel):
-    code: str = "200"
-    msg: str = "批量预测成功"
-    data: Dict[str, Any]
 
 
 class TrainingStartRequest(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
-    numEpochs: int = Field(100, ge=1, le=500, description="训练轮数")
-    batchSize: int = Field(128, ge=8, le=4096, description="批大小")
-    optimizer: Literal["adamw", "adam", "sgd"] = Field("adamw", description="优化器")
-    learningRate: float = Field(2e-4, gt=0, le=1, description="学习率")
-    earlyStopMetric: Literal["auc", "pr_auc", "loss", "clf_loss", "accuracy", "balanced_accuracy", "f1", "precision", "recall"] = Field(
-        "auc", description="监控指标"
-    )
-    thresholdMetric: Literal["f1", "precision", "recall"] = Field("f1", description="阈值搜索目标")
-    hiddenDims: list[int] = Field(
-        default_factory=lambda: [256, 512, 512, 256, 256],
-        min_length=1,
-        max_length=10,
-        description="主干隐藏层维度列表",
-    )
-    headHiddenDim: int = Field(64, ge=1, le=4096, description="分类头隐藏层维度")
+    numEpochs: int = Field(100, ge=1, le=500)
+    batchSize: int = Field(128, ge=8, le=4096)
+    optimizer: Literal["adamw", "adam", "sgd"] = Field("adamw")
+    learningRate: float = Field(2e-4, gt=0, le=1)
+    earlyStopMetric: Literal[
+        "auc",
+        "pr_auc",
+        "loss",
+        "clf_loss",
+        "accuracy",
+        "balanced_accuracy",
+        "f1",
+        "precision",
+        "recall",
+    ] = Field("auc")
+    thresholdMetric: Literal["f1", "precision", "recall"] = Field("f1")
+    hiddenDims: list[int] = Field(default_factory=lambda: [256, 512, 512, 256, 256], min_length=1, max_length=10)
+    headHiddenDim: int = Field(64, ge=1, le=4096)
 
     @model_validator(mode="after")
     def validate_hidden_dims(self) -> "TrainingStartRequest":
         if any(int(dim) <= 0 for dim in self.hiddenDims):
-            raise ValueError("hiddenDims 中的每一项都必须是正整数")
+            raise ValueError("hiddenDims must contain positive integers")
         return self
 
 
 class SaveWeightsRequest(BaseModel):
-    checkpointType: Literal["best", "last"] = Field("best", description="保存 best 或 last 权重")
-    fileName: str = Field(..., min_length=1, max_length=120, description="目标权重文件名")
+    checkpointType: Literal["best", "last"] = Field("best")
+    fileName: str = Field(..., min_length=1, max_length=120)
 
 
 @app.on_event("startup")
@@ -193,11 +156,10 @@ def startup_event() -> None:
     try:
         service.load()
     except Exception:
-        # 允许在推理产物缺失时先启动服务，以便管理员通过 Web 页面发起训练。
         pass
 
 
-@app.get("/", tags=["系统"])
+@app.get("/", tags=["system"])
 def index() -> Dict[str, Any]:
     return {
         "service": "motor-insurance-claim-prediction",
@@ -207,76 +169,47 @@ def index() -> Dict[str, Any]:
     }
 
 
-@app.get("/health", tags=["系统"])
+@app.get("/health", tags=["system"])
 def health() -> Dict[str, Any]:
     return service.health()
 
 
-@app.get("/contract", tags=["系统"])
+@app.get("/contract", tags=["system"])
 def contract() -> Dict[str, Any]:
     return service.get_contract()
 
 
-@app.post("/predict", response_model=SinglePredictionResponse, tags=["预测"])
+@app.post("/predict", response_model=SinglePredictionResponse, tags=["prediction"])
 def predict_single(request: SinglePredictionRequest) -> Dict[str, Any]:
     try:
-        result = service.predict_batch(
-            [request.record.model_dump(exclude_none=True)],
+        result = service.predict_single(
+            request.record.model_dump(exclude_none=True),
             model_version=request.modelVersion,
-        )[0]
+        )
     except Exception as exc:
         raise HTTPException(status_code=503, detail=str(exc))
 
     return {
         "code": "200",
-        "msg": "预测成功",
+        "msg": "Prediction completed",
         "data": result,
     }
 
 
-@app.post("/predict/batch", response_model=BatchPredictionResponse, tags=["预测"])
-def predict_batch(request: BatchPredictionRequest) -> Dict[str, Any]:
-    try:
-        results = service.predict_batch([
-            record.model_dump(exclude_none=True) for record in request.records
-        ], model_version=request.modelVersion)
-    except Exception as exc:
-        raise HTTPException(status_code=503, detail=str(exc))
-
-    risk_counter = Counter(item["riskLevel"] for item in results)
-    summary = {
-        "total": len(results),
-        "riskLevelDistribution": dict(risk_counter),
-        "averageClaimProbability": round(
-            sum(item["claimProbability"] for item in results) / len(results), 6
-        ),
-    }
-
-    return {
-        "code": "200",
-        "msg": "批量预测成功",
-        "data": {
-            "summary": summary,
-            "results": results,
-        },
-    }
-
-
-@app.get("/models/versions", tags=["模型版本"])
+@app.get("/models/versions", tags=["model"])
 def list_model_versions() -> Dict[str, Any]:
     try:
         data = service.list_model_versions()
     except Exception as exc:
         raise HTTPException(status_code=503, detail=str(exc))
-
     return {
         "code": "200",
-        "msg": "查询模型版本成功",
+        "msg": "Model versions loaded",
         "data": data,
     }
 
 
-@app.post("/training/start", tags=["训练"])
+@app.post("/training/start", tags=["training"])
 def start_training(request: TrainingStartRequest) -> Dict[str, Any]:
     try:
         job = training_manager.start_training(request.model_dump())
@@ -286,37 +219,35 @@ def start_training(request: TrainingStartRequest) -> Dict[str, Any]:
         raise HTTPException(status_code=400, detail=str(exc))
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
-
     return {
         "code": "200",
-        "msg": "训练任务已启动",
+        "msg": "Training job started",
         "data": job,
     }
 
 
-@app.get("/training/jobs/latest", tags=["训练"])
+@app.get("/training/jobs/latest", tags=["training"])
 def latest_training_job() -> Dict[str, Any]:
     return {
         "code": "200",
-        "msg": "查询成功",
+        "msg": "ok",
         "data": training_manager.get_latest_job(),
     }
 
 
-@app.get("/training/jobs/{job_id}", tags=["训练"])
+@app.get("/training/jobs/{job_id}", tags=["training"])
 def get_training_job(job_id: str) -> Dict[str, Any]:
     job = training_manager.get_job(job_id)
     if job is None:
-        raise HTTPException(status_code=404, detail="未找到对应的训练任务")
-
+        raise HTTPException(status_code=404, detail="Training job not found")
     return {
         "code": "200",
-        "msg": "查询成功",
+        "msg": "ok",
         "data": job,
     }
 
 
-@app.post("/training/jobs/{job_id}/save-weights", tags=["训练"])
+@app.post("/training/jobs/{job_id}/save-weights", tags=["training"])
 def save_training_weights(job_id: str, request: SaveWeightsRequest) -> Dict[str, Any]:
     try:
         result = training_manager.save_weights(
@@ -328,15 +259,14 @@ def save_training_weights(job_id: str, request: SaveWeightsRequest) -> Dict[str,
         raise HTTPException(status_code=400, detail=str(exc))
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
-
     return {
         "code": "200",
-        "msg": "权重文件保存成功",
+        "msg": "Weights saved",
         "data": result,
     }
 
 
-@app.get("/training/jobs/{job_id}/figures/{figure_key}", tags=["训练"])
+@app.get("/training/jobs/{job_id}/figures/{figure_key}", tags=["training"])
 def get_training_figure(job_id: str, figure_key: str) -> FileResponse:
     try:
         figure_path = training_manager.get_figure_file(job_id, figure_key)
@@ -355,7 +285,7 @@ def get_training_figure(job_id: str, figure_key: str) -> FileResponse:
     )
 
 
-@app.post("/training/jobs/{job_id}/discard", tags=["训练"])
+@app.post("/training/jobs/{job_id}/discard", tags=["training"])
 def discard_training_job(job_id: str) -> Dict[str, Any]:
     try:
         result = training_manager.discard_job(job_id)
@@ -363,10 +293,9 @@ def discard_training_job(job_id: str) -> Dict[str, Any]:
         raise HTTPException(status_code=400, detail=str(exc))
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
-
     return {
         "code": "200",
-        "msg": "训练任务成果已丢弃",
+        "msg": "Training job discarded",
         "data": result,
     }
 

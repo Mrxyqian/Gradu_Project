@@ -17,6 +17,11 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from torch.utils.data import DataLoader, Dataset, WeightedRandomSampler
 
+if __package__:
+    from .DatabaseUtils import load_training_dataframe
+else:
+    from DatabaseUtils import load_training_dataframe
+
 
 TARGET_COLUMN = "N_claims_year"
 AUXILIARY_LABEL_COLUMNS = ["Cost_claims_year"]
@@ -311,22 +316,27 @@ class InsuranceDataset(Dataset):
 
 
 def build_dataloaders(
-    csv_path: str,
+    table_name: str = "train_data",
     batch_size: int = 128,
     val_ratio: float = 0.15,
     test_ratio: float = 0.10,
     random_seed: int = 42,
     scaler_save_path: str = "scaler.pkl",
+    reference_save_path: str = "preprocess_reference.pkl",
     num_workers: int = 2,
     balanced_sampling: bool = False,
     sampler_alpha: float = 0.75,
 ) -> tuple[DataLoader, DataLoader, DataLoader, int]:
-    dataset_path = Path(csv_path)
     scaler_path = Path(scaler_save_path)
+    reference_path = Path(reference_save_path)
     scaler_path.parent.mkdir(parents=True, exist_ok=True)
+    reference_path.parent.mkdir(parents=True, exist_ok=True)
 
-    print(f"[1/5] Loading dataset: {dataset_path}")
-    df_raw = pd.read_csv(dataset_path)
+    print(f"[1/5] Loading training table: {table_name}")
+    df_raw = load_training_dataframe(table_name)
+
+    with open(reference_path, "wb") as file:
+        pickle.dump(build_inference_reference(df_raw), file)
 
     print("[2/5] Data cleaning and feature engineering")
     feature_df, labels = clean_and_engineer(df_raw)

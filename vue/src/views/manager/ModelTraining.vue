@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div>
     <div class="card hero-card">
       <div>
@@ -12,6 +12,43 @@
 
     <el-row :gutter="18">
       <el-col :xs="24" :lg="11">
+        <div class="card section-card">
+          <div class="section-title">训练样本库</div>
+          <div class="dataset-summary">
+            <div class="summary-item">
+              <div class="summary-label">样本总数</div>
+              <div class="summary-value">{{ trainDataOverview.totalCount || 0 }}</div>
+            </div>
+            <div class="summary-item">
+              <div class="summary-label">不同ID数</div>
+              <div class="summary-value">{{ trainDataOverview.distinctIdCount || 0 }}</div>
+            </div>
+          </div>
+
+          <el-form label-position="top" class="train-form compact-form">
+            <el-form-item label="合同开始年份">
+              <el-select v-model="selectedImportYear" clearable placeholder="全部年份" :loading="overviewLoading">
+                <el-option v-for="year in availableYears" :key="year" :label="`${year}年`" :value="Number(year)" />
+              </el-select>
+            </el-form-item>
+            <div class="train-actions">
+              <el-button type="primary" :loading="importingTrainData" @click="handleImportTrainData">导入到 train_data</el-button>
+              <el-button @click="loadTrainDataOverview" :disabled="importingTrainData">刷新</el-button>
+            </div>
+          </el-form>
+
+          <el-descriptions v-if="lastImportResult" :column="1" border style="margin-top: 16px">
+            <el-descriptions-item label="筛选年份">{{ lastImportResult.contractYear || '全部年份' }}</el-descriptions-item>
+            <el-descriptions-item label="候选记录数">{{ lastImportResult.candidateCount }}</el-descriptions-item>
+            <el-descriptions-item label="处理记录数">{{ lastImportResult.processedCount }}</el-descriptions-item>
+            <el-descriptions-item label="新增 / 覆盖">{{ lastImportResult.insertedCount }} / {{ lastImportResult.updatedCount }}</el-descriptions-item>
+            <el-descriptions-item label="跳过记录数">{{ lastImportResult.skippedCount }}</el-descriptions-item>
+          </el-descriptions>
+          <div v-if="lastImportResult?.skippedIds?.length" class="skip-box">
+            {{ lastImportResult.skippedIds.join('、') }}
+          </div>
+        </div>
+
         <div class="card section-card">
           <div class="section-title">训练参数</div>
 
@@ -72,10 +109,7 @@
             <el-row :gutter="12">
               <el-col :span="12">
                 <el-form-item label="主干隐藏层">
-                  <el-input
-                    v-model="trainForm.hiddenDimsText"
-                    placeholder="例如 256,512,512,256,256"
-                  />
+                  <el-input v-model="trainForm.hiddenDimsText" placeholder="例如 256,512,512,256,256" />
                 </el-form-item>
               </el-col>
               <el-col :span="12">
@@ -90,11 +124,9 @@
                 {{ isRunning ? '训练进行中' : '开始训练' }}
               </el-button>
               <el-button :disabled="isRunning" @click="resetTrainForm">恢复默认配置</el-button>
-              <span class="form-tip">其余参数均使用系统默认值，调度器固定为 Cosine Warmup。</span>
             </div>
           </el-form>
         </div>
-
       </el-col>
 
       <el-col :xs="24" :lg="13">
@@ -112,7 +144,7 @@
 
           <el-alert
             v-if="currentJob?.status === 'completed'"
-            title="训练已经完成，结果页会自动展示完整指标与图表。"
+            title="训练已经完成，结果页将自动展示完整指标。"
             type="success"
             show-icon
             :closable="false"
@@ -137,19 +169,19 @@
             <el-descriptions-item label="当前学习率">{{ formatScientific(latestEpoch?.learningRate) }}</el-descriptions-item>
             <el-descriptions-item label="训练损失">{{ formatMetric(latestEpoch?.trainLoss) }}</el-descriptions-item>
             <el-descriptions-item label="验证损失">{{ formatMetric(latestEpoch?.valLoss) }}</el-descriptions-item>
-            <el-descriptions-item label="验证 AUC / PR-AUC">
-              {{ formatMetric(latestEpoch?.valAuc) }} / {{ formatMetric(latestEpoch?.valPrAuc) }}
+            <el-descriptions-item label="训练准确率 / 验证准确率">
+              {{ formatPercent(latestEpoch?.trainAccuracy) }} / {{ formatPercent(latestEpoch?.valAccuracy) }}
             </el-descriptions-item>
-            <el-descriptions-item label="验证 F1 / Recall">
-              {{ formatMetric(latestEpoch?.valF1) }} / {{ formatMetric(latestEpoch?.valRecall) }}
+            <el-descriptions-item label="验证 PR-AUC / F1">
+              {{ formatMetric(latestEpoch?.valPrAuc) }} / {{ formatMetric(latestEpoch?.valF1) }}
             </el-descriptions-item>
-            <el-descriptions-item label="验证 Precision / Accuracy">
-              {{ formatMetric(latestEpoch?.valPrecision) }} / {{ formatPercent(latestEpoch?.valAccuracy) }}
+            <el-descriptions-item label="验证 Precision / Recall">
+              {{ formatMetric(latestEpoch?.valPrecision) }} / {{ formatMetric(latestEpoch?.valRecall) }}
             </el-descriptions-item>
             <el-descriptions-item label="当前阈值">{{ formatMetric(latestEpoch?.bestThreshold) }}</el-descriptions-item>
           </el-descriptions>
 
-          <el-empty v-else description="暂无训练任务，管理员可在左侧直接发起训练。" />
+          <el-empty v-else description="暂无训练任务" />
         </div>
       </el-col>
     </el-row>
@@ -180,6 +212,18 @@ const currentJob = ref(null)
 const starting = ref(false)
 const trackedJobId = ref('')
 let pollTimer = null
+
+const trainDataOverview = ref({
+  totalCount: 0,
+  distinctIdCount: 0,
+  availableYears: [],
+})
+const selectedImportYear = ref(null)
+const importingTrainData = ref(false)
+const overviewLoading = ref(false)
+const lastImportResult = ref(null)
+
+const availableYears = computed(() => trainDataOverview.value.availableYears || [])
 
 const statusText = computed(() => {
   const map = {
@@ -223,15 +267,12 @@ const parseHiddenDims = (value) => {
     .map(item => item.trim())
     .filter(Boolean)
 
-  if (!tokens.length) {
-    return null
-  }
+  if (!tokens.length) return null
 
   const dims = tokens.map((item) => Number(item))
   if (dims.some(item => !Number.isInteger(item) || item <= 0)) {
     return null
   }
-
   return dims
 }
 
@@ -295,6 +336,42 @@ const startPolling = () => {
   }, 2500)
 }
 
+const loadTrainDataOverview = async () => {
+  try {
+    overviewLoading.value = true
+    const res = await request.get('/modelTraining/trainData/overview')
+    if (res.code === '200' && res.data) {
+      trainDataOverview.value = res.data
+    }
+  } catch (error) {
+    console.error(error)
+    ElMessage.error('加载 train_data 概览失败')
+  } finally {
+    overviewLoading.value = false
+  }
+}
+
+const handleImportTrainData = async () => {
+  try {
+    importingTrainData.value = true
+    const res = await request.post('/modelTraining/trainData/import', {
+      contractYear: selectedImportYear.value,
+    })
+    if (res.code === '200') {
+      lastImportResult.value = res.data
+      await loadTrainDataOverview()
+      ElMessage.success('train_data 导入完成')
+    } else {
+      ElMessage.error(res.msg || '导入失败')
+    }
+  } catch (error) {
+    console.error(error)
+    ElMessage.error('train_data 导入失败')
+  } finally {
+    importingTrainData.value = false
+  }
+}
+
 const handleStartTraining = async () => {
   const hiddenDims = parseHiddenDims(trainForm.hiddenDimsText)
   if (!hiddenDims) {
@@ -330,7 +407,7 @@ const handleStartTraining = async () => {
     }
   } catch (error) {
     console.error(error)
-    ElMessage.error('训练任务启动失败，请检查后端训练服务是否正常')
+    ElMessage.error('训练任务启动失败，请检查后端训练服务')
   } finally {
     starting.value = false
   }
@@ -362,6 +439,7 @@ watch(
 
 onMounted(async () => {
   await loadLatestJob()
+  await loadTrainDataOverview()
 })
 
 onUnmounted(() => {
@@ -377,9 +455,7 @@ onUnmounted(() => {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  background:
-    linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(14, 165, 233, 0.18)),
-    #fff;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(14, 165, 233, 0.18)), #fff;
 }
 
 .hero-title {
@@ -435,11 +511,6 @@ onUnmounted(() => {
   gap: 12px;
 }
 
-.form-tip {
-  color: #64748b;
-  font-size: 13px;
-}
-
 .status-row {
   margin: 14px 0 10px;
   display: flex;
@@ -461,110 +532,40 @@ onUnmounted(() => {
   font-size: 13px;
 }
 
-.summary-grid {
-  margin-top: 16px;
+.dataset-summary {
+  margin-top: 14px;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 14px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
 }
 
-.summary-card {
+.summary-item {
+  padding: 16px 18px;
   border-radius: 16px;
-  padding: 18px;
-  color: #fff;
-}
-
-.blue-card {
-  background: linear-gradient(135deg, #2563eb, #0ea5e9);
-}
-
-.green-card {
-  background: linear-gradient(135deg, #059669, #22c55e);
-}
-
-.orange-card {
-  background: linear-gradient(135deg, #f97316, #fb7185);
-}
-
-.rose-card {
-  background: linear-gradient(135deg, #db2777, #f43f5e);
+  background: #f8fbff;
+  border: 1px solid #dbeafe;
 }
 
 .summary-label {
   font-size: 13px;
-  opacity: 0.92;
+  color: #64748b;
 }
 
 .summary-value {
   margin-top: 10px;
   font-size: 28px;
   font-weight: 700;
-}
-
-.report-box {
-  margin: 0;
-  padding: 12px;
-  border-radius: 12px;
-  background: #0f172a;
-  color: #e2e8f0;
-  white-space: pre-wrap;
-  word-break: break-word;
-  line-height: 1.7;
-}
-
-.saved-list {
-  margin-top: 16px;
-  border-top: 1px dashed #dbe2ea;
-  padding-top: 14px;
-}
-
-.saved-title {
-  margin-bottom: 10px;
-  font-weight: 600;
   color: #0f172a;
 }
 
-.saved-item {
+.skip-box {
+  margin-top: 14px;
   padding: 12px 14px;
   border-radius: 12px;
   background: #f8fafc;
-  margin-bottom: 10px;
-}
-
-.saved-path,
-.saved-time {
-  margin-top: 4px;
-  color: #64748b;
-  font-size: 12px;
-  word-break: break-all;
-}
-
-.chart-grid {
-  margin-top: 2px;
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 18px;
-}
-
-.chart-card {
-  min-height: 350px;
-}
-
-.chart-title {
-  font-size: 17px;
-  font-weight: 700;
-  color: #1f2937;
-  margin-bottom: 10px;
-}
-
-.chart-body {
-  height: 280px;
-}
-
-@media (max-width: 1200px) {
-  .summary-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
+  color: #475569;
+  line-height: 1.7;
+  word-break: break-word;
 }
 
 @media (max-width: 900px) {
@@ -578,13 +579,7 @@ onUnmounted(() => {
     min-width: 0;
   }
 
-  .chart-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 640px) {
-  .summary-grid {
+  .dataset-summary {
     grid-template-columns: 1fr;
   }
 }
