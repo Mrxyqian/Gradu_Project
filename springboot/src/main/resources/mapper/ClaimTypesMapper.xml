@@ -5,10 +5,19 @@
 <mapper namespace="com.example.mapper.ClaimTypesMapper">
 
     <select id="selectAll" resultType="com.example.entity.ClaimTypes">
-        select * from claim_types
+        select
+            ID as id,
+            Cost_claims_year as costClaimsYear,
+            N_claims_year as nClaimsYear,
+            N_claims_history as nClaimsHistory,
+            R_Claims_history as rClaimsHistory,
+            Type_risk as typeRisk,
+            Area as area
+        from claim_record
         <where>
             <if test="id != null">and ID = #{id}</if>
-            <if test="claimsType != null and claimsType != ''">and Claims_type like concat('%', #{claimsType}, '%')</if>
+            <if test="typeRisk != null">and Type_risk = #{typeRisk}</if>
+            <if test="area != null">and Area = #{area}</if>
         </where>
         order by ID desc
     </select>

@@ -1,7 +1,7 @@
 <template>
   <div>
     <div class="card" style="margin-bottom: 10px">
-      <el-input style="width: 200px; margin-right: 10px" v-model="data.id" placeholder="请输入ID查询" :prefix-icon="Search"/>
+      <el-input style="width: 200px; margin-right: 10px" v-model="data.id" placeholder="请输入ID查询" :prefix-icon="Search" />
       <el-select style="width: 200px; margin-right: 10px" v-model="data.typeRisk" placeholder="请选择车辆类型" clearable>
         <el-option label="摩托车" :value="1"></el-option>
         <el-option label="货车" :value="2"></el-option>
@@ -12,12 +12,15 @@
         <el-option label="汽油" value="P"></el-option>
         <el-option label="柴油" value="D"></el-option>
       </el-select>
-      <el-input style="width: 200px; margin-right: 10px" v-model.number="data.yearMatriculation" placeholder="请输入注册年份" clearable/>
+      <el-input style="width: 200px; margin-right: 10px" v-model.number="data.yearMatriculation" placeholder="请输入注册年份" clearable />
       <el-button type="primary" style="margin-left: 10px" @click="load">查询</el-button>
       <el-button type="info" @click="reset">重置</el-button>
     </div>
 
     <div class="card">
+      <div style="margin-bottom: 10px">
+        <el-button type="primary" @click="handleAdd">新增</el-button>
+      </div>
       <div style="overflow-x: auto;">
         <el-table :data="data.tableData" style="width: 100%">
           <el-table-column prop="id" label="ID" width="80" />
@@ -38,24 +41,117 @@
           </el-table-column>
           <el-table-column prop="length" label="车辆长度(米)" width="130" />
           <el-table-column prop="weight" label="车辆重量(千克)" width="140" />
+          <el-table-column label="操作" width="180" fixed="right">
+            <template #default="scope">
+              <el-button class="edit-action-btn" type="primary" plain size="small" @click="handleEdit(scope.row)">编辑</el-button>
+              <el-button v-if="canDelete" type="danger" plain size="small" @click="del(scope.row.id)">删除</el-button>
+            </template>
+          </el-table-column>
         </el-table>
       </div>
     </div>
 
     <div class="card" style="margin-top: 10px">
-      <el-pagination v-model:current-page="data.pageNum" v-model:page-size="data.pageSize"
-                     @current-change="handleCurrentChange"
-                     background layout="prev, pager, next" :total="data.total" />
+      <el-pagination
+        v-model:current-page="data.pageNum"
+        v-model:page-size="data.pageSize"
+        @current-change="handleCurrentChange"
+        background
+        layout="prev, pager, next"
+        :total="data.total"
+      />
     </div>
+
+    <el-dialog width="50%" v-model="data.formVisible" :title="data.formMode === 'edit' ? '车辆信息' : '新增车辆信息'" destroy-on-close>
+      <el-form :model="data.form" :rules="rules" ref="formRef" label-width="140px" label-position="right" style="padding-right: 40px">
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="ID" prop="id">
+              <el-input v-model="data.form.id" :disabled="data.formMode === 'edit'" autocomplete="off" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="车辆类型" prop="typeRisk">
+              <el-select v-model="data.form.typeRisk" style="width: 100%">
+                <el-option label="摩托车" :value="1"></el-option>
+                <el-option label="货车" :value="2"></el-option>
+                <el-option label="乘用车" :value="3"></el-option>
+                <el-option label="农用车" :value="4"></el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="注册年份" prop="yearMatriculation">
+              <el-input-number v-model="data.form.yearMatriculation" :min="0" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="车辆功率(HP)" prop="power">
+              <el-input-number v-model="data.form.power" :min="0" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="发动机排量(cc)" prop="cylinderCapacity">
+              <el-input-number v-model="data.form.cylinderCapacity" :min="0" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="车辆市场价值" prop="valueVehicle">
+              <el-input-number v-model="data.form.valueVehicle" :precision="2" :step="100" :min="0" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="车门数量" prop="nDoors">
+              <el-input-number v-model="data.form.nDoors" :min="0" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="能源类型" prop="typeFuel">
+              <el-select v-model="data.form.typeFuel" style="width: 100%">
+                <el-option label="汽油" value="P"></el-option>
+                <el-option label="柴油" value="D"></el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="车辆长度(米)" prop="length">
+              <el-input-number v-model="data.form.length" :precision="2" :step="0.1" :min="0" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="车辆重量(千克)" prop="weight">
+              <el-input-number v-model="data.form.weight" :min="0" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+      </el-form>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="data.formVisible = false">取消</el-button>
+          <el-button type="primary" @click="save">保存</el-button>
+        </span>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive } from "vue";
+import { reactive, ref } from 'vue'
 import { Search } from '@element-plus/icons-vue'
-import request from "@/utils/request";
+import { ElMessage, ElMessageBox } from 'element-plus'
+import request from '@/utils/request'
+import { getCurrentUser } from '@/utils/auth'
 
 const baseUrl = '/vehicleInfo'
+const canDelete = getCurrentUser().role === 'ADMIN'
 
 const data = reactive({
   id: '',
@@ -65,8 +161,24 @@ const data = reactive({
   tableData: [],
   total: 0,
   pageNum: 1,
-  pageSize: 10
+  pageSize: 10,
+  formVisible: false,
+  formMode: 'add',
+  form: {},
 })
+
+const rules = reactive({
+  id: [{ required: true, message: '请输入ID', trigger: 'blur' }],
+  typeRisk: [{ required: true, message: '请选择车辆类型', trigger: 'change' }],
+  yearMatriculation: [{ required: true, message: '请输入注册年份', trigger: 'blur' }],
+  power: [{ required: true, message: '请输入车辆功率', trigger: 'blur' }],
+  cylinderCapacity: [{ required: true, message: '请输入发动机排量', trigger: 'blur' }],
+  valueVehicle: [{ required: true, message: '请输入车辆市场价值', trigger: 'blur' }],
+  nDoors: [{ required: true, message: '请输入车门数量', trigger: 'blur' }],
+  typeFuel: [{ required: true, message: '请选择能源类型', trigger: 'change' }],
+})
+
+const formRef = ref()
 
 const getTypeRiskText = (type) => {
   const map = { 1: '摩托车', 2: '货车', 3: '乘用车', 4: '农用车' }
@@ -78,20 +190,20 @@ const load = () => {
     params: {
       pageNum: data.pageNum,
       pageSize: data.pageSize,
-      id: data.id,
+      id: data.id || null,
       typeRisk: data.typeRisk,
       typeFuel: data.typeFuel,
-      yearMatriculation: data.yearMatriculation
-    }
-  }).then(res => {
+      yearMatriculation: data.yearMatriculation,
+    },
+  }).then((res) => {
     data.tableData = res.data?.list || []
-    data.total = res.data.total || 0
+    data.total = res.data?.total || 0
   })
 }
 
 load()
 
-const handleCurrentChange = (pageNum) => {
+const handleCurrentChange = () => {
   load()
 }
 
@@ -100,6 +212,81 @@ const reset = () => {
   data.typeRisk = null
   data.typeFuel = ''
   data.yearMatriculation = null
+  data.pageNum = 1
   load()
 }
+
+const handleAdd = () => {
+  data.form = {
+    id: null,
+    typeRisk: null,
+    yearMatriculation: null,
+    power: null,
+    cylinderCapacity: null,
+    valueVehicle: null,
+    nDoors: null,
+    typeFuel: '',
+    length: null,
+    weight: null,
+  }
+  data.formMode = 'add'
+  data.formVisible = true
+}
+
+const handleEdit = (row) => {
+  data.form = JSON.parse(JSON.stringify(row))
+  data.formMode = 'edit'
+  data.formVisible = true
+}
+
+const save = () => {
+  formRef.value.validate((valid) => {
+    if (!valid) return
+    request.request({
+      url: data.formMode === 'edit' ? baseUrl + '/update' : baseUrl + '/add',
+      method: data.formMode === 'edit' ? 'PUT' : 'POST',
+      data: data.form,
+    }).then((res) => {
+      if (res.code === '200') {
+        load()
+        data.formVisible = false
+        ElMessage.success('保存成功')
+      } else {
+        ElMessage.error(res.msg || '保存失败')
+      }
+    })
+  })
+}
+
+const del = (id) => {
+  if (!canDelete) {
+    ElMessage.error('普通用户不能删除数据')
+    return
+  }
+  ElMessageBox.confirm('删除数据后无法恢复，您确认删除吗？', '删除确认', { type: 'warning' }).then(() => {
+    request.delete(baseUrl + '/delete/' + id).then((res) => {
+      if (res.code === '200') {
+        load()
+        ElMessage.success('删除成功')
+      } else {
+        ElMessage.error(res.msg || '删除失败')
+      }
+    })
+  }).catch(() => {})
+}
 </script>
+
+<style scoped>
+.edit-action-btn {
+  color: #1f5a4c;
+  border-color: rgba(47, 125, 107, 0.28);
+  background: rgba(228, 242, 236, 0.95);
+}
+
+.edit-action-btn:hover,
+.edit-action-btn:focus {
+  color: #173f35;
+  border-color: rgba(47, 125, 107, 0.42);
+  background: rgba(214, 234, 227, 0.98);
+}
+</style>

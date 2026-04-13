@@ -22,3 +22,6 @@ Thumbs.db
 # ========== Others ==========
 .vscode/
 *.swp
+training_jobs/
+saved_weights/
+runs/

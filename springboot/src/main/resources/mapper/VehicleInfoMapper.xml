@@ -8,7 +8,7 @@
         select ID, Type_risk as typeRisk, Year_matriculation as yearMatriculation, Power, 
                Cylinder_capacity as cylinderCapacity, Value_vehicle as valueVehicle, 
                N_doors as nDoors, Type_fuel as typeFuel, Length, Weight
-        from motor_insurance
+        from vehicle_info
         <where>
             <if test="id != null">and ID = #{id}</if>
             <if test="typeRisk != null">and Type_risk = #{typeRisk}</if>

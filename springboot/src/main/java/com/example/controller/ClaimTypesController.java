@@ -9,7 +9,6 @@ import org.springframework.web.bind.annotation.*;
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpSession;
-import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
@@ -57,33 +56,15 @@ public class ClaimTypesController {
         return Result.success(pageInfo);
     }
 
-    @GetMapping("/statisticsByClaimType")
-    public Result statisticsByClaimType() {
-        List<Map<String, Object>> statistics = claimTypesService.statisticsByClaimType();
+    @GetMapping("/statisticsByRiskType")
+    public Result statisticsByRiskType() {
+        List<Map<String, Object>> statistics = claimTypesService.statisticsByRiskType();
         return Result.success(statistics);
     }
 
-    @GetMapping("/overallClaimsStatistics")
-    public Result overallClaimsStatistics() {
-        Map<String, Object> statistics = claimTypesService.overallClaimsStatistics();
+    @GetMapping("/statisticsByArea")
+    public Result statisticsByArea() {
+        List<Map<String, Object>> statistics = claimTypesService.statisticsByArea();
         return Result.success(statistics);
-    }
-
-    @GetMapping("/claimsCostPercentage")
-    public Result claimsCostPercentage() {
-        List<Map<String, Object>> statistics = claimTypesService.claimsCostPercentage();
-        return Result.success(statistics);
-    }
-
-    @GetMapping("/selectByClaimsType")
-    public Result selectByClaimsType(@RequestParam String claimsType) {
-        List<ClaimTypes> claimTypesList = claimTypesService.selectByClaimsType(claimsType);
-        return Result.success(claimTypesList);
-    }
-
-    @GetMapping("/selectByMinCost")
-    public Result selectByMinCost(@RequestParam BigDecimal minCost) {
-        List<ClaimTypes> claimTypesList = claimTypesService.selectByMinCost(minCost);
-        return Result.success(claimTypesList);
     }
 }

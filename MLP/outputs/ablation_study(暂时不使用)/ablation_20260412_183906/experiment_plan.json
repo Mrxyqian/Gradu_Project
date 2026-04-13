@@ -1,0 +1,203 @@
+{
+  "meta": {
+    "createdAt": "2026-04-12 18:39:06",
+    "baseDir": "D:\\Gradua_pro_code-spring\\Vehic_Insur_Claim\\MLP\\outputs\\ablation_study\\ablation_20260412_183906",
+    "datasetPath": "D:\\Gradua_pro_code-spring\\Vehic_Insur_Claim\\MLP\\DataSet\\Motor vehicle insurance data.csv",
+    "fixedSettings": {
+      "numEpochs": 80,
+      "batchSize": 256,
+      "randomSeed": 42,
+      "valRatio": 0.15,
+      "testRatio": 0.1,
+      "numWorkers": 0,
+      "headHiddenDim": 64,
+      "samplerAlpha": 0.75,
+      "earlyStopMetric": "auc",
+      "thresholdMetric": "f1",
+      "thresholdBeta": 1.0,
+      "useAmp": true
+    },
+    "experimentFactors": {
+      "backbones": [
+        {
+          "name": "backbone_A_shallow",
+          "hidden_dims": [
+            128,
+            256,
+            128
+          ],
+          "description": "浅层对称结构，参数量较小，训练速度较快"
+        },
+        {
+          "name": "backbone_B_medium",
+          "hidden_dims": [
+            256,
+            256,
+            256
+          ],
+          "description": "中等深度结构，层间维度统一，便于观察稳定性"
+        },
+        {
+          "name": "backbone_C_deep",
+          "hidden_dims": [
+            256,
+            512,
+            512,
+            256,
+            256
+          ],
+          "description": "较深主干结构，与当前项目默认主干保持一致"
+        }
+      ],
+      "defaultBackbone": {
+        "name": "backbone_C_deep",
+        "hidden_dims": [
+          256,
+          512,
+          512,
+          256,
+          256
+        ],
+        "description": "较深主干结构，与当前项目默认主干保持一致"
+      },
+      "defaultBalancedSampling": true,
+      "defaultOptimizer": "adamw",
+      "balancedSampling": [
+        false,
+        true
+      ],
+      "optimizers": [
+        "adamw",
+        "adam",
+        "sgd"
+      ]
+    },
+    "totalExperiments": 8
+  },
+  "plan": [
+    {
+      "experimentIndex": 1,
+      "experimentGroup": "network_structure",
+      "backboneName": "backbone_A_shallow",
+      "hiddenDims": [
+        128,
+        256,
+        128
+      ],
+      "backboneDescription": "浅层对称结构，参数量较小，训练速度较快",
+      "balancedSampling": true,
+      "optimizer": "adamw",
+      "experimentName": "01_structure_backbone_A_shallow"
+    },
+    {
+      "experimentIndex": 2,
+      "experimentGroup": "network_structure",
+      "backboneName": "backbone_B_medium",
+      "hiddenDims": [
+        256,
+        256,
+        256
+      ],
+      "backboneDescription": "中等深度结构，层间维度统一，便于观察稳定性",
+      "balancedSampling": true,
+      "optimizer": "adamw",
+      "experimentName": "02_structure_backbone_B_medium"
+    },
+    {
+      "experimentIndex": 3,
+      "experimentGroup": "network_structure",
+      "backboneName": "backbone_C_deep",
+      "hiddenDims": [
+        256,
+        512,
+        512,
+        256,
+        256
+      ],
+      "backboneDescription": "较深主干结构，与当前项目默认主干保持一致",
+      "balancedSampling": true,
+      "optimizer": "adamw",
+      "experimentName": "03_structure_backbone_C_deep"
+    },
+    {
+      "experimentIndex": 4,
+      "experimentGroup": "balanced_sampling",
+      "backboneName": "backbone_C_deep",
+      "hiddenDims": [
+        256,
+        512,
+        512,
+        256,
+        256
+      ],
+      "backboneDescription": "较深主干结构，与当前项目默认主干保持一致",
+      "balancedSampling": false,
+      "optimizer": "adamw",
+      "experimentName": "04_sampling_plain"
+    },
+    {
+      "experimentIndex": 5,
+      "experimentGroup": "balanced_sampling",
+      "backboneName": "backbone_C_deep",
+      "hiddenDims": [
+        256,
+        512,
+        512,
+        256,
+        256
+      ],
+      "backboneDescription": "较深主干结构，与当前项目默认主干保持一致",
+      "balancedSampling": true,
+      "optimizer": "adamw",
+      "experimentName": "05_sampling_balanced"
+    },
+    {
+      "experimentIndex": 6,
+      "experimentGroup": "optimizer",
+      "backboneName": "backbone_C_deep",
+      "hiddenDims": [
+        256,
+        512,
+        512,
+        256,
+        256
+      ],
+      "backboneDescription": "较深主干结构，与当前项目默认主干保持一致",
+      "balancedSampling": true,
+      "optimizer": "adamw",
+      "experimentName": "06_optimizer_adamw"
+    },
+    {
+      "experimentIndex": 7,
+      "experimentGroup": "optimizer",
+      "backboneName": "backbone_C_deep",
+      "hiddenDims": [
+        256,
+        512,
+        512,
+        256,
+        256
+      ],
+      "backboneDescription": "较深主干结构，与当前项目默认主干保持一致",
+      "balancedSampling": true,
+      "optimizer": "adam",
+      "experimentName": "07_optimizer_adam"
+    },
+    {
+      "experimentIndex": 8,
+      "experimentGroup": "optimizer",
+      "backboneName": "backbone_C_deep",
+      "hiddenDims": [
+        256,
+        512,
+        512,
+        256,
+        256
+      ],
+      "backboneDescription": "较深主干结构，与当前项目默认主干保持一致",
+      "balancedSampling": true,
+      "optimizer": "sgd",
+      "experimentName": "08_optimizer_sgd"
+    }
+  ]
+}

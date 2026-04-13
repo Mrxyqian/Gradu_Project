@@ -178,7 +178,7 @@ const allShortcutOptions = computed(() => {
       iconColor: '#4b75ab',
     },
     {
-      title: '索赔类型',
+      title: '理赔记录',
       path: '/claimTypes',
       icon: DataAnalysis,
       iconBackground: 'rgba(242, 179, 109, 0.18)',

@@ -46,10 +46,6 @@
             </template>
           </el-table-column>
           <el-table-column prop="premium" label="净保费" width="100" />
-          <el-table-column prop="costClaimsYear" label="索赔成本" width="100" />
-          <el-table-column prop="nClaimsYear" label="本年度索赔次数" width="140" />
-          <el-table-column prop="nClaimsHistory" label="历史索赔次数" width="130" />
-          <el-table-column prop="rClaimsHistory" label="索赔频率比" width="120" />
           <el-table-column prop="typeRisk" label="风险类型" width="100">
             <template #default="scope">
               {{ getRiskTypeText(scope.row.typeRisk) }}
@@ -177,30 +173,6 @@
           <el-col :span="12">
             <el-form-item label="净保费" prop="premium">
               <el-input-number v-model="data.form.premium" :precision="2" :step="100" style="width: 100%" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="索赔成本" prop="costClaimsYear">
-              <el-input-number v-model="data.form.costClaimsYear" :precision="2" :step="100" style="width: 100%" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="本年度索赔次数" prop="nClaimsYear">
-              <el-input-number v-model="data.form.nClaimsYear" :min="0" style="width: 100%" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="历史索赔次数" prop="nClaimsHistory">
-              <el-input-number v-model="data.form.nClaimsHistory" :min="0" style="width: 100%" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="索赔频率比" prop="rClaimsHistory">
-              <el-input-number v-model="data.form.rClaimsHistory" :precision="2" :min="0" style="width: 100%" />
             </el-form-item>
           </el-col>
           <el-col :span="12">

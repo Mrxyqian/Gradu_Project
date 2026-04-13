@@ -1,12 +1,20 @@
 package com.example.entity;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.math.BigDecimal;
 
 public class ClaimTypes {
     private Integer id;
     private BigDecimal costClaimsYear;
-    private BigDecimal costClaimsByType;
-    private String claimsType;
+    @JsonProperty("nClaimsYear")
+    private Integer nClaimsYear;
+    @JsonProperty("nClaimsHistory")
+    private Integer nClaimsHistory;
+    @JsonProperty("rClaimsHistory")
+    private BigDecimal rClaimsHistory;
+    private Integer typeRisk;
+    private Integer area;
 
     public Integer getId() {
         return id;
@@ -24,19 +32,43 @@ public class ClaimTypes {
         this.costClaimsYear = costClaimsYear;
     }
 
-    public BigDecimal getCostClaimsByType() {
-        return costClaimsByType;
+    public Integer getNClaimsYear() {
+        return nClaimsYear;
     }
 
-    public void setCostClaimsByType(BigDecimal costClaimsByType) {
-        this.costClaimsByType = costClaimsByType;
+    public void setNClaimsYear(Integer nClaimsYear) {
+        this.nClaimsYear = nClaimsYear;
     }
 
-    public String getClaimsType() {
-        return claimsType;
+    public Integer getNClaimsHistory() {
+        return nClaimsHistory;
     }
 
-    public void setClaimsType(String claimsType) {
-        this.claimsType = claimsType;
+    public void setNClaimsHistory(Integer nClaimsHistory) {
+        this.nClaimsHistory = nClaimsHistory;
+    }
+
+    public BigDecimal getRClaimsHistory() {
+        return rClaimsHistory;
+    }
+
+    public void setRClaimsHistory(BigDecimal rClaimsHistory) {
+        this.rClaimsHistory = rClaimsHistory;
+    }
+
+    public Integer getTypeRisk() {
+        return typeRisk;
+    }
+
+    public void setTypeRisk(Integer typeRisk) {
+        this.typeRisk = typeRisk;
+    }
+
+    public Integer getArea() {
+        return area;
+    }
+
+    public void setArea(Integer area) {
+        this.area = area;
     }
 }

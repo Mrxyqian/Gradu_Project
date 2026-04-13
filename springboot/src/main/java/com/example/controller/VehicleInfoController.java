@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
+import javax.servlet.http.HttpSession;
 import java.util.List;
 import java.util.Map;
 
@@ -21,6 +22,24 @@ public class VehicleInfoController {
     @PostConstruct
     public void init() {
         System.out.println("✅ VehicleInfoController 初始化成功");
+    }
+
+    @PostMapping("/add")
+    public Result add(@RequestBody VehicleInfo vehicleInfo) {
+        vehicleInfoService.add(vehicleInfo);
+        return Result.success();
+    }
+
+    @DeleteMapping("/delete/{id}")
+    public Result delete(@PathVariable Integer id, HttpSession session) {
+        vehicleInfoService.deleteById(id, session);
+        return Result.success();
+    }
+
+    @PutMapping("/update")
+    public Result update(@RequestBody VehicleInfo vehicleInfo) {
+        vehicleInfoService.updateById(vehicleInfo);
+        return Result.success();
     }
 
     @GetMapping("/selectById/{id}")

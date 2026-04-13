@@ -1,22 +1,42 @@
 <template>
   <div>
     <div class="card" style="margin-bottom: 10px">
-      <el-input style="width: 260px; margin-right: 10px" v-model="data.claimsType" placeholder="请输入索赔类型查询" :prefix-icon="Search"/>
+      <el-input style="width: 200px; margin-right: 10px" v-model="data.id" placeholder="请输入ID查询" :prefix-icon="Search" />
+      <el-select style="width: 200px; margin-right: 10px" v-model="data.typeRisk" placeholder="请选择风险类型" clearable>
+        <el-option label="摩托车" :value="1" />
+        <el-option label="货车" :value="2" />
+        <el-option label="乘用车" :value="3" />
+        <el-option label="农用车" :value="4" />
+      </el-select>
+      <el-select style="width: 200px; margin-right: 10px" v-model="data.area" placeholder="请选择地区" clearable>
+        <el-option label="农村" :value="0" />
+        <el-option label="城市" :value="1" />
+      </el-select>
       <el-button type="primary" style="margin-left: 10px" @click="load">查询</el-button>
       <el-button type="info" @click="reset">重置</el-button>
     </div>
 
     <div class="card" style="margin-bottom: 10px">
       <div style="margin-bottom: 10px">
-          <el-button type="primary" @click="handleAdd">新增</el-button>
+        <el-button type="primary" @click="handleAdd">新增</el-button>
       </div>
-
-      <div>
+      <div style="overflow-x: auto;">
         <el-table :data="data.tableData" style="width: 100%">
-          <el-table-column prop="id" label="ID" width="80" />
-          <el-table-column prop="claimsType" label="索赔类型" />
-          <el-table-column prop="costClaimsYear" label="当年总索赔成本" width="150" />
-          <el-table-column prop="costClaimsByType" label="按类型索赔成本" width="150" />
+          <el-table-column prop="id" label="ID" width="90" />
+          <el-table-column prop="costClaimsYear" label="索赔成本" width="140" />
+          <el-table-column prop="nClaimsYear" label="本年度索赔次数" width="150" />
+          <el-table-column prop="nClaimsHistory" label="历史索赔次数" width="150" />
+          <el-table-column prop="rClaimsHistory" label="历史出险率" width="140" />
+          <el-table-column prop="typeRisk" label="风险类型" width="110">
+            <template #default="scope">
+              {{ getRiskTypeText(scope.row.typeRisk) }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="area" label="地区" width="100">
+            <template #default="scope">
+              {{ getAreaText(scope.row.area) }}
+            </template>
+          </el-table-column>
           <el-table-column label="操作" width="180" fixed="right">
             <template #default="scope">
               <el-button class="edit-action-btn" type="primary" plain size="small" @click="handleEdit(scope.row)">编辑</el-button>
@@ -28,30 +48,52 @@
     </div>
 
     <div class="card">
-      <el-pagination v-model:current-page="data.pageNum" v-model:page-size="data.pageSize"
-                     @current-change="handleCurrentChange"
-                     background layout="prev, pager, next" :total="data.total" />
+      <el-pagination
+        v-model:current-page="data.pageNum"
+        v-model:page-size="data.pageSize"
+        @current-change="handleCurrentChange"
+        background
+        layout="prev, pager, next"
+        :total="data.total"
+      />
     </div>
 
-    <el-dialog width="40%" v-model="data.formVisible" title="索赔类型信息" destroy-on-close>
+    <el-dialog width="46%" v-model="data.formVisible" :title="data.formMode === 'edit' ? '理赔记录信息' : '新增理赔记录'" destroy-on-close>
       <el-form :model="data.form" :rules="rules" ref="formRef" label-width="140px" label-position="right" style="padding-right: 40px">
         <el-form-item label="ID" prop="id">
-          <el-input v-model="data.form.id" autocomplete="off" />
+          <el-input v-model="data.form.id" :disabled="data.formMode === 'edit'" />
         </el-form-item>
-        <el-form-item label="索赔类型" prop="claimsType">
-          <el-input v-model="data.form.claimsType" autocomplete="off" placeholder="请输入索赔类型" />
+        <el-form-item label="索赔成本" prop="costClaimsYear">
+          <el-input-number v-model="data.form.costClaimsYear" :precision="2" :step="100" :min="0" style="width: 100%" />
         </el-form-item>
-        <el-form-item label="当年总索赔成本" prop="costClaimsYear">
-          <el-input-number v-model="data.form.costClaimsYear" :precision="2" :step="100" style="width: 100%" />
+        <el-form-item label="本年度索赔次数" prop="nClaimsYear">
+          <el-input-number v-model="data.form.nClaimsYear" :min="0" style="width: 100%" />
         </el-form-item>
-        <el-form-item label="按类型索赔成本" prop="costClaimsByType">
-          <el-input-number v-model="data.form.costClaimsByType" :precision="2" :step="100" style="width: 100%" />
+        <el-form-item label="历史索赔次数" prop="nClaimsHistory">
+          <el-input-number v-model="data.form.nClaimsHistory" :min="0" style="width: 100%" />
+        </el-form-item>
+        <el-form-item label="历史出险率" prop="rClaimsHistory">
+          <el-input-number v-model="data.form.rClaimsHistory" :precision="2" :min="0" style="width: 100%" />
+        </el-form-item>
+        <el-form-item label="风险类型" prop="typeRisk">
+          <el-select v-model="data.form.typeRisk" style="width: 100%">
+            <el-option label="摩托车" :value="1" />
+            <el-option label="货车" :value="2" />
+            <el-option label="乘用车" :value="3" />
+            <el-option label="农用车" :value="4" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="地区" prop="area">
+          <el-select v-model="data.form.area" style="width: 100%">
+            <el-option label="农村" :value="0" />
+            <el-option label="城市" :value="1" />
+          </el-select>
         </el-form-item>
       </el-form>
       <template #footer>
         <span class="dialog-footer">
-          <el-button @click="data.formVisible = false">取 消</el-button>
-          <el-button type="primary" @click="save">保 存</el-button>
+          <el-button @click="data.formVisible = false">取消</el-button>
+          <el-button type="primary" @click="save">保存</el-button>
         </span>
       </template>
     </el-dialog>
@@ -59,95 +101,122 @@
 </template>
 
 <script setup>
-import { ref, reactive } from "vue";
+import { reactive, ref } from 'vue'
 import { Search } from '@element-plus/icons-vue'
-import request from "@/utils/request";
-import {ElMessage, ElMessageBox} from "element-plus";
-import { getCurrentUser } from "@/utils/auth";
+import { ElMessage, ElMessageBox } from 'element-plus'
+import request from '@/utils/request'
+import { getCurrentUser } from '@/utils/auth'
 
 const baseUrl = '/claimTypes'
 const canDelete = getCurrentUser().role === 'ADMIN'
 
 const data = reactive({
-  claimsType: '',
+  id: '',
+  typeRisk: null,
+  area: null,
   tableData: [],
   total: 0,
   pageNum: 1,
   pageSize: 10,
   formVisible: false,
-  form: {}
+  formMode: 'add',
+  form: {},
 })
 
 const rules = reactive({
   id: [{ required: true, message: '请输入ID', trigger: 'blur' }],
-  claimsType: [{ required: true, message: '请输入索赔类型', trigger: 'blur' }],
-  costClaimsYear: [{ required: true, message: '请输入当年总索赔成本', trigger: 'blur' }],
-  costClaimsByType: [{ required: true, message: '请输入按类型索赔成本', trigger: 'blur' }]
+  costClaimsYear: [{ required: true, message: '请输入索赔成本', trigger: 'blur' }],
+  nClaimsYear: [{ required: true, message: '请输入本年度索赔次数', trigger: 'blur' }],
+  nClaimsHistory: [{ required: true, message: '请输入历史索赔次数', trigger: 'blur' }],
+  rClaimsHistory: [{ required: true, message: '请输入历史出险率', trigger: 'blur' }],
+  typeRisk: [{ required: true, message: '请选择风险类型', trigger: 'change' }],
+  area: [{ required: true, message: '请选择地区', trigger: 'change' }],
 })
 
 const formRef = ref()
+
+const getRiskTypeText = (type) => {
+  const map = { 1: '摩托车', 2: '货车', 3: '乘用车', 4: '农用车' }
+  return map[type] || type
+}
+
+const getAreaText = (area) => (Number(area) === 0 ? '农村' : '城市')
 
 const load = () => {
   request.get(baseUrl + '/selectPage', {
     params: {
       pageNum: data.pageNum,
       pageSize: data.pageSize,
-      claimsType: data.claimsType
-    }
-  }).then(res => {
+      id: data.id || null,
+      typeRisk: data.typeRisk,
+      area: data.area,
+    },
+  }).then((res) => {
     data.tableData = res.data?.list || []
-    data.total = res.data.total || 0
+    data.total = res.data?.total || 0
   })
 }
 
 load()
 
-const handleCurrentChange = (pageNum) => {
+const handleCurrentChange = () => {
   load()
 }
 
 const reset = () => {
-  data.claimsType = ''
+  data.id = ''
+  data.typeRisk = null
+  data.area = null
+  data.pageNum = 1
   load()
 }
 
 const handleAdd = () => {
-  data.form = {}
+  data.form = {
+    id: null,
+    costClaimsYear: 0,
+    nClaimsYear: 0,
+    nClaimsHistory: 0,
+    rClaimsHistory: 0,
+    typeRisk: null,
+    area: null,
+  }
+  data.formMode = 'add'
   data.formVisible = true
-}
-
-const save = () => {
-  formRef.value.validate((valid) =>{
-    if (valid) {
-      request.request({
-        url: data.form.id ? baseUrl + '/update' : baseUrl + '/add',
-        method: data.form.id ? 'PUT' : 'POST',
-        data: data.form
-      }).then(res => {
-        if (res.code === '200') {
-          load()
-          data.formVisible = false
-          ElMessage.success('保存成功')
-        } else {
-          ElMessage.error(res.msg || '保存失败')
-        }
-      })
-    }
-  })
 }
 
 const handleEdit = (row) => {
   data.form = JSON.parse(JSON.stringify(row))
+  data.formMode = 'edit'
   data.formVisible = true
+}
+
+const save = () => {
+  formRef.value.validate((valid) => {
+    if (!valid) return
+    request.request({
+      url: data.formMode === 'edit' ? baseUrl + '/update' : baseUrl + '/add',
+      method: data.formMode === 'edit' ? 'PUT' : 'POST',
+      data: data.form,
+    }).then((res) => {
+      if (res.code === '200') {
+        load()
+        data.formVisible = false
+        ElMessage.success('保存成功')
+      } else {
+        ElMessage.error(res.msg || '保存失败')
+      }
+    })
+  })
 }
 
 const del = (id) => {
   if (!canDelete) {
-    ElMessage.error('普通用户不能删除索赔类型')
+    ElMessage.error('普通用户不能删除数据')
     return
   }
-  ElMessageBox.confirm('删除数据后无法恢复，您确认删除吗？', '删除确认', { type: 'warning' }).then(res => {
-    request.delete(baseUrl + '/delete/' + id).then(res => {
+  ElMessageBox.confirm('删除数据后无法恢复，您确认删除吗？', '删除确认', { type: 'warning' }).then(() => {
+    request.delete(baseUrl + '/delete/' + id).then((res) => {
       if (res.code === '200') {
         load()
         ElMessage.success('删除成功')
@@ -155,7 +224,7 @@ const del = (id) => {
         ElMessage.error(res.msg || '删除失败')
       }
     })
-  }).catch(res => {})
+  }).catch(() => {})
 }
 </script>
 

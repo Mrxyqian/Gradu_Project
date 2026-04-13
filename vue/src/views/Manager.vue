@@ -46,7 +46,7 @@
             </template>
           <el-menu-item index="/claimTypes">
             <el-icon><Document /></el-icon>
-            <span>索赔类型</span>
+            <span>理赔记录</span>
           </el-menu-item>
           <el-menu-item index="/claimStatistics">
             <el-icon><DataAnalysis /></el-icon>

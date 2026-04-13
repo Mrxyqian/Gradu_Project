@@ -1,49 +1,16 @@
 <template>
   <div>
-    <el-row :gutter="20" style="margin-bottom: 20px">
-      <el-col :span="8">
-        <div class="card">
-          <div style="font-size: 16px; font-weight: bold; margin-bottom: 15px; text-align: center;">
-            当年总索赔成本
-          </div>
-          <div style="font-size: 36px; font-weight: bold; color: #f56c6c; text-align: center;">
-            ¥{{ overallStatistics.totalCostClaimsYear || 0 }}
-          </div>
-        </div>
-      </el-col>
-      <el-col :span="8">
-        <div class="card">
-          <div style="font-size: 16px; font-weight: bold; margin-bottom: 15px; text-align: center;">
-            按类型总索赔成本
-          </div>
-          <div style="font-size: 36px; font-weight: bold; color: #409eff; text-align: center;">
-            ¥{{ overallStatistics.totalCostClaimsByType || 0 }}
-          </div>
-        </div>
-      </el-col>
-      <el-col :span="8">
-        <div class="card">
-          <div style="font-size: 16px; font-weight: bold; margin-bottom: 15px; text-align: center;">
-            索赔类型数量
-          </div>
-          <div style="font-size: 36px; font-weight: bold; color: #67c23a; text-align: center;">
-            {{ claimTypeList.length }}
-          </div>
-        </div>
-      </el-col>
-    </el-row>
-
     <el-row :gutter="20">
       <el-col :span="12">
         <div class="card">
-          <div style="font-size: 16px; font-weight: bold; margin-bottom: 15px">按索赔类型统计（柱状图）</div>
-          <div ref="claimTypeBarChart" style="height: 400px"></div>
+          <div style="font-size: 16px; font-weight: bold; margin-bottom: 15px">按风险类型统计</div>
+          <div ref="riskTypeChart" style="height: 380px"></div>
         </div>
       </el-col>
       <el-col :span="12">
         <div class="card">
-          <div style="font-size: 16px; font-weight: bold; margin-bottom: 15px">索赔成本占比（饼图）</div>
-          <div ref="claimTypePieChart" style="height: 400px"></div>
+          <div style="font-size: 16px; font-weight: bold; margin-bottom: 15px">按地区统计</div>
+          <div ref="areaChart" style="height: 380px"></div>
         </div>
       </el-col>
     </el-row>
@@ -51,125 +18,94 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, reactive } from "vue";
-import * as echarts from "echarts";
-import request from "@/utils/request";
+import { onMounted, onUnmounted, ref } from 'vue'
+import * as echarts from 'echarts'
+import request from '@/utils/request'
 
-const claimTypeBarChart = ref(null);
-const claimTypePieChart = ref(null);
+const riskTypeChart = ref(null)
+const areaChart = ref(null)
 
-let claimTypeBarChartInstance = null;
-let claimTypePieChartInstance = null;
+let riskTypeChartInstance = null
+let areaChartInstance = null
 
-const overallStatistics = reactive({
-  totalCostClaimsYear: 0,
-  totalCostClaimsByType: 0
-});
+const getRiskTypeText = (type) => {
+  const map = { 1: '摩托车', 2: '货车', 3: '乘用车', 4: '农用车' }
+  return map[type] || type
+}
 
-const claimTypeList = ref([]);
+const getAreaText = (area) => (Number(area) === 0 ? '农村' : '城市')
 
-const initClaimTypeBarChart = (data) => {
-  if (!claimTypeBarChart.value) return;
-  
-  claimTypeBarChartInstance = echarts.init(claimTypeBarChart.value);
-  const names = data.map(item => item.claimsType);
-  const costsByType = data.map(item => item.costClaimsByType);
-  const costsYear = data.map(item => item.costClaimsYear);
-  
-  const option = {
+const initRiskTypeChart = (data) => {
+  if (!riskTypeChart.value) return
+
+  riskTypeChartInstance = echarts.init(riskTypeChart.value)
+  const names = data.map(item => getRiskTypeText(item.typeRisk))
+  const counts = data.map(item => item.count)
+  const claimsCosts = data.map(item => item.totalClaimsCost)
+
+  riskTypeChartInstance.setOption({
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-    legend: { data: ['按类型索赔成本', '当年总索赔成本'] },
-    xAxis: { 
-      type: 'category', 
-      data: names,
-      axisLabel: { interval: 0, rotate: 30 }
-    },
-    yAxis: { type: 'value', name: '索赔成本' },
+    legend: { data: ['理赔记录数量', '总索赔成本'] },
+    xAxis: { type: 'category', data: names },
+    yAxis: [{ type: 'value', name: '记录数量' }, { type: 'value', name: '总索赔成本' }],
     series: [
-      { 
-        name: '按类型索赔成本', 
-        type: 'bar', 
-        data: costsByType, 
-        itemStyle: { color: '#5470c6' },
-        barWidth: '30%'
-      },
-      { 
-        name: '当年总索赔成本', 
-        type: 'bar', 
-        data: costsYear, 
-        itemStyle: { color: '#91cc75' },
-        barWidth: '30%'
-      }
-    ]
-  };
-  claimTypeBarChartInstance.setOption(option);
-};
+      { name: '理赔记录数量', type: 'bar', data: counts, itemStyle: { color: '#5470c6' } },
+      { name: '总索赔成本', type: 'bar', yAxisIndex: 1, data: claimsCosts, itemStyle: { color: '#91cc75' } },
+    ],
+  })
+}
 
-const initClaimTypePieChart = (data) => {
-  if (!claimTypePieChart.value) return;
-  
-  claimTypePieChartInstance = echarts.init(claimTypePieChart.value);
-  
-  const option = {
-    tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
-    legend: { orient: 'vertical', left: 'left', top: 'center' },
+const initAreaChart = (data) => {
+  if (!areaChart.value) return
+
+  areaChartInstance = echarts.init(areaChart.value)
+  const names = data.map(item => getAreaText(item.area))
+  const counts = data.map(item => item.count)
+
+  areaChartInstance.setOption({
+    tooltip: { trigger: 'item' },
+    legend: { orient: 'vertical', left: 'left' },
     series: [{
-      name: '索赔成本',
+      name: '地区分布',
       type: 'pie',
       radius: ['40%', '70%'],
-      center: ['60%', '50%'],
       avoidLabelOverlap: false,
       itemStyle: { borderRadius: 10, borderColor: '#fff', borderWidth: 2 },
-      label: { show: true, formatter: '{b}: {d}%' },
-      emphasis: { 
-        label: { show: true, fontSize: 16, fontWeight: 'bold' },
-        itemStyle: { shadowBlur: 10, shadowOffsetX: 0, shadowColor: 'rgba(0, 0, 0, 0.5)' }
-      },
-      labelLine: { show: true, smooth: true },
-      data: data.map(item => ({ 
-        value: item.costClaimsByType, 
-        name: item.claimsType 
-      }))
-    }]
-  };
-  claimTypePieChartInstance.setOption(option);
-};
+      label: { show: false, position: 'center' },
+      emphasis: { label: { show: true, fontSize: 20, fontWeight: 'bold' } },
+      labelLine: { show: false },
+      data: names.map((name, index) => ({ value: counts[index], name })),
+    }],
+  })
+}
 
 const loadStatistics = () => {
-  request.get('/claimTypes/overallClaimsStatistics').then(res => {
+  request.get('/claimTypes/statisticsByRiskType').then((res) => {
     if (res.code === '200' && res.data) {
-      overallStatistics.totalCostClaimsYear = res.data.totalCostClaimsYear;
-      overallStatistics.totalCostClaimsByType = res.data.totalCostClaimsByType;
+      initRiskTypeChart(res.data)
     }
-  });
+  })
 
-  request.get('/claimTypes/statisticsByClaimType').then(res => {
+  request.get('/claimTypes/statisticsByArea').then((res) => {
     if (res.code === '200' && res.data) {
-      claimTypeList.value = res.data;
-      initClaimTypeBarChart(res.data);
+      initAreaChart(res.data)
     }
-  });
-
-  request.get('/claimTypes/claimsCostPercentage').then(res => {
-    if (res.code === '200' && res.data) {
-      initClaimTypePieChart(res.data);
-    }
-  });
-};
+  })
+}
 
 const handleResize = () => {
-  claimTypeBarChartInstance?.resize();
-  claimTypePieChartInstance?.resize();
-};
+  riskTypeChartInstance?.resize()
+  areaChartInstance?.resize()
+}
 
 onMounted(() => {
-  loadStatistics();
-  window.addEventListener('resize', handleResize);
-});
+  loadStatistics()
+  window.addEventListener('resize', handleResize)
+})
 
 onUnmounted(() => {
-  window.removeEventListener('resize', handleResize);
-  claimTypeBarChartInstance?.dispose();
-  claimTypePieChartInstance?.dispose();
-});
+  window.removeEventListener('resize', handleResize)
+  riskTypeChartInstance?.dispose()
+  areaChartInstance?.dispose()
+})
 </script>
