@@ -6,6 +6,7 @@ import cn.hutool.json.JSONArray;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONNull;
 import cn.hutool.json.JSONUtil;
+import com.example.common.SessionUserUtil;
 import com.example.entity.ClaimTypes;
 import com.example.entity.InsurPred;
 import com.example.entity.MotorInsurance;
@@ -21,6 +22,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
+import javax.servlet.http.HttpSession;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -56,12 +58,12 @@ public class InsurPredService {
         return insurPredMapper.selectByPredId(insurPred.getPredId());
     }
 
-    public InsurPred predictAndSaveByPolicyId(Integer id, String modelVersion) {
+    public InsurPred predictAndSaveByPolicyId(Integer id, String modelVersion, HttpSession session) {
         if (id == null || id <= 0) {
-            throw new CustomException("保单ID不能为空且必须大于0");
+            throw new CustomException("保单编号不能为空且必须大于0");
         }
 
-        MotorInsurance record = buildPredictionRecordById(id);
+        MotorInsurance record = buildPredictionRecordById(id, session);
         JSONObject resultObject = callFastApiPredict(record, modelVersion);
         InsurPred insurPred = convertToInsurPred(resultObject, id);
         insurPredMapper.insert(insurPred);
@@ -151,11 +153,12 @@ public class InsurPredService {
         }
     }
 
-    private MotorInsurance buildPredictionRecordById(Integer id) {
+    private MotorInsurance buildPredictionRecordById(Integer id, HttpSession session) {
         MotorInsurance motorInsurance = motorInsuranceMapper.selectById(id);
         if (motorInsurance == null) {
             throw new CustomException("未找到对应的保单信息，无法执行预测");
         }
+        SessionUserUtil.requireOwnerOrAdmin(motorInsurance.getCreatorEmployeeNo(), session);
 
         ClaimTypes claimRecord = claimTypesMapper.selectById(id);
         if (claimRecord == null) {

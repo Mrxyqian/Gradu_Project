@@ -24,49 +24,74 @@ public class VehicleInfoService {
     @Resource
     private MotorInsuranceMapper motorInsuranceMapper;
 
-    public void add(VehicleInfo vehicleInfo) {
+    private VehicleInfo requireAccessibleVehicleInfo(Integer id, HttpSession session) {
+        VehicleInfo vehicleInfo = vehicleInfoMapper.selectById(id);
+        if (vehicleInfo == null) {
+            throw new CustomException("车辆信息不存在");
+        }
+        SessionUserUtil.requireOwnerOrAdmin(vehicleInfo.getCreatorEmployeeNo(), session);
+        return vehicleInfo;
+    }
+
+    public void add(VehicleInfo vehicleInfo, HttpSession session) {
+        SessionUserUtil.requireLogin(session);
         if (vehicleInfo.getId() == null) {
-            throw new CustomException("ID不能为空");
+            throw new CustomException("保单编号不能为空");
         }
         MotorInsurance motorInsurance = motorInsuranceMapper.selectById(vehicleInfo.getId());
         if (motorInsurance == null) {
-            throw new CustomException("该ID在保单信息中不存在，请先新增对应保单记录");
+            throw new CustomException("该保单编号在保单信息中不存在，请先新增对应保单记录");
         }
+        SessionUserUtil.requireOwnerOrAdmin(motorInsurance.getCreatorEmployeeNo(), session);
         if (vehicleInfoMapper.selectById(vehicleInfo.getId()) != null) {
-            throw new CustomException("该ID的车辆信息已存在");
+            throw new CustomException("该保单编号的车辆信息已存在");
         }
         vehicleInfo.setTypeRisk(motorInsurance.getTypeRisk());
+        vehicleInfo.setCreatorEmployeeNo(motorInsurance.getCreatorEmployeeNo());
         vehicleInfoMapper.insert(vehicleInfo);
     }
 
     public void deleteById(Integer id, HttpSession session) {
-        SessionUserUtil.requireAdmin(session);
+        requireAccessibleVehicleInfo(id, session);
         vehicleInfoMapper.deleteById(id);
     }
 
-    public void updateById(VehicleInfo vehicleInfo) {
+    public void updateById(VehicleInfo vehicleInfo, HttpSession session) {
+        VehicleInfo existing = requireAccessibleVehicleInfo(vehicleInfo.getId(), session);
+        vehicleInfo.setCreatorEmployeeNo(existing.getCreatorEmployeeNo());
         vehicleInfoMapper.updateById(vehicleInfo);
     }
 
-    public VehicleInfo selectById(Integer id) {
-        return vehicleInfoMapper.selectById(id);
+    public VehicleInfo selectById(Integer id, HttpSession session) {
+        return requireAccessibleVehicleInfo(id, session);
     }
 
-    public PageInfo<VehicleInfo> selectPage(Integer pageNum, Integer pageSize, VehicleInfo vehicleInfo) {
+    public PageInfo<VehicleInfo> selectPage(Integer pageNum, Integer pageSize, VehicleInfo vehicleInfo, HttpSession session) {
+        SessionUserUtil.requireLogin(session);
+        if (vehicleInfo == null) {
+            vehicleInfo = new VehicleInfo();
+        }
+        String scopedEmployeeNo = SessionUserUtil.resolveDataScopeEmployeeNo(session);
+        if (scopedEmployeeNo != null) {
+            vehicleInfo.setCreatorEmployeeNo(scopedEmployeeNo);
+        }
         PageHelper.startPage(pageNum, pageSize);
         List<VehicleInfo> vehicleInfoList = vehicleInfoMapper.selectAll(vehicleInfo);
         return PageInfo.of(vehicleInfoList);
     }
 
-    public List<Map<String, Object>> statisticsByTypeRisk() {
-        return vehicleInfoMapper.statisticsByTypeRisk();
+    public List<Map<String, Object>> statisticsByTypeRisk(HttpSession session) {
+        SessionUserUtil.requireLogin(session);
+        return vehicleInfoMapper.statisticsByTypeRisk(SessionUserUtil.resolveDataScopeEmployeeNo(session));
     }
 
-    public List<Map<String, Object>> statisticsByTypeFuel() {
-        return vehicleInfoMapper.statisticsByTypeFuel();
+    public List<Map<String, Object>> statisticsByTypeFuel(HttpSession session) {
+        SessionUserUtil.requireLogin(session);
+        return vehicleInfoMapper.statisticsByTypeFuel(SessionUserUtil.resolveDataScopeEmployeeNo(session));
     }
 
-    public List<Map<String, Object>> statisticsByYear() {
-        return vehicleInfoMapper.statisticsByYear();
+    public List<Map<String, Object>> statisticsByYear(HttpSession session) {
+        SessionUserUtil.requireLogin(session);
+        return vehicleInfoMapper.statisticsByYear(SessionUserUtil.resolveDataScopeEmployeeNo(session));
     }
 }

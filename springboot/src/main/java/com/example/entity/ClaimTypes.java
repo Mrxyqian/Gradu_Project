@@ -6,6 +6,7 @@ import java.math.BigDecimal;
 
 public class ClaimTypes {
     private Integer id;
+    private String creatorEmployeeNo;
     private BigDecimal costClaimsYear;
     @JsonProperty("nClaimsYear")
     private Integer nClaimsYear;
@@ -22,6 +23,14 @@ public class ClaimTypes {
 
     public void setId(Integer id) {
         this.id = id;
+    }
+
+    public String getCreatorEmployeeNo() {
+        return creatorEmployeeNo;
+    }
+
+    public void setCreatorEmployeeNo(String creatorEmployeeNo) {
+        this.creatorEmployeeNo = creatorEmployeeNo;
     }
 
     public BigDecimal getCostClaimsYear() {

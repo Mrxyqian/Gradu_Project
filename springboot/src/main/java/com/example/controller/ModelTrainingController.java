@@ -60,6 +60,7 @@ public class ModelTrainingController {
     public Result importTrainData(@RequestBody(required = false) TrainDataImportRequest request,
                                   HttpSession session) {
         Integer contractYear = request == null ? null : request.getContractYear();
-        return Result.success(modelTrainingService.importTrainData(contractYear, session));
+        Boolean overwriteExisting = request == null ? null : request.getOverwriteExisting();
+        return Result.success(modelTrainingService.importTrainData(contractYear, overwriteExisting, session));
     }
 }

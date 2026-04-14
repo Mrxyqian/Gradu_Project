@@ -45,6 +45,10 @@ else:
 AVAILABLE_GROUPS = ("components", "imbalance")
 FIXED_THRESHOLD = 0.5
 DEFAULT_ABLATION_BATCH_SIZE = 512
+DEFAULT_NUM_EPOCHS = 80
+DEFAULT_LEARNING_RATE = 2e-4
+COMPONENT_GROUP_DEFAULT_NUM_EPOCHS = 40
+COMPONENT_GROUP_DEFAULT_LEARNING_RATE = 4e-4
 RUN_RESULT_FIELDS = [
     "experimentIndex",
     "experimentName",
@@ -88,16 +92,27 @@ SUMMARY_FIELDS = [
     "numRuns",
     "aucMean",
     "aucStd",
+    "prAucMean",
+    "prAucStd",
     "f1Mean",
     "f1Std",
     "recallMean",
     "recallStd",
     "precisionMean",
     "precisionStd",
-    "prAucMean",
-    "prAucStd",
     "accuracyMean",
     "accuracyStd",
+    "balancedAccuracyMean",
+    "balancedAccuracyStd",
+    "lossMean",
+    "lossStd",
+    "epochsCompletedMean",
+    "epochsCompletedStd",
+    "durationSecondsMean",
+    "durationSecondsStd",
+    "secondsPerEpochMean",
+    "secondsPerEpochStd",
+    "stoppedEarlyRate",
 ]
 
 
@@ -116,11 +131,18 @@ class ExperimentSpec:
     train_overrides: dict[str, Any] = field(default_factory=dict)
 
 
-SHARED_BASELINE = ExperimentSpec(
-    key="baseline_original",
-    group="shared_baseline",
+COMPONENT_BASELINE = ExperimentSpec(
+    key="components_baseline_original",
+    group="components",
     slug="baseline_original",
-    description="Original residual MLP with LayerNorm, GELU, MLP head, weighted BCE, and automatic threshold search.",
+    description="Component-ablation baseline: residual MLP with LayerNorm, GELU, MLP head, weighted BCE, and automatic threshold search.",
+)
+
+IMBALANCE_BASELINE = ExperimentSpec(
+    key="imbalance_baseline_original",
+    group="imbalance",
+    slug="baseline_original",
+    description="Imbalance-ablation baseline: residual MLP with LayerNorm, GELU, MLP head, weighted BCE, and automatic threshold search.",
 )
 
 COMPONENT_ABLATIONS = [
@@ -198,7 +220,12 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--output-tag", type=str, default="", help="Optional output tag")
     parser.add_argument("--csv-path", type=str, default="", help="Optional dataset path")
-    parser.add_argument("--num-epochs", type=int, default=80, help="Training epochs")
+    parser.add_argument(
+        "--num-epochs",
+        type=int,
+        default=None,
+        help="Training epochs. Default: components=40, imbalance=80",
+    )
     parser.add_argument(
         "--batch-size",
         type=int,
@@ -212,7 +239,12 @@ def parse_args() -> argparse.Namespace:
         default=DEFAULT_ABLATION_HEAD_HIDDEN_DIM,
         help="Head hidden size",
     )
-    parser.add_argument("--learning-rate", type=float, default=2e-4, help="Learning rate")
+    parser.add_argument(
+        "--learning-rate",
+        type=float,
+        default=None,
+        help="Learning rate. Default: components=4e-4, imbalance=2e-4",
+    )
     parser.add_argument("--weight-decay", type=float, default=7e-5, help="Weight decay")
     parser.add_argument("--optimizer", type=str, default="adamw", help="Optimizer name")
     parser.add_argument("--warmup-epochs", type=int, default=5, help="Warmup epochs")
@@ -277,21 +309,17 @@ def summarize_metric(values: list[float]) -> tuple[float | None, float | None]:
 
 
 def build_plan(groups: list[str]) -> list[dict[str, Any]]:
-    seen: set[str] = set()
     templates: list[ExperimentSpec] = []
 
     def add(template: ExperimentSpec) -> None:
-        if template.key in seen:
-            return
-        seen.add(template.key)
         templates.append(template)
 
-    if "components" in groups or "imbalance" in groups:
-        add(SHARED_BASELINE)
     if "components" in groups:
+        add(COMPONENT_BASELINE)
         for template in COMPONENT_ABLATIONS:
             add(template)
     if "imbalance" in groups:
+        add(IMBALANCE_BASELINE)
         for template in IMBALANCE_ABLATIONS:
             add(template)
 
@@ -320,6 +348,22 @@ def apply_section_overrides(section: Any, overrides: dict[str, Any]) -> None:
         setattr(section, key, value)
 
 
+def resolve_num_epochs(spec: ExperimentSpec, args: argparse.Namespace) -> int:
+    if args.num_epochs is not None:
+        return int(args.num_epochs)
+    if spec.group == "components":
+        return COMPONENT_GROUP_DEFAULT_NUM_EPOCHS
+    return DEFAULT_NUM_EPOCHS
+
+
+def resolve_learning_rate(spec: ExperimentSpec, args: argparse.Namespace) -> float:
+    if args.learning_rate is not None:
+        return float(args.learning_rate)
+    if spec.group == "components":
+        return COMPONENT_GROUP_DEFAULT_LEARNING_RATE
+    return DEFAULT_LEARNING_RATE
+
+
 def build_runtime_config(
     args: argparse.Namespace,
     *,
@@ -339,12 +383,12 @@ def build_runtime_config(
     cfg.model.hidden_dims = tuple(DEFAULT_ABLATION_HIDDEN_DIMS)
     cfg.model.head_hidden_dim = args.head_hidden_dim
     cfg.optimizer.optimizer = args.optimizer
-    cfg.optimizer.lr = args.learning_rate
+    cfg.optimizer.lr = resolve_learning_rate(spec, args)
     cfg.optimizer.weight_decay = args.weight_decay
     cfg.scheduler.scheduler = "cosine_warmup"
     cfg.scheduler.warmup_epochs = args.warmup_epochs
     cfg.scheduler.min_lr = args.min_lr
-    cfg.train.num_epochs = args.num_epochs
+    cfg.train.num_epochs = resolve_num_epochs(spec, args)
     cfg.train.early_stop_metric = args.early_stop_metric
     cfg.train.threshold_metric = args.threshold_metric
     cfg.train.threshold_beta = args.threshold_beta
@@ -449,6 +493,42 @@ def build_summary_rows(run_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
         accuracy_mean, accuracy_std = summarize_metric(
             [value for value in (safe_float(row.get("accuracy")) for row in rows) if value is not None]
         )
+        balanced_accuracy_mean, balanced_accuracy_std = summarize_metric(
+            [
+                value
+                for value in (safe_float(row.get("balancedAccuracy")) for row in rows)
+                if value is not None
+            ]
+        )
+        loss_mean, loss_std = summarize_metric(
+            [value for value in (safe_float(row.get("loss")) for row in rows) if value is not None]
+        )
+        epochs_completed_mean, epochs_completed_std = summarize_metric(
+            [
+                value
+                for value in (safe_float(row.get("epochsCompleted")) for row in rows)
+                if value is not None
+            ]
+        )
+        duration_seconds_mean, duration_seconds_std = summarize_metric(
+            [
+                value
+                for value in (safe_float(row.get("durationSeconds")) for row in rows)
+                if value is not None
+            ]
+        )
+        seconds_per_epoch_values = []
+        for row in rows:
+            duration = safe_float(row.get("durationSeconds"))
+            epochs = safe_float(row.get("epochsCompleted"))
+            if duration is None or epochs is None or epochs <= 0:
+                continue
+            seconds_per_epoch_values.append(duration / epochs)
+        seconds_per_epoch_mean, seconds_per_epoch_std = summarize_metric(seconds_per_epoch_values)
+        stopped_early_rate = round(
+            sum(1 for row in rows if bool(row.get("stoppedEarly"))) / max(len(rows), 1),
+            6,
+        )
 
         summary_rows.append(
             {
@@ -460,16 +540,27 @@ def build_summary_rows(run_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "numRuns": len(rows),
                 "aucMean": auc_mean,
                 "aucStd": auc_std,
+                "prAucMean": pr_auc_mean,
+                "prAucStd": pr_auc_std,
                 "f1Mean": f1_mean,
                 "f1Std": f1_std,
                 "recallMean": recall_mean,
                 "recallStd": recall_std,
                 "precisionMean": precision_mean,
                 "precisionStd": precision_std,
-                "prAucMean": pr_auc_mean,
-                "prAucStd": pr_auc_std,
                 "accuracyMean": accuracy_mean,
                 "accuracyStd": accuracy_std,
+                "balancedAccuracyMean": balanced_accuracy_mean,
+                "balancedAccuracyStd": balanced_accuracy_std,
+                "lossMean": loss_mean,
+                "lossStd": loss_std,
+                "epochsCompletedMean": epochs_completed_mean,
+                "epochsCompletedStd": epochs_completed_std,
+                "durationSecondsMean": duration_seconds_mean,
+                "durationSecondsStd": duration_seconds_std,
+                "secondsPerEpochMean": seconds_per_epoch_mean,
+                "secondsPerEpochStd": seconds_per_epoch_std,
+                "stoppedEarlyRate": stopped_early_rate,
             }
         )
 
@@ -484,9 +575,17 @@ def write_markdown_summary(path: Path, summary_rows: list[dict[str, Any]]) -> No
         "Experiment",
         "Runs",
         "AUC",
+        "PR-AUC",
         "F1",
         "Recall",
         "Precision",
+        "Accuracy",
+        "BalAcc",
+        "Loss",
+        "Epochs",
+        "EarlyStop",
+        "Duration(s)",
+        "Sec/Epoch",
     ]
     lines = [
         "# Paper Ablation Summary",
@@ -497,19 +596,34 @@ def write_markdown_summary(path: Path, summary_rows: list[dict[str, Any]]) -> No
 
     for row in summary_rows:
         lines.append(
-            "| {index} | {group} | {name} | {runs} | {auc_mean} +- {auc_std} | {f1_mean} +- {f1_std} | {recall_mean} +- {recall_std} | {precision_mean} +- {precision_std} |".format(
+            "| {index} | {group} | {name} | {runs} | {auc_mean} +- {auc_std} | {pr_auc_mean} +- {pr_auc_std} | {f1_mean} +- {f1_std} | {recall_mean} +- {recall_std} | {precision_mean} +- {precision_std} | {acc_mean} +- {acc_std} | {bal_mean} +- {bal_std} | {loss_mean} +- {loss_std} | {epochs_mean} +- {epochs_std} | {stop_rate} | {dur_mean} +- {dur_std} | {spe_mean} +- {spe_std} |".format(
                 index=row["experimentIndex"],
                 group=row["experimentGroup"],
                 name=row["experimentName"],
                 runs=row["numRuns"],
                 auc_mean=row["aucMean"],
                 auc_std=row["aucStd"],
+                pr_auc_mean=row["prAucMean"],
+                pr_auc_std=row["prAucStd"],
                 f1_mean=row["f1Mean"],
                 f1_std=row["f1Std"],
                 recall_mean=row["recallMean"],
                 recall_std=row["recallStd"],
                 precision_mean=row["precisionMean"],
                 precision_std=row["precisionStd"],
+                acc_mean=row["accuracyMean"],
+                acc_std=row["accuracyStd"],
+                bal_mean=row["balancedAccuracyMean"],
+                bal_std=row["balancedAccuracyStd"],
+                loss_mean=row["lossMean"],
+                loss_std=row["lossStd"],
+                epochs_mean=row["epochsCompletedMean"],
+                epochs_std=row["epochsCompletedStd"],
+                stop_rate=row["stoppedEarlyRate"],
+                dur_mean=row["durationSecondsMean"],
+                dur_std=row["durationSecondsStd"],
+                spe_mean=row["secondsPerEpochMean"],
+                spe_std=row["secondsPerEpochStd"],
             )
         )
 
@@ -564,6 +678,16 @@ def main() -> None:
             "thresholdMetric": args.threshold_metric,
             "thresholdBeta": args.threshold_beta,
             "useAmp": not args.disable_amp,
+        },
+        "groupSpecificDefaults": {
+            "components": {
+                "numEpochs": COMPONENT_GROUP_DEFAULT_NUM_EPOCHS,
+                "learningRate": COMPONENT_GROUP_DEFAULT_LEARNING_RATE,
+            },
+            "imbalance": {
+                "numEpochs": DEFAULT_NUM_EPOCHS,
+                "learningRate": DEFAULT_LEARNING_RATE,
+            },
         },
         "plan": [
             {

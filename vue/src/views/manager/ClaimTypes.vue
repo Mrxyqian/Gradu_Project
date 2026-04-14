@@ -1,14 +1,19 @@
 <template>
   <div>
     <div class="card" style="margin-bottom: 10px">
-      <el-input style="width: 200px; margin-right: 10px" v-model="data.id" placeholder="请输入ID查询" :prefix-icon="Search" />
-      <el-select style="width: 200px; margin-right: 10px" v-model="data.typeRisk" placeholder="请选择风险类型" clearable>
+      <el-input
+        v-model="data.id"
+        style="width: 220px; margin-right: 10px"
+        placeholder="请输入保单编号查询"
+        :prefix-icon="Search"
+      />
+      <el-select v-model="data.typeRisk" style="width: 200px; margin-right: 10px" placeholder="请选择风险类型" clearable>
         <el-option label="摩托车" :value="1" />
         <el-option label="货车" :value="2" />
         <el-option label="乘用车" :value="3" />
         <el-option label="农用车" :value="4" />
       </el-select>
-      <el-select style="width: 200px; margin-right: 10px" v-model="data.area" placeholder="请选择地区" clearable>
+      <el-select v-model="data.area" style="width: 200px; margin-right: 10px" placeholder="请选择地区" clearable>
         <el-option label="农村" :value="0" />
         <el-option label="城市" :value="1" />
       </el-select>
@@ -20,9 +25,9 @@
       <div style="margin-bottom: 10px">
         <el-button type="primary" @click="handleAdd">新增</el-button>
       </div>
-      <div style="overflow-x: auto;">
+      <div style="overflow-x: auto">
         <el-table :data="data.tableData" style="width: 100%">
-          <el-table-column prop="id" label="ID" width="90" />
+          <el-table-column prop="id" label="保单编号" width="110" />
           <el-table-column prop="costClaimsYear" label="索赔成本" width="140" />
           <el-table-column prop="nClaimsYear" label="本年度索赔次数" width="150" />
           <el-table-column prop="nClaimsHistory" label="历史索赔次数" width="150" />
@@ -51,17 +56,17 @@
       <el-pagination
         v-model:current-page="data.pageNum"
         v-model:page-size="data.pageSize"
-        @current-change="handleCurrentChange"
         background
         layout="prev, pager, next"
         :total="data.total"
+        @current-change="handleCurrentChange"
       />
     </div>
 
-    <el-dialog width="46%" v-model="data.formVisible" :title="data.formMode === 'edit' ? '理赔记录信息' : '新增理赔记录'" destroy-on-close>
-      <el-form :model="data.form" :rules="rules" ref="formRef" label-width="140px" label-position="right" style="padding-right: 40px">
-        <el-form-item label="ID" prop="id">
-          <el-input v-model="data.form.id" :disabled="data.formMode === 'edit'" />
+    <el-dialog v-model="data.formVisible" width="46%" :title="data.formMode === 'edit' ? '理赔记录信息' : '新增理赔记录'" destroy-on-close>
+      <el-form ref="formRef" :model="data.form" :rules="rules" label-width="140px" label-position="right" style="padding-right: 40px">
+        <el-form-item label="保单编号" prop="id">
+          <el-input v-model="data.form.id" :disabled="data.formMode === 'edit'" placeholder="请输入已存在的保单编号" />
         </el-form-item>
         <el-form-item label="索赔成本" prop="costClaimsYear">
           <el-input-number v-model="data.form.costClaimsYear" :precision="2" :step="100" :min="0" style="width: 100%" />
@@ -107,10 +112,19 @@ import { reactive, ref } from 'vue'
 import { Search } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import request from '@/utils/request'
-import { getCurrentUser } from '@/utils/auth'
 
 const baseUrl = '/claimTypes'
-const canDelete = getCurrentUser().role === 'ADMIN'
+const canDelete = true
+
+const createEmptyForm = () => ({
+  id: null,
+  costClaimsYear: 0,
+  nClaimsYear: 0,
+  nClaimsHistory: 0,
+  rClaimsHistory: 0,
+  typeRisk: null,
+  area: null,
+})
 
 const data = reactive({
   id: '',
@@ -122,11 +136,11 @@ const data = reactive({
   pageSize: 10,
   formVisible: false,
   formMode: 'add',
-  form: {},
+  form: createEmptyForm(),
 })
 
 const rules = reactive({
-  id: [{ required: true, message: '请输入ID', trigger: 'blur' }],
+  id: [{ required: true, message: '请输入保单编号', trigger: 'blur' }],
   costClaimsYear: [{ required: true, message: '请输入索赔成本', trigger: 'blur' }],
   nClaimsYear: [{ required: true, message: '请输入本年度索赔次数', trigger: 'blur' }],
   nClaimsHistory: [{ required: true, message: '请输入历史索赔次数', trigger: 'blur' }],
@@ -159,7 +173,8 @@ const load = () => {
 
 load()
 
-const handleCurrentChange = () => {
+const handleCurrentChange = (pageNum) => {
+  data.pageNum = pageNum
   load()
 }
 
@@ -172,15 +187,7 @@ const reset = () => {
 }
 
 const handleAdd = () => {
-  data.form = {
-    id: null,
-    costClaimsYear: 0,
-    nClaimsYear: 0,
-    nClaimsHistory: 0,
-    rClaimsHistory: 0,
-    typeRisk: null,
-    area: null,
-  }
+  data.form = createEmptyForm()
   data.formMode = 'add'
   data.formVisible = true
 }
@@ -215,16 +222,18 @@ const del = (id) => {
     ElMessage.error('普通用户不能删除数据')
     return
   }
-  ElMessageBox.confirm('删除数据后无法恢复，您确认删除吗？', '删除确认', { type: 'warning' }).then(() => {
-    request.delete(baseUrl + '/delete/' + id).then((res) => {
-      if (res.code === '200') {
-        load()
-        ElMessage.success('删除成功')
-      } else {
-        ElMessage.error(res.msg || '删除失败')
-      }
+  ElMessageBox.confirm('删除数据后无法恢复，您确认删除吗？', '删除确认', { type: 'warning' })
+    .then(() => {
+      request.delete(baseUrl + '/delete/' + id).then((res) => {
+        if (res.code === '200') {
+          load()
+          ElMessage.success('删除成功')
+        } else {
+          ElMessage.error(res.msg || '删除失败')
+        }
+      })
     })
-  }).catch(() => {})
+    .catch(() => {})
 }
 </script>
 

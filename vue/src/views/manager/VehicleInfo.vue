@@ -1,18 +1,23 @@
 <template>
   <div>
     <div class="card" style="margin-bottom: 10px">
-      <el-input style="width: 200px; margin-right: 10px" v-model="data.id" placeholder="请输入ID查询" :prefix-icon="Search" />
-      <el-select style="width: 200px; margin-right: 10px" v-model="data.typeRisk" placeholder="请选择车辆类型" clearable>
-        <el-option label="摩托车" :value="1"></el-option>
-        <el-option label="货车" :value="2"></el-option>
-        <el-option label="乘用车" :value="3"></el-option>
-        <el-option label="农用车" :value="4"></el-option>
+      <el-input
+        v-model="data.id"
+        style="width: 220px; margin-right: 10px"
+        placeholder="请输入保单编号查询"
+        :prefix-icon="Search"
+      />
+      <el-select v-model="data.typeRisk" style="width: 200px; margin-right: 10px" placeholder="请选择车辆类型" clearable>
+        <el-option label="摩托车" :value="1" />
+        <el-option label="货车" :value="2" />
+        <el-option label="乘用车" :value="3" />
+        <el-option label="农用车" :value="4" />
       </el-select>
-      <el-select style="width: 200px; margin-right: 10px" v-model="data.typeFuel" placeholder="请选择能源类型" clearable>
-        <el-option label="汽油" value="P"></el-option>
-        <el-option label="柴油" value="D"></el-option>
+      <el-select v-model="data.typeFuel" style="width: 200px; margin-right: 10px" placeholder="请选择燃料类型" clearable>
+        <el-option label="汽油" value="P" />
+        <el-option label="柴油" value="D" />
       </el-select>
-      <el-input style="width: 200px; margin-right: 10px" v-model.number="data.yearMatriculation" placeholder="请输入注册年份" clearable />
+      <el-input v-model.number="data.yearMatriculation" style="width: 200px; margin-right: 10px" placeholder="请输入注册年份" />
       <el-button type="primary" style="margin-left: 10px" @click="load">查询</el-button>
       <el-button type="info" @click="reset">重置</el-button>
     </div>
@@ -21,9 +26,9 @@
       <div style="margin-bottom: 10px">
         <el-button type="primary" @click="handleAdd">新增</el-button>
       </div>
-      <div style="overflow-x: auto;">
+      <div style="overflow-x: auto">
         <el-table :data="data.tableData" style="width: 100%">
-          <el-table-column prop="id" label="ID" width="80" />
+          <el-table-column prop="id" label="保单编号" width="110" />
           <el-table-column prop="typeRisk" label="车辆类型" width="100">
             <template #default="scope">
               {{ getTypeRiskText(scope.row.typeRisk) }}
@@ -34,7 +39,7 @@
           <el-table-column prop="cylinderCapacity" label="发动机排量(cc)" width="140" />
           <el-table-column prop="valueVehicle" label="车辆市场价值" width="130" />
           <el-table-column prop="nDoors" label="车门数量" width="100" />
-          <el-table-column prop="typeFuel" label="能源类型" width="100">
+          <el-table-column prop="typeFuel" label="燃料类型" width="100">
             <template #default="scope">
               {{ scope.row.typeFuel === 'P' ? '汽油' : '柴油' }}
             </template>
@@ -55,32 +60,33 @@
       <el-pagination
         v-model:current-page="data.pageNum"
         v-model:page-size="data.pageSize"
-        @current-change="handleCurrentChange"
         background
         layout="prev, pager, next"
         :total="data.total"
+        @current-change="handleCurrentChange"
       />
     </div>
 
-    <el-dialog width="50%" v-model="data.formVisible" :title="data.formMode === 'edit' ? '车辆信息' : '新增车辆信息'" destroy-on-close>
-      <el-form :model="data.form" :rules="rules" ref="formRef" label-width="140px" label-position="right" style="padding-right: 40px">
+    <el-dialog v-model="data.formVisible" width="50%" :title="data.formMode === 'edit' ? '车辆信息' : '新增车辆信息'" destroy-on-close>
+      <el-form ref="formRef" :model="data.form" :rules="rules" label-width="140px" label-position="right" style="padding-right: 40px">
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="ID" prop="id">
-              <el-input v-model="data.form.id" :disabled="data.formMode === 'edit'" autocomplete="off" />
+            <el-form-item label="保单编号" prop="id">
+              <el-input v-model="data.form.id" :disabled="data.formMode === 'edit'" autocomplete="off" placeholder="请输入已存在的保单编号" />
             </el-form-item>
           </el-col>
           <el-col v-if="data.formMode === 'edit'" :span="12">
             <el-form-item label="车辆类型" prop="typeRisk">
               <el-select v-model="data.form.typeRisk" style="width: 100%">
-                <el-option label="摩托车" :value="1"></el-option>
-                <el-option label="货车" :value="2"></el-option>
-                <el-option label="乘用车" :value="3"></el-option>
-                <el-option label="农用车" :value="4"></el-option>
+                <el-option label="摩托车" :value="1" />
+                <el-option label="货车" :value="2" />
+                <el-option label="乘用车" :value="3" />
+                <el-option label="农用车" :value="4" />
               </el-select>
             </el-form-item>
           </el-col>
         </el-row>
+
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="注册年份" prop="yearMatriculation">
@@ -93,6 +99,7 @@
             </el-form-item>
           </el-col>
         </el-row>
+
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="发动机排量(cc)" prop="cylinderCapacity">
@@ -105,6 +112,7 @@
             </el-form-item>
           </el-col>
         </el-row>
+
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="车门数量" prop="nDoors">
@@ -112,14 +120,15 @@
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="能源类型" prop="typeFuel">
+            <el-form-item label="燃料类型" prop="typeFuel">
               <el-select v-model="data.form.typeFuel" style="width: 100%">
-                <el-option label="汽油" value="P"></el-option>
-                <el-option label="柴油" value="D"></el-option>
+                <el-option label="汽油" value="P" />
+                <el-option label="柴油" value="D" />
               </el-select>
             </el-form-item>
           </el-col>
         </el-row>
+
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="车辆长度(米)" prop="length">
@@ -148,10 +157,22 @@ import { reactive, ref } from 'vue'
 import { Search } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import request from '@/utils/request'
-import { getCurrentUser } from '@/utils/auth'
 
 const baseUrl = '/vehicleInfo'
-const canDelete = getCurrentUser().role === 'ADMIN'
+const canDelete = true
+
+const createEmptyForm = () => ({
+  id: null,
+  typeRisk: null,
+  yearMatriculation: null,
+  power: null,
+  cylinderCapacity: null,
+  valueVehicle: null,
+  nDoors: null,
+  typeFuel: '',
+  length: null,
+  weight: null,
+})
 
 const data = reactive({
   id: '',
@@ -164,17 +185,17 @@ const data = reactive({
   pageSize: 10,
   formVisible: false,
   formMode: 'add',
-  form: {},
+  form: createEmptyForm(),
 })
 
 const rules = reactive({
-  id: [{ required: true, message: '请输入ID', trigger: 'blur' }],
+  id: [{ required: true, message: '请输入保单编号', trigger: 'blur' }],
   yearMatriculation: [{ required: true, message: '请输入注册年份', trigger: 'blur' }],
   power: [{ required: true, message: '请输入车辆功率', trigger: 'blur' }],
   cylinderCapacity: [{ required: true, message: '请输入发动机排量', trigger: 'blur' }],
   valueVehicle: [{ required: true, message: '请输入车辆市场价值', trigger: 'blur' }],
   nDoors: [{ required: true, message: '请输入车门数量', trigger: 'blur' }],
-  typeFuel: [{ required: true, message: '请选择能源类型', trigger: 'change' }],
+  typeFuel: [{ required: true, message: '请选择燃料类型', trigger: 'change' }],
 })
 
 const formRef = ref()
@@ -202,7 +223,8 @@ const load = () => {
 
 load()
 
-const handleCurrentChange = () => {
+const handleCurrentChange = (pageNum) => {
+  data.pageNum = pageNum
   load()
 }
 
@@ -216,18 +238,7 @@ const reset = () => {
 }
 
 const handleAdd = () => {
-  data.form = {
-    id: null,
-    typeRisk: null,
-    yearMatriculation: null,
-    power: null,
-    cylinderCapacity: null,
-    valueVehicle: null,
-    nDoors: null,
-    typeFuel: '',
-    length: null,
-    weight: null,
-  }
+  data.form = createEmptyForm()
   data.formMode = 'add'
   data.formVisible = true
 }
@@ -262,16 +273,18 @@ const del = (id) => {
     ElMessage.error('普通用户不能删除数据')
     return
   }
-  ElMessageBox.confirm('删除数据后无法恢复，您确认删除吗？', '删除确认', { type: 'warning' }).then(() => {
-    request.delete(baseUrl + '/delete/' + id).then((res) => {
-      if (res.code === '200') {
-        load()
-        ElMessage.success('删除成功')
-      } else {
-        ElMessage.error(res.msg || '删除失败')
-      }
+  ElMessageBox.confirm('删除数据后无法恢复，您确认删除吗？', '删除确认', { type: 'warning' })
+    .then(() => {
+      request.delete(baseUrl + '/delete/' + id).then((res) => {
+        if (res.code === '200') {
+          load()
+          ElMessage.success('删除成功')
+        } else {
+          ElMessage.error(res.msg || '删除失败')
+        }
+      })
     })
-  }).catch(() => {})
+    .catch(() => {})
 }
 </script>
 

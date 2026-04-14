@@ -21,13 +21,13 @@ public class MotorInsuranceController {
 
     @PostConstruct
     public void init() {
-        System.out.println("✅ MotorInsuranceController 初始化成功");
+        System.out.println("MotorInsuranceController initialized");
     }
 
     @PostMapping("/add")
-    public Result add(@RequestBody MotorInsurance motorInsurance) {
-        motorInsuranceService.add(motorInsurance);
-        return Result.success();
+    public Result add(@RequestBody MotorInsurance motorInsurance, HttpSession session) {
+        MotorInsurance created = motorInsuranceService.add(motorInsurance, session);
+        return Result.success(created);
     }
 
     @DeleteMapping("/delete/{id}")
@@ -37,64 +37,65 @@ public class MotorInsuranceController {
     }
 
     @PutMapping("/update")
-    public Result update(@RequestBody MotorInsurance motorInsurance) {
-        motorInsuranceService.updateById(motorInsurance);
+    public Result update(@RequestBody MotorInsurance motorInsurance, HttpSession session) {
+        motorInsuranceService.updateById(motorInsurance, session);
         return Result.success();
     }
 
     @GetMapping("/selectById/{id}")
-    public Result selectById(@PathVariable Integer id) {
-        MotorInsurance motorInsurance = motorInsuranceService.selectById(id);
+    public Result selectById(@PathVariable Integer id, HttpSession session) {
+        MotorInsurance motorInsurance = motorInsuranceService.selectById(id, session);
         return Result.success(motorInsurance);
     }
 
     @GetMapping("/selectPage")
     public Result selectPage(@RequestParam(defaultValue = "1") Integer pageNum,
                              @RequestParam(defaultValue = "10") Integer pageSize,
-                             MotorInsurance motorInsurance) {
-        PageInfo<MotorInsurance> pageInfo = motorInsuranceService.selectPage(pageNum, pageSize, motorInsurance);
+                             MotorInsurance motorInsurance,
+                             HttpSession session) {
+        PageInfo<MotorInsurance> pageInfo = motorInsuranceService.selectPage(pageNum, pageSize, motorInsurance, session);
         return Result.success(pageInfo);
     }
 
     @GetMapping("/statisticsByRiskType")
-    public Result statisticsByRiskType() {
-        List<Map<String, Object>> statistics = motorInsuranceService.statisticsByRiskType();
+    public Result statisticsByRiskType(HttpSession session) {
+        List<Map<String, Object>> statistics = motorInsuranceService.statisticsByRiskType(session);
         return Result.success(statistics);
     }
 
     @GetMapping("/statisticsByArea")
-    public Result statisticsByArea() {
-        List<Map<String, Object>> statistics = motorInsuranceService.statisticsByArea();
+    public Result statisticsByArea(HttpSession session) {
+        List<Map<String, Object>> statistics = motorInsuranceService.statisticsByArea(session);
         return Result.success(statistics);
     }
 
     @GetMapping("/statisticsByPayment")
-    public Result statisticsByPayment() {
-        List<Map<String, Object>> statistics = motorInsuranceService.statisticsByPayment();
+    public Result statisticsByPayment(HttpSession session) {
+        List<Map<String, Object>> statistics = motorInsuranceService.statisticsByPayment(session);
         return Result.success(statistics);
     }
 
     @GetMapping("/overallStatistics")
-    public Result overallStatistics() {
-        Map<String, Object> statistics = motorInsuranceService.overallStatistics();
+    public Result overallStatistics(HttpSession session) {
+        Map<String, Object> statistics = motorInsuranceService.overallStatistics(session);
         return Result.success(statistics);
     }
 
     @GetMapping("/statisticsByFuelType")
-    public Result statisticsByFuelType() {
-        List<Map<String, Object>> statistics = motorInsuranceService.statisticsByFuelType();
+    public Result statisticsByFuelType(HttpSession session) {
+        List<Map<String, Object>> statistics = motorInsuranceService.statisticsByFuelType(session);
         return Result.success(statistics);
     }
 
     @GetMapping("/statisticsByMatriculationYear")
-    public Result statisticsByMatriculationYear() {
-        List<Map<String, Object>> statistics = motorInsuranceService.statisticsByMatriculationYear();
+    public Result statisticsByMatriculationYear(HttpSession session) {
+        List<Map<String, Object>> statistics = motorInsuranceService.statisticsByMatriculationYear(session);
         return Result.success(statistics);
     }
 
     @GetMapping("/statisticsByDistributionChannel")
-    public Result statisticsByDistributionChannel() {
-        List<Map<String, Object>> statistics = motorInsuranceService.statisticsByDistributionChannel();
+    public Result statisticsByDistributionChannel(HttpSession session) {
+        List<Map<String, Object>> statistics = motorInsuranceService.statisticsByDistributionChannel(session);
         return Result.success(statistics);
     }
 }

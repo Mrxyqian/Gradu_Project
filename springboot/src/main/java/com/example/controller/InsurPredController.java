@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
+import javax.servlet.http.HttpSession;
 import java.util.List;
 import java.util.Map;
 
@@ -32,8 +33,8 @@ public class InsurPredController {
     }
 
     @PostMapping("/predictById")
-    public Result predictById(@RequestBody PolicyIdPredictionRequest request) {
-        InsurPred result = insurPredService.predictAndSaveByPolicyId(request.getId(), request.getModelVersion());
+    public Result predictById(@RequestBody PolicyIdPredictionRequest request, HttpSession session) {
+        InsurPred result = insurPredService.predictAndSaveByPolicyId(request.getId(), request.getModelVersion(), session);
         return Result.success(result);
     }
 

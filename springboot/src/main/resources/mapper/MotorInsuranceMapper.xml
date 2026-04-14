@@ -4,10 +4,34 @@
         "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.example.mapper.MotorInsuranceMapper">
 
+    <sql id="BaseColumns">
+        ID as id,
+        creator_employee_no as creatorEmployeeNo,
+        Date_start_contract as dateStartContract,
+        Date_last_renewal as dateLastRenewal,
+        Date_next_renewal as dateNextRenewal,
+        Date_birth as dateBirth,
+        Date_driving_licence as dateDrivingLicence,
+        Distribution_channel as distributionChannel,
+        Seniority as seniority,
+        Policies_in_force as policiesInForce,
+        Max_policies as maxPolicies,
+        Max_products as maxProducts,
+        Lapse as lapse,
+        Date_lapse as dateLapse,
+        Payment as payment,
+        Premium as premium,
+        Type_risk as typeRisk,
+        Area as area,
+        Second_driver as secondDriver
+    </sql>
+
     <select id="selectAll" resultType="com.example.entity.MotorInsurance">
-        select * from motor_insurance
+        select <include refid="BaseColumns" />
+        from motor_insurance
         <where>
             <if test="id != null">and ID = #{id}</if>
+            <if test="creatorEmployeeNo != null and creatorEmployeeNo != ''">and creator_employee_no = #{creatorEmployeeNo}</if>
             <if test="typeRisk != null">and Type_risk = #{typeRisk}</if>
             <if test="area != null">and Area = #{area}</if>
             <if test="distributionChannel != null">and Distribution_channel = #{distributionChannel}</if>
@@ -20,7 +44,8 @@
     </select>
 
     <select id="selectByIds" resultType="com.example.entity.MotorInsurance">
-        select * from motor_insurance
+        select <include refid="BaseColumns" />
+        from motor_insurance
         where ID in
         <foreach collection="list" item="id" open="(" separator="," close=")">
             #{id}

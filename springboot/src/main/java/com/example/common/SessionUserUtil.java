@@ -23,8 +23,28 @@ public class SessionUserUtil {
 
     public static User requireAdmin(HttpSession session) {
         User currentUser = requireLogin(session);
-        if (!ROLE_ADMIN.equals(currentUser.getRole())) {
-            throw new CustomException("普通用户不能删除数据");
+        if (!isAdmin(currentUser)) {
+            throw new CustomException("无权限执行该操作");
+        }
+        return currentUser;
+    }
+
+    public static boolean isAdmin(User user) {
+        return user != null && ROLE_ADMIN.equals(user.getRole());
+    }
+
+    public static String resolveDataScopeEmployeeNo(HttpSession session) {
+        User currentUser = requireLogin(session);
+        return isAdmin(currentUser) ? null : currentUser.getEmployeeNo();
+    }
+
+    public static User requireOwnerOrAdmin(String creatorEmployeeNo, HttpSession session) {
+        User currentUser = requireLogin(session);
+        if (isAdmin(currentUser)) {
+            return currentUser;
+        }
+        if (creatorEmployeeNo == null || !creatorEmployeeNo.equals(currentUser.getEmployeeNo())) {
+            throw new CustomException("无权限查看或操作该数据");
         }
         return currentUser;
     }

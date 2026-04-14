@@ -24,46 +24,70 @@ public class ClaimTypesService {
     @Resource
     private MotorInsuranceMapper motorInsuranceMapper;
 
-    public void add(ClaimTypes claimTypes) {
+    private ClaimTypes requireAccessibleClaimRecord(Integer id, HttpSession session) {
+        ClaimTypes claimTypes = claimTypesMapper.selectById(id);
+        if (claimTypes == null) {
+            throw new CustomException("理赔记录不存在");
+        }
+        SessionUserUtil.requireOwnerOrAdmin(claimTypes.getCreatorEmployeeNo(), session);
+        return claimTypes;
+    }
+
+    public void add(ClaimTypes claimTypes, HttpSession session) {
+        SessionUserUtil.requireLogin(session);
         if (claimTypes.getId() == null) {
-            throw new CustomException("ID不能为空");
+            throw new CustomException("保单编号不能为空");
         }
         MotorInsurance motorInsurance = motorInsuranceMapper.selectById(claimTypes.getId());
         if (motorInsurance == null) {
-            throw new CustomException("该ID在保单信息中不存在，请先新增对应保单记录");
+            throw new CustomException("该保单编号在保单信息中不存在，请先新增对应保单记录");
         }
+        SessionUserUtil.requireOwnerOrAdmin(motorInsurance.getCreatorEmployeeNo(), session);
         if (claimTypesMapper.selectById(claimTypes.getId()) != null) {
-            throw new CustomException("该ID的理赔记录已存在");
+            throw new CustomException("该保单编号的理赔记录已存在");
         }
         claimTypes.setTypeRisk(motorInsurance.getTypeRisk());
         claimTypes.setArea(motorInsurance.getArea());
+        claimTypes.setCreatorEmployeeNo(motorInsurance.getCreatorEmployeeNo());
         claimTypesMapper.insert(claimTypes);
     }
 
     public void deleteById(Integer id, HttpSession session) {
-        SessionUserUtil.requireAdmin(session);
+        requireAccessibleClaimRecord(id, session);
         claimTypesMapper.deleteById(id);
     }
 
-    public void updateById(ClaimTypes claimTypes) {
+    public void updateById(ClaimTypes claimTypes, HttpSession session) {
+        ClaimTypes existing = requireAccessibleClaimRecord(claimTypes.getId(), session);
+        claimTypes.setCreatorEmployeeNo(existing.getCreatorEmployeeNo());
         claimTypesMapper.updateById(claimTypes);
     }
 
-    public ClaimTypes selectById(Integer id) {
-        return claimTypesMapper.selectById(id);
+    public ClaimTypes selectById(Integer id, HttpSession session) {
+        return requireAccessibleClaimRecord(id, session);
     }
 
-    public PageInfo<ClaimTypes> selectPage(Integer pageNum, Integer pageSize, ClaimTypes claimTypes) {
+    public PageInfo<ClaimTypes> selectPage(Integer pageNum, Integer pageSize, ClaimTypes claimTypes, HttpSession session) {
+        SessionUserUtil.requireLogin(session);
+        if (claimTypes == null) {
+            claimTypes = new ClaimTypes();
+        }
+        String scopedEmployeeNo = SessionUserUtil.resolveDataScopeEmployeeNo(session);
+        if (scopedEmployeeNo != null) {
+            claimTypes.setCreatorEmployeeNo(scopedEmployeeNo);
+        }
         PageHelper.startPage(pageNum, pageSize);
         List<ClaimTypes> claimTypesList = claimTypesMapper.selectAll(claimTypes);
         return PageInfo.of(claimTypesList);
     }
 
-    public List<Map<String, Object>> statisticsByRiskType() {
-        return claimTypesMapper.statisticsByRiskType();
+    public List<Map<String, Object>> statisticsByRiskType(HttpSession session) {
+        SessionUserUtil.requireLogin(session);
+        return claimTypesMapper.statisticsByRiskType(SessionUserUtil.resolveDataScopeEmployeeNo(session));
     }
 
-    public List<Map<String, Object>> statisticsByArea() {
-        return claimTypesMapper.statisticsByArea();
+    public List<Map<String, Object>> statisticsByArea(HttpSession session) {
+        SessionUserUtil.requireLogin(session);
+        return claimTypesMapper.statisticsByArea(SessionUserUtil.resolveDataScopeEmployeeNo(session));
     }
 }

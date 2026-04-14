@@ -191,7 +191,7 @@
 <script setup>
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import request from '@/utils/request'
 
 const router = useRouter()
@@ -351,16 +351,47 @@ const loadTrainDataOverview = async () => {
   }
 }
 
-const handleImportTrainData = async () => {
+const buildOverwriteMessage = (payload) => {
+  const conflictCount = Number(payload?.conflictCount || 0)
+  const sampleIds = Array.isArray(payload?.conflictIds) ? payload.conflictIds : []
+  const sampleText = sampleIds.length ? `\n冲突ID示例：${sampleIds.join('、')}` : ''
+  return `检测到 ${conflictCount} 个已存在的保单编号。继续后将覆盖 train_data 中这些保单编号对应的原有保单信息。是否继续？${sampleText}`
+}
+
+const handleImportTrainData = async (overwriteExisting = false) => {
   try {
     importingTrainData.value = true
     const res = await request.post('/modelTraining/trainData/import', {
       contractYear: selectedImportYear.value,
+      overwriteExisting,
     })
     if (res.code === '200') {
+      if (res.data?.requiresOverwriteConfirm) {
+        try {
+          await ElMessageBox.confirm(
+            buildOverwriteMessage(res.data),
+            '保单已存在',
+            {
+              confirmButtonText: '覆盖原有保单',
+              cancelButtonText: '取消',
+              type: 'warning',
+            }
+          )
+        } catch (action) {
+          if (action === 'cancel' || action === 'close') {
+            ElMessage.info('已取消覆盖导入')
+            return
+          }
+          throw action
+        }
+
+        await handleImportTrainData(true)
+        return
+      }
+
       lastImportResult.value = res.data
       await loadTrainDataOverview()
-      ElMessage.success('train_data 导入完成')
+      ElMessage.success(overwriteExisting ? 'train_data 覆盖更新完成' : 'train_data 导入完成')
     } else {
       ElMessage.error(res.msg || '导入失败')
     }

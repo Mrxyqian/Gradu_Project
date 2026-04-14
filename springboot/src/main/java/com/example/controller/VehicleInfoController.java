@@ -21,12 +21,12 @@ public class VehicleInfoController {
 
     @PostConstruct
     public void init() {
-        System.out.println("✅ VehicleInfoController 初始化成功");
+        System.out.println("VehicleInfoController initialized");
     }
 
     @PostMapping("/add")
-    public Result add(@RequestBody VehicleInfo vehicleInfo) {
-        vehicleInfoService.add(vehicleInfo);
+    public Result add(@RequestBody VehicleInfo vehicleInfo, HttpSession session) {
+        vehicleInfoService.add(vehicleInfo, session);
         return Result.success();
     }
 
@@ -37,40 +37,41 @@ public class VehicleInfoController {
     }
 
     @PutMapping("/update")
-    public Result update(@RequestBody VehicleInfo vehicleInfo) {
-        vehicleInfoService.updateById(vehicleInfo);
+    public Result update(@RequestBody VehicleInfo vehicleInfo, HttpSession session) {
+        vehicleInfoService.updateById(vehicleInfo, session);
         return Result.success();
     }
 
     @GetMapping("/selectById/{id}")
-    public Result selectById(@PathVariable Integer id) {
-        VehicleInfo vehicleInfo = vehicleInfoService.selectById(id);
+    public Result selectById(@PathVariable Integer id, HttpSession session) {
+        VehicleInfo vehicleInfo = vehicleInfoService.selectById(id, session);
         return Result.success(vehicleInfo);
     }
 
     @GetMapping("/selectPage")
     public Result selectPage(@RequestParam(defaultValue = "1") Integer pageNum,
                              @RequestParam(defaultValue = "10") Integer pageSize,
-                             VehicleInfo vehicleInfo) {
-        PageInfo<VehicleInfo> pageInfo = vehicleInfoService.selectPage(pageNum, pageSize, vehicleInfo);
+                             VehicleInfo vehicleInfo,
+                             HttpSession session) {
+        PageInfo<VehicleInfo> pageInfo = vehicleInfoService.selectPage(pageNum, pageSize, vehicleInfo, session);
         return Result.success(pageInfo);
     }
 
     @GetMapping("/statisticsByTypeRisk")
-    public Result statisticsByTypeRisk() {
-        List<Map<String, Object>> statistics = vehicleInfoService.statisticsByTypeRisk();
+    public Result statisticsByTypeRisk(HttpSession session) {
+        List<Map<String, Object>> statistics = vehicleInfoService.statisticsByTypeRisk(session);
         return Result.success(statistics);
     }
 
     @GetMapping("/statisticsByTypeFuel")
-    public Result statisticsByTypeFuel() {
-        List<Map<String, Object>> statistics = vehicleInfoService.statisticsByTypeFuel();
+    public Result statisticsByTypeFuel(HttpSession session) {
+        List<Map<String, Object>> statistics = vehicleInfoService.statisticsByTypeFuel(session);
         return Result.success(statistics);
     }
 
     @GetMapping("/statisticsByYear")
-    public Result statisticsByYear() {
-        List<Map<String, Object>> statistics = vehicleInfoService.statisticsByYear();
+    public Result statisticsByYear(HttpSession session) {
+        List<Map<String, Object>> statistics = vehicleInfoService.statisticsByYear(session);
         return Result.success(statistics);
     }
 }

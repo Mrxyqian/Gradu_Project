@@ -7,6 +7,7 @@
     <select id="selectAll" resultType="com.example.entity.ClaimTypes">
         select
             ID as id,
+            creator_employee_no as creatorEmployeeNo,
             Cost_claims_year as costClaimsYear,
             N_claims_year as nClaimsYear,
             N_claims_history as nClaimsHistory,
@@ -16,6 +17,7 @@
         from claim_record
         <where>
             <if test="id != null">and ID = #{id}</if>
+            <if test="creatorEmployeeNo != null and creatorEmployeeNo != ''">and creator_employee_no = #{creatorEmployeeNo}</if>
             <if test="typeRisk != null">and Type_risk = #{typeRisk}</if>
             <if test="area != null">and Area = #{area}</if>
         </where>

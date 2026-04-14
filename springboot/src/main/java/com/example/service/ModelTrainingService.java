@@ -105,10 +105,11 @@ public class ModelTrainingService {
         return result;
     }
 
-    public Object importTrainData(Integer contractYear, HttpSession session) {
+    public Object importTrainData(Integer contractYear, Boolean overwriteExisting, HttpSession session) {
         SessionUserUtil.requireAdmin(session);
         ensureTrainDataTableInitialized();
 
+        boolean overwrite = Boolean.TRUE.equals(overwriteExisting);
         String candidateWhere = buildYearWhere("m", contractYear);
         String eligibleFrom =
                 " FROM motor_insurance m " +
@@ -133,6 +134,13 @@ public class ModelTrainingService {
                 Integer.class,
                 yearArgs
         );
+        List<Integer> conflictIds = existingCount != null && existingCount > 0
+                ? jdbcTemplate.queryForList(
+                "SELECT t.ID FROM train_data t INNER JOIN (SELECT m.ID" + eligibleFrom + ") eligible ON eligible.ID = t.ID ORDER BY t.ID LIMIT 20",
+                Integer.class,
+                yearArgs
+        )
+                : new ArrayList<>();
         List<Integer> skippedIds = jdbcTemplate.queryForList(
                 "SELECT m.ID FROM motor_insurance m " +
                         "LEFT JOIN claim_record c ON c.ID = m.ID " +
@@ -143,11 +151,26 @@ public class ModelTrainingService {
                 yearArgs
         );
 
+        int conflictCount = existingCount == null ? 0 : existingCount;
+        if (conflictCount > 0 && !overwrite) {
+            Map<String, Object> result = new LinkedHashMap<>();
+            result.put("contractYear", contractYear);
+            result.put("candidateCount", candidateCount == null ? 0 : candidateCount);
+            result.put("eligibleCount", eligibleCount == null ? 0 : eligibleCount);
+            result.put("processedCount", 0);
+            result.put("insertedCount", 0);
+            result.put("updatedCount", 0);
+            result.put("conflictCount", conflictCount);
+            result.put("conflictIds", conflictIds);
+            result.put("requiresOverwriteConfirm", true);
+            result.put("skippedCount", skippedIds.size());
+            result.put("skippedIds", skippedIds);
+            result.put("trainDataTotalCount", jdbcTemplate.queryForObject("SELECT COUNT(*) FROM train_data", Integer.class));
+            result.put("trainDataDistinctIdCount", jdbcTemplate.queryForObject("SELECT COUNT(DISTINCT ID) FROM train_data", Integer.class));
+            return result;
+        }
+
         if (eligibleCount != null && eligibleCount > 0) {
-            jdbcTemplate.update(
-                    "DELETE t FROM train_data t INNER JOIN (SELECT m.ID" + eligibleFrom + ") eligible ON eligible.ID = t.ID",
-                    yearArgs
-            );
             jdbcTemplate.update(
                     "INSERT INTO train_data (" +
                             "ID, Date_start_contract, Date_last_renewal, Date_next_renewal, Date_birth, Date_driving_licence, " +
@@ -158,13 +181,43 @@ public class ModelTrainingService {
                             "m.Distribution_channel, m.Seniority, m.Policies_in_force, m.Max_policies, m.Max_products, m.Lapse, m.Date_lapse, m.Payment, m.Premium, " +
                             "c.Cost_claims_year, c.N_claims_year, c.N_claims_history, c.R_Claims_history, c.Type_risk, c.Area, m.Second_driver, " +
                             "v.Year_matriculation, v.Power, v.Cylinder_capacity, v.Value_vehicle, v.N_doors, v.Type_fuel, v.Length, v.Weight" +
-                            eligibleFrom,
+                            eligibleFrom +
+                            " ON DUPLICATE KEY UPDATE " +
+                            "Date_start_contract = VALUES(Date_start_contract), " +
+                            "Date_last_renewal = VALUES(Date_last_renewal), " +
+                            "Date_next_renewal = VALUES(Date_next_renewal), " +
+                            "Date_birth = VALUES(Date_birth), " +
+                            "Date_driving_licence = VALUES(Date_driving_licence), " +
+                            "Distribution_channel = VALUES(Distribution_channel), " +
+                            "Seniority = VALUES(Seniority), " +
+                            "Policies_in_force = VALUES(Policies_in_force), " +
+                            "Max_policies = VALUES(Max_policies), " +
+                            "Max_products = VALUES(Max_products), " +
+                            "Lapse = VALUES(Lapse), " +
+                            "Date_lapse = VALUES(Date_lapse), " +
+                            "Payment = VALUES(Payment), " +
+                            "Premium = VALUES(Premium), " +
+                            "Cost_claims_year = VALUES(Cost_claims_year), " +
+                            "N_claims_year = VALUES(N_claims_year), " +
+                            "N_claims_history = VALUES(N_claims_history), " +
+                            "R_Claims_history = VALUES(R_Claims_history), " +
+                            "Type_risk = VALUES(Type_risk), " +
+                            "Area = VALUES(Area), " +
+                            "Second_driver = VALUES(Second_driver), " +
+                            "Year_matriculation = VALUES(Year_matriculation), " +
+                            "Power = VALUES(Power), " +
+                            "Cylinder_capacity = VALUES(Cylinder_capacity), " +
+                            "Value_vehicle = VALUES(Value_vehicle), " +
+                            "N_doors = VALUES(N_doors), " +
+                            "Type_fuel = VALUES(Type_fuel), " +
+                            "Length = VALUES(Length), " +
+                            "Weight = VALUES(Weight)",
                     yearArgs
             );
         }
 
         int processedCount = eligibleCount == null ? 0 : eligibleCount;
-        int updatedCount = existingCount == null ? 0 : existingCount;
+        int updatedCount = overwrite ? conflictCount : 0;
         int insertedCount = Math.max(processedCount - updatedCount, 0);
 
         Map<String, Object> result = new LinkedHashMap<>();
@@ -173,6 +226,9 @@ public class ModelTrainingService {
         result.put("processedCount", processedCount);
         result.put("insertedCount", insertedCount);
         result.put("updatedCount", updatedCount);
+        result.put("conflictCount", conflictCount);
+        result.put("conflictIds", conflictIds);
+        result.put("requiresOverwriteConfirm", false);
         result.put("skippedCount", skippedIds.size());
         result.put("skippedIds", skippedIds);
         result.put("trainDataTotalCount", jdbcTemplate.queryForObject("SELECT COUNT(*) FROM train_data", Integer.class));
@@ -198,12 +254,28 @@ public class ModelTrainingService {
             jdbcTemplate.execute("INSERT INTO train_data SELECT * FROM motor_insurance_backup_20260413_idfix");
         }
 
-        Integer idIndexExists = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM information_schema.statistics WHERE table_schema = DATABASE() AND table_name = 'train_data' AND index_name = 'idx_train_data_id'",
+        Integer primaryKeyExists = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM information_schema.table_constraints WHERE table_schema = DATABASE() AND table_name = 'train_data' AND constraint_type = 'PRIMARY KEY'",
                 Integer.class
         );
-        if (idIndexExists == null || idIndexExists == 0) {
-            jdbcTemplate.execute("CREATE INDEX idx_train_data_id ON train_data (ID)");
+        if (primaryKeyExists == null || primaryKeyExists == 0) {
+            Integer duplicateIdCount = jdbcTemplate.queryForObject(
+                    "SELECT COUNT(*) FROM (SELECT ID FROM train_data GROUP BY ID HAVING COUNT(*) > 1) duplicated_ids",
+                    Integer.class
+            );
+            if (duplicateIdCount != null && duplicateIdCount > 0) {
+                throw new CustomException("train_data 瀛樺湪閲嶅 ID锛屾棤娉曡缃负涓婚敭");
+            }
+
+            Integer idIndexExists = jdbcTemplate.queryForObject(
+                    "SELECT COUNT(*) FROM information_schema.statistics WHERE table_schema = DATABASE() AND table_name = 'train_data' AND index_name = 'idx_train_data_id'",
+                    Integer.class
+            );
+            if (idIndexExists != null && idIndexExists > 0) {
+                jdbcTemplate.execute("ALTER TABLE train_data DROP INDEX idx_train_data_id, ADD PRIMARY KEY (ID)");
+            } else {
+                jdbcTemplate.execute("ALTER TABLE train_data ADD PRIMARY KEY (ID)");
+            }
         }
     }
 

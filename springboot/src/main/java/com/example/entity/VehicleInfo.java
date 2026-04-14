@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class VehicleInfo {
     private Integer id;
+    private String creatorEmployeeNo;
     private Integer typeRisk;
     private Integer yearMatriculation;
     private Integer power;
@@ -22,6 +23,14 @@ public class VehicleInfo {
 
     public void setId(Integer id) {
         this.id = id;
+    }
+
+    public String getCreatorEmployeeNo() {
+        return creatorEmployeeNo;
+    }
+
+    public void setCreatorEmployeeNo(String creatorEmployeeNo) {
+        this.creatorEmployeeNo = creatorEmployeeNo;
     }
 
     public Integer getTypeRisk() {

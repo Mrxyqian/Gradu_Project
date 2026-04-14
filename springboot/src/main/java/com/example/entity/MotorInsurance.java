@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class MotorInsurance {
     private Integer id;
+    private String creatorEmployeeNo;
     private String dateStartContract;
     private String dateLastRenewal;
     private String dateNextRenewal;
@@ -45,6 +46,14 @@ public class MotorInsurance {
 
     public void setId(Integer id) {
         this.id = id;
+    }
+
+    public String getCreatorEmployeeNo() {
+        return creatorEmployeeNo;
+    }
+
+    public void setCreatorEmployeeNo(String creatorEmployeeNo) {
+        this.creatorEmployeeNo = creatorEmployeeNo;
     }
 
     public String getDateStartContract() {

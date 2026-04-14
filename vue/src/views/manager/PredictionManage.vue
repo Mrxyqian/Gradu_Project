@@ -107,8 +107,8 @@
               <el-col :xs="24" :sm="12">
                 <el-form-item label="第二驾驶员">
                   <el-select v-model="predictForm.secondDriver">
-                    <el-option label="无" :value="0" />
-                    <el-option label="有" :value="1" />
+                    <el-option label="否" :value="0" />
+                    <el-option label="是" :value="1" />
                   </el-select>
                 </el-form-item>
               </el-col>
@@ -144,9 +144,9 @@
       <el-col :xs="24" :xl="9">
         <div class="card section-card history-card">
           <div class="section-title">历史预测记录</div>
-          <el-table :data="historyTableData" style="width: 100%; margin-top: 12px;">
+          <el-table :data="historyTableData" style="width: 100%; margin-top: 12px">
             <el-table-column prop="predId" label="记录ID" width="88" />
-            <el-table-column prop="id" label="保单ID" width="88" />
+            <el-table-column prop="id" label="保单编号" width="100" />
             <el-table-column prop="claimProbability" label="理赔概率" width="110">
               <template #default="scope">{{ formatPercent(scope.row.claimProbability) }}</template>
             </el-table-column>
@@ -198,7 +198,7 @@
       </div>
       <el-descriptions v-if="latestResult" :column="1" border style="margin-top: 16px">
         <el-descriptions-item label="记录ID">{{ latestResult.predId }}</el-descriptions-item>
-        <el-descriptions-item label="保单ID">{{ latestResult.id ?? 0 }}</el-descriptions-item>
+        <el-descriptions-item label="保单编号">{{ latestResult.id ?? 0 }}</el-descriptions-item>
         <el-descriptions-item label="模型版本">{{ latestResult.modelVersion || '-' }}</el-descriptions-item>
         <el-descriptions-item label="分类阈值">{{ latestResult.thresholdUsed ?? '-' }}</el-descriptions-item>
         <el-descriptions-item label="预测时间">{{ latestResult.predictionTime || '-' }}</el-descriptions-item>
@@ -207,7 +207,7 @@
 
     <el-dialog v-model="existingPolicyDialogVisible" title="预测已有保单" width="420px" destroy-on-close>
       <el-form label-position="top">
-        <el-form-item label="保单ID">
+        <el-form-item label="保单编号">
           <el-input-number v-model="existingPolicyId" :min="1" :step="1" controls-position="right" style="width: 100%" />
         </el-form-item>
       </el-form>
@@ -310,8 +310,8 @@ const loadHistoryPage = () => {
     params: {
       pageNum: historyPageNum.value,
       pageSize: historyPageSize.value,
-    }
-  }).then(res => {
+    },
+  }).then((res) => {
     historyTableData.value = res.data?.list || []
     historyTotal.value = res.data?.total || 0
   })
@@ -324,7 +324,7 @@ const loadModelVersions = async () => {
     const data = res.data || {}
     modelVersions.value = data.versions || []
     defaultModelVersion.value = data.defaultModelVersion || ''
-    if (!selectedModelVersion.value || !modelVersions.value.some(item => item.modelVersion === selectedModelVersion.value)) {
+    if (!selectedModelVersion.value || !modelVersions.value.some((item) => item.modelVersion === selectedModelVersion.value)) {
       selectedModelVersion.value = defaultModelVersion.value
     }
   } catch (error) {
@@ -369,7 +369,7 @@ const handlePredictById = async () => {
     return
   }
   if (!existingPolicyId.value || Number(existingPolicyId.value) <= 0) {
-    ElMessage.warning('请输入有效的保单ID')
+    ElMessage.warning('请输入有效的保单编号')
     return
   }
 
@@ -391,7 +391,7 @@ const handlePredictById = async () => {
     }
   } catch (error) {
     console.error(error)
-    ElMessage.error(error?.response?.data?.msg || error?.response?.data?.message || '按ID预测失败')
+    ElMessage.error(error?.response?.data?.msg || error?.response?.data?.message || '按保单编号预测失败')
   } finally {
     predictingExistingPolicy.value = false
   }

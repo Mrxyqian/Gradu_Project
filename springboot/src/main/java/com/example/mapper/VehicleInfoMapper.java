@@ -8,8 +8,8 @@ import java.util.Map;
 
 public interface VehicleInfoMapper {
 
-    @Insert("INSERT INTO vehicle_info (ID, Type_risk, Year_matriculation, Power, Cylinder_capacity, " +
-            "Value_vehicle, N_doors, Type_fuel, Length, Weight) VALUES (#{id}, #{typeRisk}, " +
+    @Insert("INSERT INTO vehicle_info (ID, creator_employee_no, Type_risk, Year_matriculation, Power, Cylinder_capacity, " +
+            "Value_vehicle, N_doors, Type_fuel, Length, Weight) VALUES (#{id}, #{creatorEmployeeNo}, #{typeRisk}, " +
             "#{yearMatriculation}, #{power}, #{cylinderCapacity}, #{valueVehicle}, #{nDoors}, " +
             "#{typeFuel}, #{length}, #{weight})")
     void insert(VehicleInfo vehicleInfo);
@@ -22,7 +22,7 @@ public interface VehicleInfoMapper {
             "N_doors = #{nDoors}, Type_fuel = #{typeFuel}, Length = #{length}, Weight = #{weight} WHERE ID = #{id}")
     void updateById(VehicleInfo vehicleInfo);
 
-    @Select("SELECT ID as id, Type_risk as typeRisk, Year_matriculation as yearMatriculation, " +
+    @Select("SELECT ID as id, creator_employee_no as creatorEmployeeNo, Type_risk as typeRisk, Year_matriculation as yearMatriculation, " +
             "Power as power, Cylinder_capacity as cylinderCapacity, Value_vehicle as valueVehicle, " +
             "N_doors as nDoors, Type_fuel as typeFuel, Length as length, Weight as weight " +
             "FROM vehicle_info WHERE ID = #{id}")
@@ -30,16 +30,34 @@ public interface VehicleInfoMapper {
 
     List<VehicleInfo> selectAll(VehicleInfo vehicleInfo);
 
-    @Select("SELECT Type_risk as typeRisk, COUNT(*) as count, AVG(Power) as avgPower, " +
-            "AVG(Cylinder_capacity) as avgCylinderCapacity, AVG(Value_vehicle) as avgVehicleValue " +
-            "FROM vehicle_info GROUP BY Type_risk")
-    List<Map<String, Object>> statisticsByTypeRisk();
+    @Select({
+            "<script>",
+            "SELECT Type_risk as typeRisk, COUNT(*) as count, AVG(Power) as avgPower, ",
+            "AVG(Cylinder_capacity) as avgCylinderCapacity, AVG(Value_vehicle) as avgVehicleValue ",
+            "FROM vehicle_info ",
+            "<if test='creatorEmployeeNo != null and creatorEmployeeNo != \"\"'>WHERE creator_employee_no = #{creatorEmployeeNo}</if> ",
+            "GROUP BY Type_risk",
+            "</script>"
+    })
+    List<Map<String, Object>> statisticsByTypeRisk(@Param("creatorEmployeeNo") String creatorEmployeeNo);
 
-    @Select("SELECT Type_fuel as typeFuel, COUNT(*) as count, AVG(Power) as avgPower " +
-            "FROM vehicle_info GROUP BY Type_fuel")
-    List<Map<String, Object>> statisticsByTypeFuel();
+    @Select({
+            "<script>",
+            "SELECT Type_fuel as typeFuel, COUNT(*) as count, AVG(Power) as avgPower ",
+            "FROM vehicle_info ",
+            "<if test='creatorEmployeeNo != null and creatorEmployeeNo != \"\"'>WHERE creator_employee_no = #{creatorEmployeeNo}</if> ",
+            "GROUP BY Type_fuel",
+            "</script>"
+    })
+    List<Map<String, Object>> statisticsByTypeFuel(@Param("creatorEmployeeNo") String creatorEmployeeNo);
 
-    @Select("SELECT Year_matriculation as yearMatriculation, COUNT(*) as count " +
-            "FROM vehicle_info GROUP BY Year_matriculation ORDER BY Year_matriculation")
-    List<Map<String, Object>> statisticsByYear();
+    @Select({
+            "<script>",
+            "SELECT Year_matriculation as yearMatriculation, COUNT(*) as count ",
+            "FROM vehicle_info ",
+            "<if test='creatorEmployeeNo != null and creatorEmployeeNo != \"\"'>WHERE creator_employee_no = #{creatorEmployeeNo}</if> ",
+            "GROUP BY Year_matriculation ORDER BY Year_matriculation",
+            "</script>"
+    })
+    List<Map<String, Object>> statisticsByYear(@Param("creatorEmployeeNo") String creatorEmployeeNo);
 }

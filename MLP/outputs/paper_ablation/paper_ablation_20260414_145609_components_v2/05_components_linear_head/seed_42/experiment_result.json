@@ -1,0 +1,210 @@
+{
+  "experiment": {
+    "key": "component_linear_head",
+    "group": "components",
+    "slug": "linear_head",
+    "description": "Replace the two-layer MLP classification head with a single linear layer.",
+    "model_option_overrides": {
+      "head_type": "linear"
+    },
+    "loss_option_overrides": {},
+    "data_overrides": {},
+    "model_overrides": {},
+    "optimizer_overrides": {},
+    "scheduler_overrides": {},
+    "train_overrides": {}
+  },
+  "seed": 42,
+  "resolvedConfig": {
+    "config": {
+      "path": {
+        "csv_path": "D:\\Gradua_pro_code-spring\\Vehic_Insur_Claim\\MLP\\DataSet\\Motor vehicle insurance data.csv",
+        "output_dir": "D:\\Gradua_pro_code-spring\\Vehic_Insur_Claim\\MLP\\outputs\\paper_ablation\\paper_ablation_20260414_145609_components_v2\\05_components_linear_head\\seed_42",
+        "scaler_path": "D:\\Gradua_pro_code-spring\\Vehic_Insur_Claim\\MLP\\outputs\\paper_ablation\\paper_ablation_20260414_145609_components_v2\\05_components_linear_head\\seed_42\\scaler.pkl",
+        "reference_path": "D:\\Gradua_pro_code-spring\\Vehic_Insur_Claim\\MLP\\outputs\\preprocess_reference.pkl",
+        "best_model_path": "D:\\Gradua_pro_code-spring\\Vehic_Insur_Claim\\MLP\\outputs\\paper_ablation\\paper_ablation_20260414_145609_components_v2\\05_components_linear_head\\seed_42\\best_model.pth",
+        "last_model_path": "D:\\Gradua_pro_code-spring\\Vehic_Insur_Claim\\MLP\\outputs\\paper_ablation\\paper_ablation_20260414_145609_components_v2\\05_components_linear_head\\seed_42\\last_model.pth",
+        "log_dir": "D:\\Gradua_pro_code-spring\\Vehic_Insur_Claim\\MLP\\outputs\\paper_ablation\\paper_ablation_20260414_145609_components_v2\\05_components_linear_head\\seed_42\\runs"
+      },
+      "data": {
+        "val_ratio": 0.15,
+        "test_ratio": 0.1,
+        "random_seed": 42,
+        "batch_size": 512,
+        "num_workers": 0,
+        "balanced_sampling": false,
+        "sampler_alpha": 0.75
+      },
+      "model": {
+        "input_dim": 30,
+        "hidden_dims": [
+          64,
+          128,
+          128,
+          64,
+          32
+        ],
+        "head_hidden_dim": 16,
+        "input_dropout": 0.0,
+        "backbone_dropout": 0.25,
+        "head_dropout": 0.15,
+        "head_samples": 1
+      },
+      "loss": {
+        "pos_weight": 4.1,
+        "label_smoothing": 0.0
+      },
+      "optimizer": {
+        "optimizer": "adamw",
+        "lr": 0.0004,
+        "weight_decay": 7e-05,
+        "beta1": 0.9,
+        "beta2": 0.999,
+        "eps": 1e-08,
+        "momentum": 0.9,
+        "nesterov": true
+      },
+      "scheduler": {
+        "scheduler": "cosine_warmup",
+        "warmup_epochs": 5,
+        "min_lr": 1e-06,
+        "plateau_factor": 0.5,
+        "plateau_patience": 5,
+        "plateau_min_lr": 1e-06,
+        "step_size": 10,
+        "gamma": 0.5
+      },
+      "train": {
+        "num_epochs": 40,
+        "early_stop": true,
+        "patience": 20,
+        "min_delta": 0.0001,
+        "early_stop_metric": "auc",
+        "use_amp": true,
+        "grad_clip": 1.0,
+        "resume_from": "",
+        "log_interval": 100,
+        "save_every_epoch": false,
+        "clf_threshold": 0.5,
+        "auto_threshold": true,
+        "threshold_metric": "f1",
+        "threshold_beta": 1.2
+      }
+    },
+    "modelOptions": {
+      "use_residual": true,
+      "norm_type": "layernorm",
+      "activation": "gelu",
+      "head_type": "linear"
+    },
+    "lossOptions": {
+      "use_pos_weight": true,
+      "pos_weight_strategy": "fixed"
+    }
+  },
+  "resultRow": {
+    "experimentIndex": 5,
+    "experimentName": "05_components_linear_head",
+    "experimentKey": "component_linear_head",
+    "experimentGroup": "components",
+    "description": "Replace the two-layer MLP classification head with a single linear layer.",
+    "seed": 42,
+    "useResidual": true,
+    "normType": "layernorm",
+    "activation": "gelu",
+    "headType": "linear",
+    "usePosWeight": true,
+    "posWeightStrategy": "fixed",
+    "balancedSampling": false,
+    "autoThreshold": true,
+    "clfThreshold": 0.5,
+    "auc": 0.967537,
+    "f1": 0.792956,
+    "recall": 0.848269,
+    "precision": 0.744415,
+    "prAuc": 0.881585,
+    "accuracy": 0.917559,
+    "balancedAccuracy": 0.890836,
+    "loss": 0.362567,
+    "finalThreshold": 0.728392,
+    "epochsCompleted": 40,
+    "stoppedEarly": false,
+    "status": "success",
+    "runDir": "D:\\Gradua_pro_code-spring\\Vehic_Insur_Claim\\MLP\\outputs\\paper_ablation\\paper_ablation_20260414_145609_components_v2\\05_components_linear_head\\seed_42",
+    "startedAt": "2026-04-14 15:54:59",
+    "finishedAt": "2026-04-14 15:59:34",
+    "durationSeconds": 275.09,
+    "error": ""
+  },
+  "trainingSummary": {
+    "epochsCompleted": 40,
+    "configuredEpochs": 40,
+    "stoppedEarly": false,
+    "monitorMetric": "auc",
+    "bestMonitorValue": 0.970145,
+    "finalThreshold": 0.728392,
+    "resolvedPosWeight": 4.1,
+    "trainPositiveRate": 0.186124,
+    "finalMetrics": {
+      "loss": 0.362567,
+      "clfLoss": 0.362567,
+      "auc": 0.967537,
+      "prAuc": 0.881585,
+      "accuracy": 0.917559,
+      "balancedAccuracy": 0.890836,
+      "f1": 0.792956,
+      "precision": 0.744415,
+      "recall": 0.848269
+    },
+    "lossConfig": {
+      "pos_weight": 4.099999904632568,
+      "label_smoothing": 0.0,
+      "use_pos_weight": true,
+      "pos_weight_strategy": "fixed"
+    },
+    "ablationModelOptions": {
+      "use_residual": true,
+      "norm_type": "layernorm",
+      "activation": "gelu",
+      "head_type": "linear"
+    },
+    "ablationLossOptions": {
+      "use_pos_weight": true,
+      "pos_weight_strategy": "fixed"
+    },
+    "classificationReport": "              precision    recall  f1-score   support\n\n    No Claim     0.9642    0.9334    0.9485      8589\n       Claim     0.7444    0.8483    0.7930      1964\n\n    accuracy                         0.9176     10553\n   macro avg     0.8543    0.8908    0.8707     10553\nweighted avg     0.9233    0.9176    0.9196     10553\n",
+    "confusionMatrix": {
+      "labels": [
+        "No Claim",
+        "Claim"
+      ],
+      "matrix": [
+        [
+          8017,
+          572
+        ],
+        [
+          298,
+          1666
+        ]
+      ]
+    }
+  },
+  "artifacts": {
+    "outputDir": "D:\\Gradua_pro_code-spring\\Vehic_Insur_Claim\\MLP\\outputs\\paper_ablation\\paper_ablation_20260414_145609_components_v2\\05_components_linear_head\\seed_42",
+    "logFile": "D:\\Gradua_pro_code-spring\\Vehic_Insur_Claim\\MLP\\outputs\\paper_ablation\\paper_ablation_20260414_145609_components_v2\\05_components_linear_head\\seed_42\\train.log",
+    "tensorboardDir": "D:\\Gradua_pro_code-spring\\Vehic_Insur_Claim\\MLP\\outputs\\paper_ablation\\paper_ablation_20260414_145609_components_v2\\05_components_linear_head\\seed_42\\runs",
+    "scalerPath": "D:\\Gradua_pro_code-spring\\Vehic_Insur_Claim\\MLP\\outputs\\paper_ablation\\paper_ablation_20260414_145609_components_v2\\05_components_linear_head\\seed_42\\scaler.pkl",
+    "bestModelPath": "D:\\Gradua_pro_code-spring\\Vehic_Insur_Claim\\MLP\\outputs\\paper_ablation\\paper_ablation_20260414_145609_components_v2\\05_components_linear_head\\seed_42\\best_model.pth",
+    "lastModelPath": "D:\\Gradua_pro_code-spring\\Vehic_Insur_Claim\\MLP\\outputs\\paper_ablation\\paper_ablation_20260414_145609_components_v2\\05_components_linear_head\\seed_42\\last_model.pth",
+    "bestThresholdPath": "D:\\Gradua_pro_code-spring\\Vehic_Insur_Claim\\MLP\\outputs\\paper_ablation\\paper_ablation_20260414_145609_components_v2\\05_components_linear_head\\seed_42\\best_threshold.pt",
+    "figureDir": "D:\\Gradua_pro_code-spring\\Vehic_Insur_Claim\\MLP\\outputs\\paper_ablation\\paper_ablation_20260414_145609_components_v2\\05_components_linear_head\\seed_42\\figures",
+    "figureFiles": {
+      "lossCurve": "loss_curve.png",
+      "accuracyCurve": "accuracy_curve.png",
+      "valPrAucCurve": "val_pr_auc_curve.png",
+      "confusionMatrix": "confusion_matrix.png"
+    },
+    "csvPath": "D:\\Gradua_pro_code-spring\\Vehic_Insur_Claim\\MLP\\DataSet\\Motor vehicle insurance data.csv"
+  }
+}
