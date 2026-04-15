@@ -21,9 +21,9 @@ const router = createRouter({
       children: [
         { path: '/home', name: 'Home', component: () => import('@/views/manager/Home.vue') },
         { path: '/motorInsurance', name: 'MotorInsurance', component: () => import('@/views/manager/MotorInsurance.vue') },
-        { path: '/motorInsuranceStatistics', name: 'MotorInsuranceStatistics', component: () => import('@/views/manager/MotorInsuranceStatistics.vue') },
+        { path: '/motorInsuranceStatistics', name: 'MotorInsuranceStatistics', component: () => import('@/views/manager/BusinessAnalytics.vue'), meta: { analyticsSubject: 'policy' } },
         { path: '/claimTypes', name: 'ClaimTypes', component: () => import('@/views/manager/ClaimTypes.vue') },
-        { path: '/claimStatistics', name: 'ClaimStatistics', component: () => import('@/views/manager/ClaimStatistics.vue') },
+        { path: '/claimStatistics', name: 'ClaimStatistics', component: () => import('@/views/manager/BusinessAnalytics.vue'), meta: { analyticsSubject: 'claim' } },
         { path: '/vehicleInfo', name: 'VehicleInfo', component: () => import('@/views/manager/VehicleInfo.vue') },
         { path: '/predictionManage', name: 'PredictionManage', component: () => import('@/views/manager/PredictionManage.vue') },
         { path: '/predictionStatistics', name: 'PredictionStatistics', component: () => import('@/views/manager/PredictionStatistics.vue') },

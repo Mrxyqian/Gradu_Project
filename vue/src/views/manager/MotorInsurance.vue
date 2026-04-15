@@ -1,31 +1,14 @@
-<template>
+﻿<template>
   <div>
-    <div class="card" style="margin-bottom: 10px">
-      <el-input
-        v-model="data.id"
-        style="width: 220px; margin-right: 10px"
-        placeholder="请输入保单编号查询"
-        :prefix-icon="Search"
-      />
-      <el-select v-model="data.typeRisk" style="width: 200px; margin-right: 10px" placeholder="请选择风险类型" clearable>
-        <el-option label="摩托车" :value="1" />
-        <el-option label="货车" :value="2" />
-        <el-option label="乘用车" :value="3" />
-        <el-option label="农用车" :value="4" />
-      </el-select>
-      <el-select v-model="data.area" style="width: 200px; margin-right: 10px" placeholder="请选择地区" clearable>
-        <el-option label="农村" :value="0" />
-        <el-option label="城市" :value="1" />
-      </el-select>
-      <el-button type="primary" style="margin-left: 10px" @click="load">查询</el-button>
-      <el-button type="info" @click="reset">重置</el-button>
+    <div class="card toolbar-card">
+      <div class="toolbar-actions">
+        <el-button type="primary" @click="handleAdd">新增</el-button>
+        <el-button type="success" plain @click="openQueryDialog">查询</el-button>
+        <el-button type="info" plain @click="resetQuery">重置查询</el-button>
+      </div>
     </div>
 
     <div class="card" style="margin-bottom: 10px">
-      <div style="margin-bottom: 10px">
-        <el-button type="primary" @click="handleAdd">新增</el-button>
-      </div>
-
       <div style="overflow-x: auto">
         <el-table :data="data.tableData" style="width: 100%">
           <el-table-column prop="id" label="保单编号" width="110" fixed="left" />
@@ -87,6 +70,142 @@
       />
     </div>
 
+    <el-dialog v-model="data.queryVisible" title="查询保单信息" width="78%" destroy-on-close>
+      <el-form :model="data.queryForm" label-width="140px" label-position="right" style="padding-right: 30px">
+        <el-row :gutter="20">
+          <el-col :span="8">
+            <el-form-item label="保单编号">
+              <el-input-number v-model="data.queryForm.id" :min="1" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="合同开始日期">
+              <el-input v-model="data.queryForm.dateStartContract" placeholder="YYYY/MM/DD" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="最后续保日期">
+              <el-input v-model="data.queryForm.dateLastRenewal" placeholder="YYYY/MM/DD" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <el-row :gutter="20">
+          <el-col :span="8">
+            <el-form-item label="下次续保日期">
+              <el-input v-model="data.queryForm.dateNextRenewal" placeholder="YYYY/MM/DD" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="分销渠道">
+              <el-select v-model="data.queryForm.distributionChannel" style="width: 100%" clearable>
+                <el-option label="代理人" :value="0" />
+                <el-option label="保险经纪" :value="1" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="被保人出生日期">
+              <el-input v-model="data.queryForm.dateBirth" placeholder="YYYY/MM/DD" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <el-row :gutter="20">
+          <el-col :span="8">
+            <el-form-item label="驾照签发日期">
+              <el-input v-model="data.queryForm.dateDrivingLicence" placeholder="YYYY/MM/DD" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="合作年数">
+              <el-input-number v-model="data.queryForm.seniority" :min="0" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="有效保单数">
+              <el-input-number v-model="data.queryForm.policiesInForce" :min="0" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <el-row :gutter="20">
+          <el-col :span="8">
+            <el-form-item label="历史最高保单数">
+              <el-input-number v-model="data.queryForm.maxPolicies" :min="0" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="历史最高产品数">
+              <el-input-number v-model="data.queryForm.maxProducts" :min="0" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="失效保单数">
+              <el-input-number v-model="data.queryForm.lapse" :min="0" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <el-row :gutter="20">
+          <el-col :span="8">
+            <el-form-item label="合同终止日期">
+              <el-input v-model="data.queryForm.dateLapse" placeholder="YYYY/MM/DD" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="缴费方式">
+              <el-select v-model="data.queryForm.payment" style="width: 100%" clearable>
+                <el-option label="年缴" :value="0" />
+                <el-option label="半年缴" :value="1" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="净保费">
+              <el-input-number v-model="data.queryForm.premium" :precision="2" :step="100" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <el-row :gutter="20">
+          <el-col :span="8">
+            <el-form-item label="风险类型">
+              <el-select v-model="data.queryForm.typeRisk" style="width: 100%" clearable>
+                <el-option label="摩托车" :value="1" />
+                <el-option label="货车" :value="2" />
+                <el-option label="乘用车" :value="3" />
+                <el-option label="农用车" :value="4" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="地区">
+              <el-select v-model="data.queryForm.area" style="width: 100%" clearable>
+                <el-option label="农村" :value="0" />
+                <el-option label="城市" :value="1" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="第二驾驶员">
+              <el-select v-model="data.queryForm.secondDriver" style="width: 100%" clearable>
+                <el-option label="否" :value="0" />
+                <el-option label="是" :value="1" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+      </el-form>
+
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="data.queryVisible = false">取消</el-button>
+          <el-button type="primary" @click="submitQuery">开始查询</el-button>
+        </span>
+      </template>
+    </el-dialog>
+
     <el-dialog
       v-model="data.formVisible"
       width="80%"
@@ -105,7 +224,14 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="合同开始日期" prop="dateStartContract">
-              <el-input v-model="data.form.dateStartContract" autocomplete="off" placeholder="YYYY/MM/DD" />
+              <el-date-picker
+                v-model="data.form.dateStartContract"
+                type="date"
+                format="YYYY/MM/DD"
+                value-format="YYYY/MM/DD"
+                placeholder="请选择合同开始日期"
+                style="width: 100%"
+              />
             </el-form-item>
           </el-col>
         </el-row>
@@ -113,12 +239,26 @@
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="最后续保日期" prop="dateLastRenewal">
-              <el-input v-model="data.form.dateLastRenewal" autocomplete="off" placeholder="YYYY/MM/DD" />
+              <el-date-picker
+                v-model="data.form.dateLastRenewal"
+                type="date"
+                format="YYYY/MM/DD"
+                value-format="YYYY/MM/DD"
+                placeholder="请选择最后续保日期"
+                style="width: 100%"
+              />
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="下次续保日期" prop="dateNextRenewal">
-              <el-input v-model="data.form.dateNextRenewal" autocomplete="off" placeholder="YYYY/MM/DD" />
+              <el-date-picker
+                v-model="data.form.dateNextRenewal"
+                type="date"
+                format="YYYY/MM/DD"
+                value-format="YYYY/MM/DD"
+                placeholder="请选择下次续保日期"
+                style="width: 100%"
+              />
             </el-form-item>
           </el-col>
         </el-row>
@@ -134,7 +274,14 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="被保人出生日期" prop="dateBirth">
-              <el-input v-model="data.form.dateBirth" autocomplete="off" placeholder="YYYY/MM/DD" />
+              <el-date-picker
+                v-model="data.form.dateBirth"
+                type="date"
+                format="YYYY/MM/DD"
+                value-format="YYYY/MM/DD"
+                placeholder="请选择被保人出生日期"
+                style="width: 100%"
+              />
             </el-form-item>
           </el-col>
         </el-row>
@@ -142,7 +289,14 @@
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="驾照签发日期" prop="dateDrivingLicence">
-              <el-input v-model="data.form.dateDrivingLicence" autocomplete="off" placeholder="YYYY/MM/DD" />
+              <el-date-picker
+                v-model="data.form.dateDrivingLicence"
+                type="date"
+                format="YYYY/MM/DD"
+                value-format="YYYY/MM/DD"
+                placeholder="请选择驾照签发日期"
+                style="width: 100%"
+              />
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -181,7 +335,14 @@
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="合同终止日期" prop="dateLapse">
-              <el-input v-model="data.form.dateLapse" autocomplete="off" placeholder="YYYY/MM/DD" />
+              <el-date-picker
+                v-model="data.form.dateLapse"
+                type="date"
+                format="YYYY/MM/DD"
+                value-format="YYYY/MM/DD"
+                placeholder="请选择合同终止日期"
+                style="width: 100%"
+              />
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -244,7 +405,6 @@
 
 <script setup>
 import { reactive, ref } from 'vue'
-import { Search } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import request from '@/utils/request'
 
@@ -272,10 +432,30 @@ const createEmptyForm = () => ({
   secondDriver: null,
 })
 
-const data = reactive({
-  id: '',
+const createEmptyQueryForm = () => ({
+  id: null,
+  dateStartContract: '',
+  dateLastRenewal: '',
+  dateNextRenewal: '',
+  distributionChannel: null,
+  dateBirth: '',
+  dateDrivingLicence: '',
+  seniority: null,
+  policiesInForce: null,
+  maxPolicies: null,
+  maxProducts: null,
+  lapse: null,
+  dateLapse: '',
+  payment: null,
+  premium: null,
   typeRisk: null,
   area: null,
+  secondDriver: null,
+})
+
+const data = reactive({
+  queryVisible: false,
+  queryForm: createEmptyQueryForm(),
   tableData: [],
   total: 0,
   pageNum: 1,
@@ -312,15 +492,25 @@ const getRiskTypeText = (type) => {
   return map[type] || type
 }
 
+const buildQueryParams = () => {
+  const params = {
+    pageNum: data.pageNum,
+    pageSize: data.pageSize,
+    ...data.queryForm,
+  }
+
+  Object.keys(params).forEach((key) => {
+    if (params[key] === '' || params[key] === undefined) {
+      params[key] = null
+    }
+  })
+
+  return params
+}
+
 const load = () => {
   request.get(baseUrl + '/selectPage', {
-    params: {
-      pageNum: data.pageNum,
-      pageSize: data.pageSize,
-      id: data.id || null,
-      typeRisk: data.typeRisk,
-      area: data.area,
-    },
+    params: buildQueryParams(),
   }).then((res) => {
     data.tableData = res.data?.list || []
     data.total = res.data?.total || 0
@@ -334,10 +524,18 @@ const handleCurrentChange = (pageNum) => {
   load()
 }
 
-const reset = () => {
-  data.id = ''
-  data.typeRisk = null
-  data.area = null
+const openQueryDialog = () => {
+  data.queryVisible = true
+}
+
+const submitQuery = () => {
+  data.pageNum = 1
+  data.queryVisible = false
+  load()
+}
+
+const resetQuery = () => {
+  data.queryForm = createEmptyQueryForm()
   data.pageNum = 1
   load()
 }
@@ -398,6 +596,17 @@ const del = (id) => {
 </script>
 
 <style scoped>
+.toolbar-card {
+  margin-bottom: 10px;
+}
+
+.toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .edit-action-btn {
   color: #1f5a4c;
   border-color: rgba(47, 125, 107, 0.28);

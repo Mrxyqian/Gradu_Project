@@ -1,0 +1,211 @@
+{
+  "experiment": {
+    "key": "imbalance_weighted_fixed_threshold",
+    "group": "imbalance",
+    "slug": "weighted_fixed_threshold",
+    "description": "Keep weighted BCE but disable automatic threshold search and use a fixed threshold of 0.5.",
+    "model_option_overrides": {},
+    "loss_option_overrides": {},
+    "data_overrides": {},
+    "model_overrides": {},
+    "optimizer_overrides": {},
+    "scheduler_overrides": {},
+    "train_overrides": {
+      "auto_threshold": false,
+      "clf_threshold": 0.5
+    }
+  },
+  "seed": 62,
+  "resolvedConfig": {
+    "config": {
+      "path": {
+        "csv_path": "D:\\Gradua_pro_code-spring\\Vehic_Insur_Claim\\MLP\\DataSet\\Motor vehicle insurance data.csv",
+        "output_dir": "D:\\Gradua_pro_code-spring\\Vehic_Insur_Claim\\MLP\\outputs\\paper_ablation\\paper_ablation_20260414_191729_imbalance_v1_epoch50\\02_imbalance_weighted_fixed_threshold\\seed_62",
+        "scaler_path": "D:\\Gradua_pro_code-spring\\Vehic_Insur_Claim\\MLP\\outputs\\paper_ablation\\paper_ablation_20260414_191729_imbalance_v1_epoch50\\02_imbalance_weighted_fixed_threshold\\seed_62\\scaler.pkl",
+        "reference_path": "D:\\Gradua_pro_code-spring\\Vehic_Insur_Claim\\MLP\\outputs\\preprocess_reference.pkl",
+        "best_model_path": "D:\\Gradua_pro_code-spring\\Vehic_Insur_Claim\\MLP\\outputs\\paper_ablation\\paper_ablation_20260414_191729_imbalance_v1_epoch50\\02_imbalance_weighted_fixed_threshold\\seed_62\\best_model.pth",
+        "last_model_path": "D:\\Gradua_pro_code-spring\\Vehic_Insur_Claim\\MLP\\outputs\\paper_ablation\\paper_ablation_20260414_191729_imbalance_v1_epoch50\\02_imbalance_weighted_fixed_threshold\\seed_62\\last_model.pth",
+        "log_dir": "D:\\Gradua_pro_code-spring\\Vehic_Insur_Claim\\MLP\\outputs\\paper_ablation\\paper_ablation_20260414_191729_imbalance_v1_epoch50\\02_imbalance_weighted_fixed_threshold\\seed_62\\runs"
+      },
+      "data": {
+        "val_ratio": 0.15,
+        "test_ratio": 0.1,
+        "random_seed": 62,
+        "batch_size": 512,
+        "num_workers": 0,
+        "balanced_sampling": false,
+        "sampler_alpha": 0.75
+      },
+      "model": {
+        "input_dim": 30,
+        "hidden_dims": [
+          128,
+          256,
+          256,
+          128,
+          64
+        ],
+        "head_hidden_dim": 32,
+        "input_dropout": 0.0,
+        "backbone_dropout": 0.25,
+        "head_dropout": 0.15,
+        "head_samples": 1
+      },
+      "loss": {
+        "pos_weight": 4.1,
+        "label_smoothing": 0.0
+      },
+      "optimizer": {
+        "optimizer": "adamw",
+        "lr": 0.0002,
+        "weight_decay": 7e-05,
+        "beta1": 0.9,
+        "beta2": 0.999,
+        "eps": 1e-08,
+        "momentum": 0.9,
+        "nesterov": true
+      },
+      "scheduler": {
+        "scheduler": "cosine_warmup",
+        "warmup_epochs": 5,
+        "min_lr": 1e-06,
+        "plateau_factor": 0.5,
+        "plateau_patience": 5,
+        "plateau_min_lr": 1e-06,
+        "step_size": 10,
+        "gamma": 0.5
+      },
+      "train": {
+        "num_epochs": 50,
+        "early_stop": true,
+        "patience": 20,
+        "min_delta": 0.0001,
+        "early_stop_metric": "auc",
+        "use_amp": true,
+        "grad_clip": 1.0,
+        "resume_from": "",
+        "log_interval": 100,
+        "save_every_epoch": false,
+        "clf_threshold": 0.5,
+        "auto_threshold": false,
+        "threshold_metric": "f1",
+        "threshold_beta": 1.2
+      }
+    },
+    "modelOptions": {
+      "use_residual": true,
+      "norm_type": "layernorm",
+      "activation": "gelu",
+      "head_type": "mlp"
+    },
+    "lossOptions": {
+      "use_pos_weight": true,
+      "pos_weight_strategy": "fixed"
+    }
+  },
+  "resultRow": {
+    "experimentIndex": 2,
+    "experimentName": "02_imbalance_weighted_fixed_threshold",
+    "experimentKey": "imbalance_weighted_fixed_threshold",
+    "experimentGroup": "imbalance",
+    "description": "Keep weighted BCE but disable automatic threshold search and use a fixed threshold of 0.5.",
+    "seed": 62,
+    "useResidual": true,
+    "normType": "layernorm",
+    "activation": "gelu",
+    "headType": "mlp",
+    "usePosWeight": true,
+    "posWeightStrategy": "fixed",
+    "balancedSampling": false,
+    "autoThreshold": false,
+    "clfThreshold": 0.5,
+    "auc": 0.971381,
+    "f1": 0.779221,
+    "recall": 0.931772,
+    "precision": 0.669594,
+    "prAuc": 0.887244,
+    "accuracy": 0.901734,
+    "balancedAccuracy": 0.913319,
+    "loss": 0.338407,
+    "finalThreshold": 0.5,
+    "epochsCompleted": 50,
+    "stoppedEarly": false,
+    "status": "success",
+    "runDir": "D:\\Gradua_pro_code-spring\\Vehic_Insur_Claim\\MLP\\outputs\\paper_ablation\\paper_ablation_20260414_191729_imbalance_v1_epoch50\\02_imbalance_weighted_fixed_threshold\\seed_62",
+    "startedAt": "2026-04-14 20:06:41",
+    "finishedAt": "2026-04-14 20:16:08",
+    "durationSeconds": 567.98,
+    "error": ""
+  },
+  "trainingSummary": {
+    "epochsCompleted": 50,
+    "configuredEpochs": 50,
+    "stoppedEarly": false,
+    "monitorMetric": "auc",
+    "bestMonitorValue": 0.971699,
+    "finalThreshold": 0.5,
+    "resolvedPosWeight": 4.1,
+    "trainPositiveRate": 0.186124,
+    "finalMetrics": {
+      "loss": 0.338407,
+      "clfLoss": 0.338407,
+      "auc": 0.971381,
+      "prAuc": 0.887244,
+      "accuracy": 0.901734,
+      "balancedAccuracy": 0.913319,
+      "f1": 0.779221,
+      "precision": 0.669594,
+      "recall": 0.931772
+    },
+    "lossConfig": {
+      "pos_weight": 4.099999904632568,
+      "label_smoothing": 0.0,
+      "use_pos_weight": true,
+      "pos_weight_strategy": "fixed"
+    },
+    "ablationModelOptions": {
+      "use_residual": true,
+      "norm_type": "layernorm",
+      "activation": "gelu",
+      "head_type": "mlp"
+    },
+    "ablationLossOptions": {
+      "use_pos_weight": true,
+      "pos_weight_strategy": "fixed"
+    },
+    "classificationReport": "              precision    recall  f1-score   support\n\n    No Claim     0.9829    0.8949    0.9368      8589\n       Claim     0.6696    0.9318    0.7792      1964\n\n    accuracy                         0.9017     10553\n   macro avg     0.8262    0.9133    0.8580     10553\nweighted avg     0.9246    0.9017    0.9075     10553\n",
+    "confusionMatrix": {
+      "labels": [
+        "No Claim",
+        "Claim"
+      ],
+      "matrix": [
+        [
+          7686,
+          903
+        ],
+        [
+          134,
+          1830
+        ]
+      ]
+    }
+  },
+  "artifacts": {
+    "outputDir": "D:\\Gradua_pro_code-spring\\Vehic_Insur_Claim\\MLP\\outputs\\paper_ablation\\paper_ablation_20260414_191729_imbalance_v1_epoch50\\02_imbalance_weighted_fixed_threshold\\seed_62",
+    "logFile": "D:\\Gradua_pro_code-spring\\Vehic_Insur_Claim\\MLP\\outputs\\paper_ablation\\paper_ablation_20260414_191729_imbalance_v1_epoch50\\02_imbalance_weighted_fixed_threshold\\seed_62\\train.log",
+    "tensorboardDir": "D:\\Gradua_pro_code-spring\\Vehic_Insur_Claim\\MLP\\outputs\\paper_ablation\\paper_ablation_20260414_191729_imbalance_v1_epoch50\\02_imbalance_weighted_fixed_threshold\\seed_62\\runs",
+    "scalerPath": "D:\\Gradua_pro_code-spring\\Vehic_Insur_Claim\\MLP\\outputs\\paper_ablation\\paper_ablation_20260414_191729_imbalance_v1_epoch50\\02_imbalance_weighted_fixed_threshold\\seed_62\\scaler.pkl",
+    "bestModelPath": "D:\\Gradua_pro_code-spring\\Vehic_Insur_Claim\\MLP\\outputs\\paper_ablation\\paper_ablation_20260414_191729_imbalance_v1_epoch50\\02_imbalance_weighted_fixed_threshold\\seed_62\\best_model.pth",
+    "lastModelPath": "D:\\Gradua_pro_code-spring\\Vehic_Insur_Claim\\MLP\\outputs\\paper_ablation\\paper_ablation_20260414_191729_imbalance_v1_epoch50\\02_imbalance_weighted_fixed_threshold\\seed_62\\last_model.pth",
+    "bestThresholdPath": "D:\\Gradua_pro_code-spring\\Vehic_Insur_Claim\\MLP\\outputs\\paper_ablation\\paper_ablation_20260414_191729_imbalance_v1_epoch50\\02_imbalance_weighted_fixed_threshold\\seed_62\\best_threshold.pt",
+    "figureDir": "D:\\Gradua_pro_code-spring\\Vehic_Insur_Claim\\MLP\\outputs\\paper_ablation\\paper_ablation_20260414_191729_imbalance_v1_epoch50\\02_imbalance_weighted_fixed_threshold\\seed_62\\figures",
+    "figureFiles": {
+      "lossCurve": "loss_curve.png",
+      "accuracyCurve": "accuracy_curve.png",
+      "valPrAucCurve": "val_pr_auc_curve.png",
+      "confusionMatrix": "confusion_matrix.png"
+    },
+    "csvPath": "D:\\Gradua_pro_code-spring\\Vehic_Insur_Claim\\MLP\\DataSet\\Motor vehicle insurance data.csv"
+  }
+}

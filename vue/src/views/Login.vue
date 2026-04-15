@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="auth-page">
     <div class="auth-panel">
       <div class="auth-cover">
@@ -28,7 +28,12 @@
                   <el-input v-model="loginForm.employeeNo" maxlength="6" placeholder="请输入6位工号" />
                 </el-form-item>
                 <el-form-item label="密码" prop="password">
-                  <el-input v-model="loginForm.password" show-password placeholder="请输入密码" />
+                  <el-input
+                    v-model="loginForm.password"
+                    show-password
+                    placeholder="请输入密码"
+                    @keyup.enter="handleLoginEnter"
+                  />
                 </el-form-item>
                 <el-button type="primary" class="full-btn" @click="handleLogin(loginFormRef)">登录</el-button>
               </el-form>
@@ -135,6 +140,11 @@ const handleLogin = async (formEl) => {
       ElMessage.error(res.msg)
     }
   })
+}
+
+const handleLoginEnter = () => {
+  if (!loginForm.value.employeeNo?.trim() || !loginForm.value.password?.trim()) return
+  handleLogin(loginFormRef.value)
 }
 
 const handleRegister = async (formEl) => {
@@ -313,7 +323,6 @@ const handleRegister = async (formEl) => {
   .auth-cover h1 {
     font-size: 32px;
   }
-
 }
 
 @media (max-width: 640px) {

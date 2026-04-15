@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="home-shell">
     <section class="card home-hero">
       <div class="hero-main">
@@ -14,65 +14,64 @@
           <span v-if="currentUser.role === 'ADMIN'">模型训练</span>
         </div>
       </div>
+
       <div class="hero-side">
         <div class="hero-side-panel">
-          <div class="hero-side-label">业务概览</div>
-          <div class="hero-side-value">核心数据</div>
-          <div class="hero-side-grid">
-            <div class="hero-side-item">
+          <div class="hero-side-head">
+            <div>
+              <div class="hero-side-label">业务概览</div>
+              <div class="hero-side-value">核心数据</div>
+            </div>
+            <div class="hero-side-badge">总览</div>
+          </div>
+
+          <div class="hero-side-mosaic">
+            <div class="hero-side-item hero-side-item-primary">
               <span>总保费收入</span>
               <strong>{{ formatWanCurrency(statistics.totalPremium) }}</strong>
             </div>
-            <div class="hero-side-item">
-              <span>保费利润率</span>
+            <div class="hero-side-item hero-side-item-profit">
+              <span>赔付率</span>
               <strong>{{ formatPercent(statistics.premiumProfitRate) }}</strong>
             </div>
-            <div class="hero-side-item">
+            <div class="hero-side-item hero-side-item-policy">
               <span>本年度保单数量</span>
               <strong>{{ formatNumber(statistics.policyCount2018) }}</strong>
-            </div>
-            <div class="hero-side-item">
-              <span>历史出险率</span>
-              <strong>{{ formatHistoryRate(statistics.avgHistoryClaimRate) }}</strong>
             </div>
           </div>
         </div>
       </div>
     </section>
 
-    <el-row :gutter="18">
-      <el-col :xs="24" :xl="24">
-        <div class="card feature-card">
-          <div class="block-head block-head-row">
-            <div class="block-title">快捷入口</div>
-            <el-button class="shortcut-manage-btn" type="primary" plain @click="openShortcutDialog">管理快捷入口</el-button>
-          </div>
+    <div class="card feature-card">
+      <div class="block-head block-head-row">
+        <div class="block-title">快捷入口</div>
+        <el-button class="shortcut-manage-btn" type="primary" plain @click="openShortcutDialog">管理快捷入口</el-button>
+      </div>
 
-          <div v-if="visibleQuickEntries.length" class="quick-grid">
-            <button
-              v-for="item in visibleQuickEntries"
-              :key="item.title"
-              class="quick-entry"
-              type="button"
-              @click="goTo(item.path)"
-            >
-              <div class="quick-entry-icon" :style="{ background: item.iconBackground, color: item.iconColor }">
-                <component :is="item.icon" />
-              </div>
-              <div class="quick-entry-body">
-                <div class="quick-entry-title">{{ item.title }}</div>
-                <div class="quick-entry-path">{{ item.path }}</div>
-              </div>
-              <div class="quick-entry-arrow">进入</div>
-            </button>
+      <div v-if="visibleQuickEntries.length" class="quick-grid">
+        <button
+          v-for="item in visibleQuickEntries"
+          :key="item.title"
+          class="quick-entry"
+          type="button"
+          @click="goTo(item.path)"
+        >
+          <div class="quick-entry-icon" :style="{ background: item.iconBackground, color: item.iconColor }">
+            <component :is="item.icon" />
           </div>
+          <div class="quick-entry-body">
+            <div class="quick-entry-title">{{ item.title }}</div>
+            <div class="quick-entry-path">{{ item.path }}</div>
+          </div>
+          <div class="quick-entry-arrow">进入</div>
+        </button>
+      </div>
 
-          <el-empty v-else description="暂无快捷入口">
-            <el-button class="shortcut-manage-btn" type="primary" plain @click="openShortcutDialog">添加快捷入口</el-button>
-          </el-empty>
-        </div>
-      </el-col>
-    </el-row>
+      <el-empty v-else description="暂无快捷入口">
+        <el-button class="shortcut-manage-btn" type="primary" plain @click="openShortcutDialog">添加快捷入口</el-button>
+      </el-empty>
+    </div>
 
     <el-dialog v-model="shortcutDialogVisible" title="管理快捷入口" width="680px">
       <div class="shortcut-dialog-tip">最多可添加 4 个快捷入口。</div>
@@ -149,10 +148,8 @@ const formatNumber = (value) => {
   return number.toLocaleString('zh-CN')
 }
 
-const formatCurrency = (value) => `￥${formatNumber(value)}`
 const formatWanCurrency = (value) => `￥${(Number(value || 0) / 10000).toFixed(1)} 万`
 const formatPercent = (value) => `${(Number(value || 0) * 100).toFixed(2)}%`
-const formatHistoryRate = (value) => `${Number(value || 0).toFixed(2)}`
 const parseShortcutPaths = (value) => {
   if (!value) return []
   return String(value)
@@ -171,7 +168,7 @@ const allShortcutOptions = computed(() => {
       iconColor: '#2f7d6b',
     },
     {
-      title: '保单统计',
+      title: '保单分析',
       path: '/motorInsuranceStatistics',
       icon: DataAnalysis,
       iconBackground: 'rgba(91, 143, 203, 0.14)',
@@ -185,7 +182,7 @@ const allShortcutOptions = computed(() => {
       iconColor: '#b5792d',
     },
     {
-      title: '理赔统计',
+      title: '理赔分析',
       path: '/claimStatistics',
       icon: PieChart,
       iconBackground: 'rgba(124, 181, 139, 0.18)',
@@ -346,9 +343,8 @@ onMounted(() => {
   display: flex;
   align-items: stretch;
   justify-content: space-between;
-  gap: 24px;
-  gap: 18px;
-  padding: 22px 24px;
+  gap: 14px;
+  padding: 18px 20px;
   background:
     radial-gradient(circle at top right, rgba(91, 143, 203, 0.16), transparent 28%),
     radial-gradient(circle at bottom left, rgba(47, 125, 107, 0.12), transparent 30%),
@@ -358,39 +354,43 @@ onMounted(() => {
 .hero-main {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .hero-chip-row {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 
 .hero-chip {
   display: inline-flex;
   align-items: center;
-  padding: 6px 12px;
+  padding: 7px 14px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.78);
   border: 1px solid rgba(95, 123, 114, 0.14);
   color: #5d736b;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
 }
 
 .hero-title {
   margin: 0;
-  font-size: 32px;
-  line-height: 1.2;
+  font-size: 34px;
+  line-height: 1.18;
   color: #20352e;
 }
 
 .hero-module-row {
-  margin-top: 14px;
+  margin-top: 22px;
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+  padding-left: 2px;
 }
 
 .hero-module-row span {
@@ -401,53 +401,69 @@ onMounted(() => {
   color: #3e544d;
   font-weight: 600;
   font-size: 13px;
+  white-space: nowrap;
 }
 
 .hero-side {
-  width: 400px;
+  width: 360px;
   flex-shrink: 0;
 }
 
 .hero-side-panel {
   height: 100%;
-  padding: 16px;
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.82);
+  padding: 14px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.84);
   border: 1px solid rgba(95, 123, 114, 0.12);
   box-shadow: 0 14px 32px rgba(48, 77, 67, 0.08);
 }
 
+.hero-side-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
 .hero-side-label {
   color: #769088;
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .hero-side-value {
-  margin: 6px 0 10px;
+  margin: 6px 0 0;
   font-size: 20px;
   font-weight: 700;
   color: #2b5c4f;
 }
 
-.hero-side-grid {
+.hero-side-badge {
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(232, 243, 238, 0.98);
+  color: #245548;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.hero-side-mosaic {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 1.15fr 0.85fr;
+  grid-template-rows: repeat(2, minmax(74px, auto));
   gap: 10px;
 }
 
 .hero-side-item {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
   justify-content: space-between;
-  gap: 5px;
-  padding: 10px 12px;
-  border-radius: 16px;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: 18px;
   background: rgba(244, 248, 245, 0.92);
   border: 1px solid rgba(95, 123, 114, 0.1);
   color: #61746d;
-  min-height: 74px;
-  line-height: 1.3;
 }
 
 .hero-side-item span {
@@ -456,10 +472,33 @@ onMounted(() => {
 
 .hero-side-item strong {
   color: #24483d;
-  font-size: 17px;
+  font-size: 19px;
   line-height: 1.2;
   word-break: break-word;
 }
+
+.hero-side-item-primary {
+  grid-column: 1 / 2;
+  grid-row: 1 / 3;
+  background: linear-gradient(135deg, rgba(47, 125, 107, 0.18), rgba(255, 255, 255, 0.94));
+}
+
+.hero-side-item-primary strong {
+  font-size: 24px;
+}
+
+.hero-side-item-profit {
+  grid-column: 2 / 3;
+  grid-row: 1 / 2;
+  background: linear-gradient(135deg, rgba(91, 143, 203, 0.16), rgba(255, 255, 255, 0.94));
+}
+
+.hero-side-item-policy {
+  grid-column: 2 / 3;
+  grid-row: 2 / 3;
+  background: linear-gradient(135deg, rgba(124, 181, 139, 0.16), rgba(255, 255, 255, 0.94));
+}
+
 .feature-card {
   height: 100%;
 }
@@ -630,7 +669,7 @@ onMounted(() => {
   font-weight: 700;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1180px) {
   .home-hero {
     flex-direction: column;
   }
@@ -638,15 +677,22 @@ onMounted(() => {
   .hero-side {
     width: 100%;
   }
+}
 
-  .hero-side-grid {
+@media (max-width: 900px) {
+  .hero-side-mosaic {
     grid-template-columns: 1fr;
+    grid-template-rows: none;
   }
 
-  .quick-grid {
-    grid-template-columns: 1fr;
+  .hero-side-item-primary,
+  .hero-side-item-profit,
+  .hero-side-item-policy {
+    grid-column: auto;
+    grid-row: auto;
   }
 
+  .quick-grid,
   .shortcut-option-grid {
     grid-template-columns: 1fr;
   }

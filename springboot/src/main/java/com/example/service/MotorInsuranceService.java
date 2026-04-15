@@ -115,6 +115,30 @@ public class MotorInsuranceService {
         }
     }
 
+    private void convertQueryDatesToDBFormat(MotorInsurance motorInsurance) {
+        if (motorInsurance == null) {
+            return;
+        }
+        if (!isBlank(motorInsurance.getDateStartContract())) {
+            motorInsurance.setDateStartContract(DateUtil.convertYYYYMMDDToDDMMYYYY(motorInsurance.getDateStartContract()));
+        }
+        if (!isBlank(motorInsurance.getDateLastRenewal())) {
+            motorInsurance.setDateLastRenewal(DateUtil.convertYYYYMMDDToDDMMYYYY(motorInsurance.getDateLastRenewal()));
+        }
+        if (!isBlank(motorInsurance.getDateNextRenewal())) {
+            motorInsurance.setDateNextRenewal(DateUtil.convertYYYYMMDDToDDMMYYYY(motorInsurance.getDateNextRenewal()));
+        }
+        if (!isBlank(motorInsurance.getDateBirth())) {
+            motorInsurance.setDateBirth(DateUtil.convertYYYYMMDDToDDMMYYYY(motorInsurance.getDateBirth()));
+        }
+        if (!isBlank(motorInsurance.getDateDrivingLicence())) {
+            motorInsurance.setDateDrivingLicence(DateUtil.convertYYYYMMDDToDDMMYYYY(motorInsurance.getDateDrivingLicence()));
+        }
+        if (!isBlank(motorInsurance.getDateLapse())) {
+            motorInsurance.setDateLapse(DateUtil.convertYYYYMMDDToDDMMYYYY(motorInsurance.getDateLapse()));
+        }
+    }
+
     private void convertDatesToDisplayFormat(MotorInsurance motorInsurance) {
         if (motorInsurance.getDateStartContract() != null) {
             motorInsurance.setDateStartContract(DateUtil.convertDDMMYYYYToYYYYMMDD(motorInsurance.getDateStartContract()));
@@ -207,6 +231,7 @@ public class MotorInsuranceService {
         if (motorInsurance == null) {
             motorInsurance = new MotorInsurance();
         }
+        convertQueryDatesToDBFormat(motorInsurance);
         String scopedEmployeeNo = SessionUserUtil.resolveDataScopeEmployeeNo(session);
         if (scopedEmployeeNo != null) {
             motorInsurance.setCreatorEmployeeNo(scopedEmployeeNo);

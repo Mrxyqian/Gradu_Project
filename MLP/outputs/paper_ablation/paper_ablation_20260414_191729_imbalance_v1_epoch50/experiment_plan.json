@@ -1,0 +1,118 @@
+{
+  "createdAt": "2026-04-14 19:17:29",
+  "baseDir": "D:\\Gradua_pro_code-spring\\Vehic_Insur_Claim\\MLP\\outputs\\paper_ablation\\paper_ablation_20260414_191729_imbalance_v1_epoch50",
+  "csvPath": "D:\\Gradua_pro_code-spring\\Vehic_Insur_Claim\\MLP\\DataSet\\Motor vehicle insurance data.csv",
+  "groups": [
+    "imbalance"
+  ],
+  "seeds": [
+    42,
+    52,
+    62
+  ],
+  "fixedSettings": {
+    "numEpochs": 50,
+    "batchSize": 512,
+    "numWorkers": 0,
+    "headHiddenDim": 32,
+    "learningRate": null,
+    "weightDecay": 7e-05,
+    "optimizer": "adamw",
+    "warmupEpochs": 5,
+    "minLr": 1e-06,
+    "earlyStopMetric": "auc",
+    "thresholdMetric": "f1",
+    "thresholdBeta": 1.2,
+    "useAmp": true
+  },
+  "groupSpecificDefaults": {
+    "components": {
+      "numEpochs": 40,
+      "learningRate": 0.0004
+    },
+    "imbalance": {
+      "numEpochs": 80,
+      "learningRate": 0.0002
+    }
+  },
+  "plan": [
+    {
+      "experimentIndex": 1,
+      "experimentName": "01_imbalance_baseline_original",
+      "spec": {
+        "key": "imbalance_baseline_original",
+        "group": "imbalance",
+        "slug": "baseline_original",
+        "description": "Imbalance-ablation baseline: residual MLP with LayerNorm, GELU, MLP head, weighted BCE, and automatic threshold search.",
+        "model_option_overrides": {},
+        "loss_option_overrides": {},
+        "data_overrides": {},
+        "model_overrides": {},
+        "optimizer_overrides": {},
+        "scheduler_overrides": {},
+        "train_overrides": {}
+      }
+    },
+    {
+      "experimentIndex": 2,
+      "experimentName": "02_imbalance_weighted_fixed_threshold",
+      "spec": {
+        "key": "imbalance_weighted_fixed_threshold",
+        "group": "imbalance",
+        "slug": "weighted_fixed_threshold",
+        "description": "Keep weighted BCE but disable automatic threshold search and use a fixed threshold of 0.5.",
+        "model_option_overrides": {},
+        "loss_option_overrides": {},
+        "data_overrides": {},
+        "model_overrides": {},
+        "optimizer_overrides": {},
+        "scheduler_overrides": {},
+        "train_overrides": {
+          "auto_threshold": false,
+          "clf_threshold": 0.5
+        }
+      }
+    },
+    {
+      "experimentIndex": 3,
+      "experimentName": "03_imbalance_unweighted_auto_threshold",
+      "spec": {
+        "key": "imbalance_unweighted_auto_threshold",
+        "group": "imbalance",
+        "slug": "unweighted_auto_threshold",
+        "description": "Disable positive-class weighting but keep automatic threshold search.",
+        "model_option_overrides": {},
+        "loss_option_overrides": {
+          "use_pos_weight": false
+        },
+        "data_overrides": {},
+        "model_overrides": {},
+        "optimizer_overrides": {},
+        "scheduler_overrides": {},
+        "train_overrides": {}
+      }
+    },
+    {
+      "experimentIndex": 4,
+      "experimentName": "04_imbalance_unweighted_fixed_threshold",
+      "spec": {
+        "key": "imbalance_unweighted_fixed_threshold",
+        "group": "imbalance",
+        "slug": "unweighted_fixed_threshold",
+        "description": "Disable positive-class weighting and use a fixed threshold of 0.5.",
+        "model_option_overrides": {},
+        "loss_option_overrides": {
+          "use_pos_weight": false
+        },
+        "data_overrides": {},
+        "model_overrides": {},
+        "optimizer_overrides": {},
+        "scheduler_overrides": {},
+        "train_overrides": {
+          "auto_threshold": false,
+          "clf_threshold": 0.5
+        }
+      }
+    }
+  ]
+}

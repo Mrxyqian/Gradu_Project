@@ -1,93 +1,96 @@
-<template>
+﻿<template>
   <div class="layout-shell">
     <aside class="sidebar-panel">
       <div class="brand-block">
         <div class="brand-mark">
-          <img src="@/assets/imgs/logo.png" alt="系统标识" class="brand-logo">
+          <img src="@/assets/imgs/insurance-brand.svg" alt="车险理赔预测系统图标" class="brand-logo">
         </div>
-        <div>
+        <div class="brand-copy">
           <div class="brand-title">车险理赔预测系统</div>
+          <div class="brand-subtitle">业务导航与运营总览</div>
         </div>
       </div>
 
       <div class="sidebar-caption">业务导航</div>
 
-      <el-menu
-        router
-        class="sidebar-menu"
-        :default-active="$route.path"
-        :default-openeds="['2', '3', '4']"
-      >
-        <el-menu-item index="/home">
-          <el-icon><HomeFilled /></el-icon>
-          <span>系统首页</span>
-        </el-menu-item>
+      <div class="sidebar-scroll">
+        <el-menu
+          router
+          class="sidebar-menu"
+          :default-active="$route.path"
+          :default-openeds="['2', '3', '4']"
+        >
+          <el-menu-item index="/home">
+            <el-icon><HomeFilled /></el-icon>
+            <span>系统首页</span>
+          </el-menu-item>
 
-        <el-sub-menu index="2">
-          <template #title>
-            <el-icon><Memo /></el-icon>
-            <span>保单管理</span>
-          </template>
-          <el-menu-item index="/motorInsurance">
-            <el-icon><Document /></el-icon>
-            <span>保单信息</span>
-          </el-menu-item>
-          <el-menu-item index="/motorInsuranceStatistics">
-            <el-icon><DataAnalysis /></el-icon>
-            <span>保单统计</span>
-          </el-menu-item>
-        </el-sub-menu>
+          <el-sub-menu index="2">
+            <template #title>
+              <el-icon><Memo /></el-icon>
+              <span>保单管理</span>
+            </template>
+            <el-menu-item index="/motorInsurance">
+              <el-icon><Document /></el-icon>
+              <span>保单信息</span>
+            </el-menu-item>
+            <el-menu-item index="/motorInsuranceStatistics">
+              <el-icon><DataAnalysis /></el-icon>
+              <span>保单分析</span>
+            </el-menu-item>
+          </el-sub-menu>
 
-        <el-sub-menu index="3">
-          <template #title>
-            <el-icon><Memo /></el-icon>
-            <span>理赔管理</span>
-          </template>
-          <el-menu-item index="/claimTypes">
-            <el-icon><Document /></el-icon>
-            <span>理赔记录</span>
-          </el-menu-item>
-          <el-menu-item index="/claimStatistics">
-            <el-icon><DataAnalysis /></el-icon>
-            <span>理赔统计</span>
-          </el-menu-item>
-        </el-sub-menu>
+          <el-sub-menu index="3">
+            <template #title>
+              <el-icon><Memo /></el-icon>
+              <span>理赔管理</span>
+            </template>
+            <el-menu-item index="/claimTypes">
+              <el-icon><Document /></el-icon>
+              <span>理赔记录</span>
+            </el-menu-item>
+            <el-menu-item index="/claimStatistics">
+              <el-icon><DataAnalysis /></el-icon>
+              <span>理赔分析</span>
+            </el-menu-item>
+          </el-sub-menu>
 
-        <el-menu-item index="/vehicleInfo">
-          <el-icon><Van /></el-icon>
-          <span>车辆信息管理</span>
-        </el-menu-item>
-
-        <el-menu-item v-if="user.role === 'ADMIN'" index="/userManage">
-          <el-icon><User /></el-icon>
-          <span>用户管理</span>
-        </el-menu-item>
-
-        <el-sub-menu index="4">
-          <template #title>
-            <el-icon><TrendCharts /></el-icon>
-            <span>理赔率预测</span>
-          </template>
-          <el-menu-item index="/predictionManage">
-            <el-icon><MagicStick /></el-icon>
-            <span>预测管理</span>
+          <el-menu-item index="/vehicleInfo">
+            <el-icon><Van /></el-icon>
+            <span>车辆信息管理</span>
           </el-menu-item>
-          <el-menu-item index="/predictionStatistics">
-            <el-icon><PieChart /></el-icon>
-            <span>预测统计</span>
-          </el-menu-item>
-          <el-menu-item v-if="user.role === 'ADMIN'" index="/modelTraining">
-            <el-icon><Operation /></el-icon>
-            <span>模型训练</span>
-          </el-menu-item>
-        </el-sub-menu>
-      </el-menu>
 
+          <el-menu-item v-if="user.role === 'ADMIN'" index="/userManage">
+            <el-icon><User /></el-icon>
+            <span>用户管理</span>
+          </el-menu-item>
+
+          <el-sub-menu index="4">
+            <template #title>
+              <el-icon><TrendCharts /></el-icon>
+              <span>理赔率预测</span>
+            </template>
+            <el-menu-item index="/predictionManage">
+              <el-icon><MagicStick /></el-icon>
+              <span>预测管理</span>
+            </el-menu-item>
+            <el-menu-item index="/predictionStatistics">
+              <el-icon><PieChart /></el-icon>
+              <span>预测统计</span>
+            </el-menu-item>
+            <el-menu-item v-if="user.role === 'ADMIN'" index="/modelTraining">
+              <el-icon><Operation /></el-icon>
+              <span>模型训练</span>
+            </el-menu-item>
+          </el-sub-menu>
+        </el-menu>
+      </div>
     </aside>
 
     <main class="content-panel">
       <header class="topbar">
         <div class="topbar-copy">
+          <div class="topbar-eyebrow">业务控制台</div>
           <div class="topbar-title">车险理赔预测系统</div>
         </div>
 
@@ -101,7 +104,7 @@
             <div class="profile-button">
               <div class="profile-avatar">{{ userInitial }}</div>
               <div class="profile-meta">
-                <span class="profile-name">{{ user.name || '未登录' }}</span>
+                <span class="profile-name">{{ user.name || '未登录用户' }}</span>
                 <span class="profile-role">{{ user.role === 'ADMIN' ? 'Administrator' : 'Operator' }}</span>
               </div>
               <el-icon><ArrowDown /></el-icon>
@@ -148,18 +151,18 @@ const logout = async () => {
 
 <style scoped>
 .layout-shell {
-  min-height: 100vh;
+  height: 100vh;
   display: grid;
   grid-template-columns: 280px minmax(0, 1fr);
   gap: 18px;
   padding: 18px;
+  overflow: hidden;
 }
 
 .sidebar-panel {
-  position: sticky;
-  top: 18px;
-  align-self: start;
-  min-height: calc(100vh - 36px);
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
   padding: 20px 14px 16px;
   border-radius: 30px;
   background:
@@ -168,13 +171,14 @@ const logout = async () => {
   border: 1px solid rgba(95, 123, 114, 0.14);
   box-shadow: 0 18px 46px rgba(48, 77, 67, 0.08);
   backdrop-filter: blur(14px);
+  overflow: hidden;
 }
 
 .brand-block {
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 6px 8px 20px;
+  padding: 6px 8px 18px;
 }
 
 .brand-mark {
@@ -192,18 +196,47 @@ const logout = async () => {
   object-fit: contain;
 }
 
+.brand-copy {
+  min-width: 0;
+}
+
 .brand-title {
   font-size: 19px;
   font-weight: 700;
   color: #274139;
 }
 
+.brand-subtitle {
+  margin-top: 4px;
+  color: #88a097;
+  font-size: 12px;
+}
+
 .sidebar-caption {
-  padding: 0 18px 8px;
+  padding: 0 18px 10px;
   color: #89a098;
   font-size: 12px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+.sidebar-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-bottom: 6px;
+}
+
+.sidebar-scroll::-webkit-scrollbar,
+.page-stage::-webkit-scrollbar {
+  width: 8px;
+}
+
+.sidebar-scroll::-webkit-scrollbar-thumb,
+.page-stage::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(95, 123, 114, 0.28);
 }
 
 .sidebar-menu {
@@ -212,12 +245,15 @@ const logout = async () => {
 
 .content-panel {
   min-width: 0;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 18px;
+  overflow: hidden;
 }
 
 .topbar {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -234,6 +270,14 @@ const logout = async () => {
 
 .topbar-copy {
   min-width: 0;
+}
+
+.topbar-eyebrow {
+  margin-bottom: 6px;
+  color: #7a9189;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .topbar-title {
@@ -320,17 +364,30 @@ const logout = async () => {
 }
 
 .page-stage {
+  flex: 1;
   min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 4px;
 }
 
 @media (max-width: 1180px) {
   .layout-shell {
+    height: auto;
+    min-height: 100vh;
     grid-template-columns: 1fr;
+    overflow: visible;
   }
 
-  .sidebar-panel {
-    position: static;
+  .sidebar-panel,
+  .content-panel {
     min-height: auto;
+  }
+
+  .sidebar-scroll,
+  .page-stage {
+    overflow: visible;
   }
 }
 
