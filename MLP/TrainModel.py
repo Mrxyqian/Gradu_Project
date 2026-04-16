@@ -46,11 +46,21 @@ from torch.optim.lr_scheduler import (
 from torch.utils.tensorboard import SummaryWriter
 
 if __package__:
-    from .DataLoader import build_dataloaders
+    from .DataLoader import (
+        FEATURE_ENGINEERING_STRATEGY,
+        FEATURE_ENGINEERING_VERSION,
+        OBSERVATION_DATE_COL,
+        build_dataloaders,
+    )
     from .Model import ClaimClassificationLoss, InsuranceMLP
     from .TrainConfig import Config
 else:
-    from DataLoader import build_dataloaders
+    from DataLoader import (
+        FEATURE_ENGINEERING_STRATEGY,
+        FEATURE_ENGINEERING_VERSION,
+        OBSERVATION_DATE_COL,
+        build_dataloaders,
+    )
     from Model import ClaimClassificationLoss, InsuranceMLP
     from TrainConfig import Config
 
@@ -295,17 +305,26 @@ def search_best_threshold(
     labels: np.ndarray,
     metric: str = "f1",
     beta: float = 1.0,
+    min_recall: Optional[float] = None,
     n_candidates: int = 200,
-) -> tuple[float, float]:
+) -> tuple[float, float, Dict[str, Any]]:
     if probs.size == 0:
-        return 0.5, 0.0
+        return 0.5, 0.0, {
+            "metric": metric,
+            "beta": beta,
+            "minRecall": min_recall,
+            "constraintSatisfied": False,
+            "selectedPrecision": 0.0,
+            "selectedRecall": 0.0,
+        }
 
     thresholds = np.linspace(0.05, 0.95, n_candidates)
-    best_threshold = 0.5
-    best_score = -1.0
+    candidates: list[Dict[str, float]] = []
 
     for threshold in thresholds:
         preds = (probs >= threshold).astype(int)
+        precision = precision_score(labels, preds, zero_division=0)
+        recall = recall_score(labels, preds, zero_division=0)
         if metric == "f1":
             score = (
                 f1_score(labels, preds, zero_division=0)
@@ -313,17 +332,60 @@ def search_best_threshold(
                 else fbeta_score(labels, preds, beta=beta, zero_division=0)
             )
         elif metric == "precision":
-            score = precision_score(labels, preds, zero_division=0)
+            score = precision
         elif metric == "recall":
-            score = recall_score(labels, preds, zero_division=0)
+            score = recall
         else:
             raise ValueError(f"Unsupported threshold metric: {metric}")
 
-        if score > best_score:
-            best_score = score
-            best_threshold = float(threshold)
+        candidates.append(
+            {
+                "threshold": float(threshold),
+                "score": float(score),
+                "precision": float(precision),
+                "recall": float(recall),
+            }
+        )
 
-    return best_threshold, float(best_score)
+    recall_floor = None if min_recall is None else float(min_recall)
+    feasible_candidates = candidates
+    constraint_satisfied = False
+    if recall_floor is not None:
+        feasible_candidates = [
+            candidate for candidate in candidates if candidate["recall"] >= recall_floor
+        ]
+        constraint_satisfied = bool(feasible_candidates)
+
+    ranking_pool = feasible_candidates if feasible_candidates else candidates
+    if feasible_candidates:
+        best_candidate = max(
+            ranking_pool,
+            key=lambda candidate: (
+                candidate["score"],
+                candidate["precision"],
+                candidate["recall"],
+                candidate["threshold"],
+            ),
+        )
+    else:
+        best_candidate = max(
+            ranking_pool,
+            key=lambda candidate: (
+                candidate["recall"],
+                candidate["precision"],
+                candidate["score"],
+                -candidate["threshold"],
+            ),
+        )
+
+    return best_candidate["threshold"], best_candidate["score"], {
+        "metric": metric,
+        "beta": beta,
+        "minRecall": recall_floor,
+        "constraintSatisfied": constraint_satisfied,
+        "selectedPrecision": best_candidate["precision"],
+        "selectedRecall": best_candidate["recall"],
+    }
 
 
 def init_history() -> Dict[str, list]:
@@ -860,14 +922,36 @@ def run_training(
             )
 
             if cfg.train.auto_threshold:
-                best_threshold, _ = search_best_threshold(
+                best_threshold, threshold_search_score, threshold_search_info = search_best_threshold(
                     val_metrics["_probs"],
                     val_metrics["_labels"],
                     metric=cfg.train.threshold_metric,
                     beta=cfg.train.threshold_beta,
+                    min_recall=cfg.train.threshold_min_recall,
                 )
+                if (
+                    cfg.train.threshold_min_recall is not None
+                    and not threshold_search_info["constraintSatisfied"]
+                ):
+                    logger.warning(
+                        "Threshold search could not satisfy min_recall=%.4f on validation set; "
+                        "falling back to the highest-recall candidate (selected recall=%.4f, precision=%.4f, score=%.4f)",
+                        float(cfg.train.threshold_min_recall),
+                        float(threshold_search_info["selectedRecall"]),
+                        float(threshold_search_info["selectedPrecision"]),
+                        float(threshold_search_score),
+                    )
             else:
                 best_threshold = float(cfg.train.clf_threshold)
+                threshold_search_score = float(cfg.train.clf_threshold)
+                threshold_search_info = {
+                    "metric": cfg.train.threshold_metric,
+                    "beta": cfg.train.threshold_beta,
+                    "minRecall": cfg.train.threshold_min_recall,
+                    "constraintSatisfied": cfg.train.threshold_min_recall is None,
+                    "selectedPrecision": None,
+                    "selectedRecall": None,
+                }
 
             threshold_preds = (val_metrics["_probs"] >= best_threshold).astype(int)
             train_threshold_preds = (train_metrics["_probs"] >= best_threshold).astype(int)
@@ -1079,6 +1163,18 @@ def run_training(
             "finalThreshold": safe_round(final_threshold),
             "resolvedPosWeight": safe_round(resolved_pos_weight),
             "trainPositiveRate": safe_round(float(positive_count / max(len(train_targets), 1))),
+            "thresholdSelection": {
+                "metric": cfg.train.threshold_metric,
+                "beta": safe_round(cfg.train.threshold_beta),
+                "minRecall": safe_round(cfg.train.threshold_min_recall)
+                if cfg.train.threshold_min_recall is not None
+                else None,
+            },
+            "featureEngineering": {
+                "version": FEATURE_ENGINEERING_VERSION,
+                "strategy": FEATURE_ENGINEERING_STRATEGY,
+                "observationDateColumn": OBSERVATION_DATE_COL,
+            },
             "finalMetrics": final_metrics,
             "lossConfig": serialize_metrics(criterion.get_loss_config()),
             "classificationReport": report,
@@ -1102,6 +1198,11 @@ def run_training(
             "logFile": str(log_file.resolve()),
             "tensorboardDir": str(Path(cfg.path.log_dir).resolve()),
             "trainTable": cfg.path.train_table,
+            "featureEngineering": {
+                "version": FEATURE_ENGINEERING_VERSION,
+                "strategy": FEATURE_ENGINEERING_STRATEGY,
+                "observationDateColumn": OBSERVATION_DATE_COL,
+            },
             "scalerPath": str(Path(cfg.path.scaler_path).resolve()),
             "referencePath": str(Path(cfg.path.reference_path).resolve()),
             "bestModelPath": str(Path(cfg.path.best_model_path).resolve()),

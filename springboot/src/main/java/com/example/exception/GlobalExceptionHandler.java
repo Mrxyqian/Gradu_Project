@@ -25,7 +25,7 @@ public class GlobalExceptionHandler {
     @ResponseBody
     public Result dataIntegrityError(HttpServletRequest request, DataIntegrityViolationException e) {
         log.error("Data integrity violation", e);
-        return Result.error("提交的数据不完整或格式不正确，请检查必填项");
+        return Result.error("\u63d0\u4ea4\u7684\u6570\u636e\u4e0d\u5b8c\u6574\u6216\u683c\u5f0f\u4e0d\u6b63\u786e\uff0c\u8bf7\u68c0\u67e5\u5fc5\u586b\u9879");
     }
 
     @ExceptionHandler(Exception.class)

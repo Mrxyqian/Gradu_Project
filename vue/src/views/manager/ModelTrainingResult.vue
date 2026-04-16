@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div>
     <div class="card hero-card">
       <div>
@@ -106,8 +106,23 @@
       <el-row :gutter="18">
         <el-col :xs="24" :lg="12">
           <div class="card section-card">
-            <div class="section-title">分类别评估报告</div>
-            <pre class="report-box">{{ summary.classificationReport || '暂无分类报告' }}</pre>
+            <div class="section-title">分类评估报告</div>
+            <div class="report-table-wrap">
+              <el-table
+                v-if="classificationReportRows.length"
+                :data="classificationReportRows"
+                stripe
+                style="width: 100%; margin-top: 16px"
+                :row-class-name="getClassificationRowClassName"
+              >
+                <el-table-column prop="label" label="类别" min-width="140" />
+                <el-table-column prop="precision" label="Precision" min-width="110" />
+                <el-table-column prop="recall" label="Recall" min-width="110" />
+                <el-table-column prop="f1Score" label="F1 / Accuracy" min-width="120" />
+                <el-table-column prop="support" label="Support" min-width="100" />
+              </el-table>
+              <el-empty v-else description="暂无分类报告" />
+            </div>
           </div>
         </el-col>
 
@@ -223,6 +238,42 @@ const resolvedConfig = computed(() => currentJob.value?.resolvedConfig || {})
 const figureFiles = computed(() => currentJob.value?.artifacts?.figureFiles || {})
 const assetVersion = computed(() => currentJob.value?.finishedAt || currentJob.value?.currentEpoch || 'latest')
 
+const classificationReportRows = computed(() => {
+  const report = String(summary.value?.classificationReport || '').trim()
+  if (!report) return []
+
+  return report
+    .split('\n')
+    .map(line => line.trim())
+    .filter(Boolean)
+    .slice(1)
+    .map((line) => {
+      const segments = line.split(/\s{2,}/).filter(Boolean)
+      if (segments.length >= 5) {
+        return {
+          label: segments[0],
+          precision: segments[1],
+          recall: segments[2],
+          f1Score: segments[3],
+          support: segments[4],
+          isSummary: /avg|accuracy/i.test(segments[0]),
+        }
+      }
+      if (segments.length === 3 && /accuracy/i.test(segments[0])) {
+        return {
+          label: segments[0],
+          precision: '-',
+          recall: '-',
+          f1Score: segments[1],
+          support: segments[2],
+          isSummary: true,
+        }
+      }
+      return null
+    })
+    .filter(Boolean)
+})
+
 const formatMetric = (value, digits = 4) => {
   if (value === undefined || value === null || value === '') return '-'
   return Number(value).toFixed(digits)
@@ -262,6 +313,10 @@ const buildFigureUrl = (figureKey) => {
   return url.toString()
 }
 
+const getClassificationRowClassName = ({ row }) => {
+  return row?.isSummary ? 'classification-summary-row' : ''
+}
+
 const metricCards = computed(() => {
   const metrics = summary.value?.finalMetrics || {}
   return [
@@ -269,7 +324,7 @@ const metricCards = computed(() => {
     { label: 'Precision', value: formatPercent(metrics.precision), background: 'linear-gradient(135deg, #0f766e, #34d399)' },
     { label: 'Recall', value: formatPercent(metrics.recall), background: 'linear-gradient(135deg, #d97706, #f59e0b)' },
     { label: 'F1 Score', value: formatPercent(metrics.f1), background: 'linear-gradient(135deg, #c026d3, #ec4899)' },
-    { label: 'TestLoss', value: formatMetric(metrics.loss), background: 'linear-gradient(135deg, #475569, #0f172a)' },
+    { label: 'Test Loss', value: formatMetric(metrics.loss), background: 'linear-gradient(135deg, #475569, #0f172a)' },
   ]
 })
 
@@ -590,15 +645,19 @@ onUnmounted(() => {
   line-height: 1.2;
 }
 
-.report-box {
-  margin: 16px 0 0;
-  padding: 14px;
-  border-radius: 14px;
-  background: #0f172a;
-  color: #e2e8f0;
-  white-space: pre-wrap;
-  word-break: break-word;
-  line-height: 1.7;
+.report-table-wrap {
+  margin-top: 4px;
+}
+
+.report-table-wrap :deep(.classification-summary-row) {
+  --el-table-tr-bg-color: rgba(15, 118, 110, 0.06);
+}
+
+.report-table-wrap :deep(.classification-summary-row td) {
+  font-weight: 600;
+}
+
+.report-table-wrap :deep(.el-empty) {
   min-height: 360px;
 }
 

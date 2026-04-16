@@ -4,51 +4,14 @@
       <div>
         <div class="hero-title">模型训练中心</div>
       </div>
-      <div class="hero-meta">
-        <el-tag size="large" :type="statusTagType">{{ statusText }}</el-tag>
+      <div class="hero-meta hero-status-row">
         <div v-if="currentJob" class="hero-job-id">任务 ID：{{ currentJob.jobId }}</div>
+        <el-tag size="large" :type="statusTagType">{{ statusText }}</el-tag>
       </div>
     </div>
 
     <el-row :gutter="18">
       <el-col :xs="24" :lg="11">
-        <div class="card section-card">
-          <div class="section-title">训练样本库</div>
-          <div class="dataset-summary">
-            <div class="summary-item">
-              <div class="summary-label">样本总数</div>
-              <div class="summary-value">{{ trainDataOverview.totalCount || 0 }}</div>
-            </div>
-            <div class="summary-item">
-              <div class="summary-label">不同ID数</div>
-              <div class="summary-value">{{ trainDataOverview.distinctIdCount || 0 }}</div>
-            </div>
-          </div>
-
-          <el-form label-position="top" class="train-form compact-form">
-            <el-form-item label="合同开始年份">
-              <el-select v-model="selectedImportYear" clearable placeholder="全部年份" :loading="overviewLoading">
-                <el-option v-for="year in availableYears" :key="year" :label="`${year}年`" :value="Number(year)" />
-              </el-select>
-            </el-form-item>
-            <div class="train-actions">
-              <el-button type="primary" :loading="importingTrainData" @click="handleImportTrainData">导入到 train_data</el-button>
-              <el-button @click="loadTrainDataOverview" :disabled="importingTrainData">刷新</el-button>
-            </div>
-          </el-form>
-
-          <el-descriptions v-if="lastImportResult" :column="1" border style="margin-top: 16px">
-            <el-descriptions-item label="筛选年份">{{ lastImportResult.contractYear || '全部年份' }}</el-descriptions-item>
-            <el-descriptions-item label="候选记录数">{{ lastImportResult.candidateCount }}</el-descriptions-item>
-            <el-descriptions-item label="处理记录数">{{ lastImportResult.processedCount }}</el-descriptions-item>
-            <el-descriptions-item label="新增 / 覆盖">{{ lastImportResult.insertedCount }} / {{ lastImportResult.updatedCount }}</el-descriptions-item>
-            <el-descriptions-item label="跳过记录数">{{ lastImportResult.skippedCount }}</el-descriptions-item>
-          </el-descriptions>
-          <div v-if="lastImportResult?.skippedIds?.length" class="skip-box">
-            {{ lastImportResult.skippedIds.join('、') }}
-          </div>
-        </div>
-
         <div class="card section-card">
           <div class="section-title">训练参数</div>
 
@@ -109,7 +72,20 @@
             <el-row :gutter="12">
               <el-col :span="12">
                 <el-form-item label="主干隐藏层">
-                  <el-input v-model="trainForm.hiddenDimsText" placeholder="例如 256,512,512,256,256" />
+                  <div class="hidden-dims-box">
+                    <div
+                      v-for="(_, index) in trainForm.hiddenDims"
+                      :key="index"
+                      class="hidden-dim-cell"
+                    >
+                      <el-input
+                        v-model="trainForm.hiddenDims[index]"
+                        :placeholder="`第${index + 1}层`"
+                        inputmode="numeric"
+                        maxlength="4"
+                      />
+                    </div>
+                  </div>
                 </el-form-item>
               </el-col>
               <el-col :span="12">
@@ -124,6 +100,7 @@
                 {{ isRunning ? '训练进行中' : '开始训练' }}
               </el-button>
               <el-button :disabled="isRunning" @click="resetTrainForm">恢复默认配置</el-button>
+              <el-button plain @click="openSampleLibrary">训练样本库</el-button>
             </div>
           </el-form>
         </div>
@@ -185,6 +162,43 @@
         </div>
       </el-col>
     </el-row>
+
+    <el-dialog
+      v-model="sampleLibraryVisible"
+      title="训练样本库"
+      width="580px"
+      destroy-on-close
+    >
+      <div class="dataset-summary dataset-summary--single">
+        <div class="summary-item">
+          <div class="summary-label">样本总数</div>
+          <div class="summary-value">{{ trainDataOverview.totalCount || 0 }}</div>
+        </div>
+      </div>
+
+      <el-form label-position="top" class="train-form compact-form">
+        <el-form-item label="合同开始年份">
+          <el-select v-model="selectedImportYear" clearable placeholder="全部年份" :loading="overviewLoading">
+            <el-option v-for="year in availableYears" :key="year" :label="`${year}年`" :value="Number(year)" />
+          </el-select>
+        </el-form-item>
+        <div class="train-actions">
+          <el-button type="primary" :loading="importingTrainData" @click="handleImportTrainData()">导入到 train_data</el-button>
+          <el-button @click="loadTrainDataOverview" :disabled="importingTrainData">刷新</el-button>
+        </div>
+      </el-form>
+
+      <el-descriptions v-if="lastImportResult" :column="1" border style="margin-top: 16px">
+        <el-descriptions-item label="筛选年份">{{ lastImportResult.contractYear || '全部年份' }}</el-descriptions-item>
+        <el-descriptions-item label="候选记录数">{{ lastImportResult.candidateCount }}</el-descriptions-item>
+        <el-descriptions-item label="处理记录数">{{ lastImportResult.processedCount }}</el-descriptions-item>
+        <el-descriptions-item label="新增 / 覆盖">{{ lastImportResult.insertedCount }} / {{ lastImportResult.updatedCount }}</el-descriptions-item>
+        <el-descriptions-item label="跳过记录数">{{ lastImportResult.skippedCount }}</el-descriptions-item>
+      </el-descriptions>
+      <div v-if="lastImportResult?.skippedIds?.length" class="skip-box">
+        {{ lastImportResult.skippedIds.join('、') }}
+      </div>
+    </el-dialog>
   </div>
 </template>
 
@@ -203,7 +217,7 @@ const defaultTrainForm = () => ({
   learningRate: 0.0002,
   earlyStopMetric: 'auc',
   thresholdMetric: 'f1',
-  hiddenDimsText: '256,512,512,256,256',
+  hiddenDims: [256, 512, 512, 256, 256],
   headHiddenDim: 64,
 })
 
@@ -211,11 +225,11 @@ const trainForm = reactive(defaultTrainForm())
 const currentJob = ref(null)
 const starting = ref(false)
 const trackedJobId = ref('')
+const sampleLibraryVisible = ref(false)
 let pollTimer = null
 
 const trainDataOverview = ref({
   totalCount: 0,
-  distinctIdCount: 0,
   availableYears: [],
 })
 const selectedImportYear = ref(null)
@@ -261,19 +275,57 @@ const resetTrainForm = () => {
   Object.assign(trainForm, defaultTrainForm())
 }
 
-const parseHiddenDims = (value) => {
-  const tokens = String(value || '')
-    .split(',')
-    .map(item => item.trim())
-    .filter(Boolean)
-
-  if (!tokens.length) return null
-
-  const dims = tokens.map((item) => Number(item))
-  if (dims.some(item => !Number.isInteger(item) || item <= 0)) {
-    return null
+const collectHiddenDims = (values) => {
+  if (!Array.isArray(values)) {
+    return {
+      valid: false,
+      message: '请至少填写 1 层主干隐藏层',
+      dims: [],
+    }
   }
-  return dims
+
+  const dims = []
+  let encounteredEmpty = false
+
+  for (const value of values) {
+    if (value === undefined || value === null || value === '') {
+      encounteredEmpty = true
+      continue
+    }
+
+    const numericValue = Number(value)
+    if (!Number.isInteger(numericValue) || numericValue <= 0) {
+      return {
+        valid: false,
+        message: '主干隐藏层的每一层维数都必须是正整数',
+        dims: [],
+      }
+    }
+
+    if (encounteredEmpty) {
+      return {
+        valid: false,
+        message: '主干隐藏层请按从左到右连续填写，中间不要留空',
+        dims: [],
+      }
+    }
+
+    dims.push(numericValue)
+  }
+
+  if (!dims.length) {
+    return {
+      valid: false,
+      message: '请至少填写 1 层主干隐藏层',
+      dims: [],
+    }
+  }
+
+  return {
+    valid: true,
+    message: '',
+    dims,
+  }
 }
 
 const formatMetric = (value, digits = 4) => {
@@ -351,6 +403,11 @@ const loadTrainDataOverview = async () => {
   }
 }
 
+const openSampleLibrary = async () => {
+  sampleLibraryVisible.value = true
+  await loadTrainDataOverview()
+}
+
 const buildOverwriteMessage = (payload) => {
   const conflictCount = Number(payload?.conflictCount || 0)
   const sampleIds = Array.isArray(payload?.conflictIds) ? payload.conflictIds : []
@@ -359,11 +416,13 @@ const buildOverwriteMessage = (payload) => {
 }
 
 const handleImportTrainData = async (overwriteExisting = false) => {
+  const resolvedOverwriteExisting = overwriteExisting === true
+
   try {
     importingTrainData.value = true
     const res = await request.post('/modelTraining/trainData/import', {
       contractYear: selectedImportYear.value,
-      overwriteExisting,
+      overwriteExisting: resolvedOverwriteExisting,
     })
     if (res.code === '200') {
       if (res.data?.requiresOverwriteConfirm) {
@@ -391,7 +450,7 @@ const handleImportTrainData = async (overwriteExisting = false) => {
 
       lastImportResult.value = res.data
       await loadTrainDataOverview()
-      ElMessage.success(overwriteExisting ? 'train_data 覆盖更新完成' : 'train_data 导入完成')
+      ElMessage.success(resolvedOverwriteExisting ? 'train_data 覆盖更新完成' : 'train_data 导入完成')
     } else {
       ElMessage.error(res.msg || '导入失败')
     }
@@ -404,9 +463,9 @@ const handleImportTrainData = async (overwriteExisting = false) => {
 }
 
 const handleStartTraining = async () => {
-  const hiddenDims = parseHiddenDims(trainForm.hiddenDimsText)
-  if (!hiddenDims) {
-    ElMessage.warning('请输入合法的主干隐藏层配置，例如 256,512,512,256,256')
+  const hiddenDimsResult = collectHiddenDims(trainForm.hiddenDims)
+  if (!hiddenDimsResult.valid) {
+    ElMessage.warning(hiddenDimsResult.message)
     return
   }
   if (!Number.isInteger(Number(trainForm.headHiddenDim)) || Number(trainForm.headHiddenDim) <= 0) {
@@ -421,7 +480,7 @@ const handleStartTraining = async () => {
     learningRate: Number(trainForm.learningRate),
     earlyStopMetric: trainForm.earlyStopMetric,
     thresholdMetric: trainForm.thresholdMetric,
-    hiddenDims,
+    hiddenDims: hiddenDimsResult.dims,
     headHiddenDim: Number(trainForm.headHiddenDim),
   }
 
@@ -470,7 +529,6 @@ watch(
 
 onMounted(async () => {
   await loadLatestJob()
-  await loadTrainDataOverview()
 })
 
 onUnmounted(() => {
@@ -481,27 +539,33 @@ onUnmounted(() => {
 <style scoped>
 .hero-card {
   margin-bottom: 18px;
-  padding: 22px 24px;
+  padding: 16px 18px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: 12px;
   background: linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(14, 165, 233, 0.18)), #fff;
 }
 
 .hero-title {
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 700;
   color: #1d4ed8;
 }
 
 .hero-meta {
-  min-width: 220px;
-  text-align: right;
+  min-width: 260px;
+}
+
+.hero-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .hero-job-id {
-  margin-top: 8px;
   color: #475569;
   font-size: 13px;
 }
@@ -525,6 +589,48 @@ onUnmounted(() => {
   width: 100%;
 }
 
+.hidden-dims-box {
+  display: flex;
+  width: fit-content;
+  max-width: 100%;
+  min-height: 42px;
+  overflow: hidden;
+  border: 1px solid var(--el-border-color);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.hidden-dim-cell {
+  flex: 0 0 46px;
+  min-width: 46px;
+  border-right: 1px solid var(--el-border-color-light);
+}
+
+.hidden-dim-cell:last-child {
+  border-right: none;
+}
+
+.hidden-dim-cell :deep(.el-input) {
+  height: 100%;
+}
+
+.hidden-dim-cell :deep(.el-input__wrapper) {
+  min-height: 42px;
+  padding: 0 4px;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+.hidden-dim-cell :deep(.el-input__inner) {
+  font-size: 13px;
+  text-align: center;
+}
+
+.hidden-dim-cell :deep(.el-input__wrapper.is-focus) {
+  box-shadow: inset 0 0 0 1px #2563eb;
+}
+
 .group-title {
   margin: 8px 0 12px;
   padding-left: 10px;
@@ -535,7 +641,7 @@ onUnmounted(() => {
 }
 
 .train-actions {
-  margin-top: 8px;
+  margin-top: 2px;
   display: flex;
   align-items: center;
   flex-wrap: wrap;
@@ -568,6 +674,10 @@ onUnmounted(() => {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 12px;
+}
+
+.dataset-summary--single {
+  grid-template-columns: 1fr;
 }
 
 .summary-item {
@@ -606,12 +716,37 @@ onUnmounted(() => {
   }
 
   .hero-meta {
-    text-align: left;
     min-width: 0;
+    width: 100%;
+  }
+
+  .hero-status-row {
+    justify-content: flex-start;
   }
 
   .dataset-summary {
     grid-template-columns: 1fr;
+  }
+
+  .hidden-dims-box {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .hidden-dim-cell {
+    flex: 0 0 50%;
+  }
+
+  .hidden-dim-cell:nth-child(2n) {
+    border-right: none;
+  }
+
+  .hidden-dim-cell:nth-child(-n + 3) {
+    border-bottom: 1px solid var(--el-border-color-light);
+  }
+
+  .hidden-dim-cell:last-child {
+    border-right: none;
   }
 }
 </style>

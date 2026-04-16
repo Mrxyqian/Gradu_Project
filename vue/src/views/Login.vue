@@ -44,8 +44,8 @@
                 <el-form-item label="员工工号" prop="employeeNo">
                   <el-input v-model="registerForm.employeeNo" maxlength="6" placeholder="请输入6位工号" />
                 </el-form-item>
-                <el-form-item label="中文姓名" prop="name">
-                  <el-input v-model="registerForm.name" placeholder="请输入中文姓名" />
+                <el-form-item label="姓名" prop="name">
+                  <el-input v-model="registerForm.name" placeholder="请输入姓名" />
                 </el-form-item>
                 <el-form-item label="密码" prop="password">
                   <el-input v-model="registerForm.password" show-password placeholder="请设置登录密码" />
@@ -104,7 +104,7 @@ const validateEmployeeNo = (rule, value, callback) => {
 
 const validateName = (rule, value, callback) => {
   if (!value || !value.trim()) {
-    callback(new Error('请输入中文姓名'))
+    callback(new Error('请输入姓名'))
     return
   }
   callback()

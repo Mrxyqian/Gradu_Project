@@ -119,23 +119,27 @@ public class MotorInsuranceService {
         if (motorInsurance == null) {
             return;
         }
-        if (!isBlank(motorInsurance.getDateStartContract())) {
-            motorInsurance.setDateStartContract(DateUtil.convertYYYYMMDDToDDMMYYYY(motorInsurance.getDateStartContract()));
-        }
-        if (!isBlank(motorInsurance.getDateLastRenewal())) {
-            motorInsurance.setDateLastRenewal(DateUtil.convertYYYYMMDDToDDMMYYYY(motorInsurance.getDateLastRenewal()));
-        }
-        if (!isBlank(motorInsurance.getDateNextRenewal())) {
-            motorInsurance.setDateNextRenewal(DateUtil.convertYYYYMMDDToDDMMYYYY(motorInsurance.getDateNextRenewal()));
-        }
-        if (!isBlank(motorInsurance.getDateBirth())) {
-            motorInsurance.setDateBirth(DateUtil.convertYYYYMMDDToDDMMYYYY(motorInsurance.getDateBirth()));
-        }
-        if (!isBlank(motorInsurance.getDateDrivingLicence())) {
-            motorInsurance.setDateDrivingLicence(DateUtil.convertYYYYMMDDToDDMMYYYY(motorInsurance.getDateDrivingLicence()));
-        }
-        if (!isBlank(motorInsurance.getDateLapse())) {
-            motorInsurance.setDateLapse(DateUtil.convertYYYYMMDDToDDMMYYYY(motorInsurance.getDateLapse()));
+        try {
+            if (!isBlank(motorInsurance.getDateStartContract())) {
+                motorInsurance.setDateStartContract(DateUtil.convertYYYYMMDDToDDMMYYYYQueryPattern(motorInsurance.getDateStartContract()));
+            }
+            if (!isBlank(motorInsurance.getDateLastRenewal())) {
+                motorInsurance.setDateLastRenewal(DateUtil.convertYYYYMMDDToDDMMYYYYQueryPattern(motorInsurance.getDateLastRenewal()));
+            }
+            if (!isBlank(motorInsurance.getDateNextRenewal())) {
+                motorInsurance.setDateNextRenewal(DateUtil.convertYYYYMMDDToDDMMYYYYQueryPattern(motorInsurance.getDateNextRenewal()));
+            }
+            if (!isBlank(motorInsurance.getDateBirth())) {
+                motorInsurance.setDateBirth(DateUtil.convertYYYYMMDDToDDMMYYYYQueryPattern(motorInsurance.getDateBirth()));
+            }
+            if (!isBlank(motorInsurance.getDateDrivingLicence())) {
+                motorInsurance.setDateDrivingLicence(DateUtil.convertYYYYMMDDToDDMMYYYYQueryPattern(motorInsurance.getDateDrivingLicence()));
+            }
+            if (!isBlank(motorInsurance.getDateLapse())) {
+                motorInsurance.setDateLapse(DateUtil.convertYYYYMMDDToDDMMYYYYQueryPattern(motorInsurance.getDateLapse()));
+            }
+        } catch (IllegalArgumentException e) {
+            throw new CustomException(e.getMessage());
         }
     }
 

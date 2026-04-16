@@ -36,7 +36,12 @@ DATE_COLS = [
     "Date_driving_licence",
 ]
 
-REFERENCE_DATE = pd.Timestamp("2020-01-01")
+OBSERVATION_DATE_COL = "Date_last_renewal"
+DATE_DIFF_SOURCE_COLS = [
+    column for column in DATE_COLS if column != OBSERVATION_DATE_COL
+]
+FEATURE_ENGINEERING_VERSION = 2
+FEATURE_ENGINEERING_STRATEGY = "date_last_renewal_anchor"
 
 RAW_FEATURE_COLS = [
     "Date_start_contract",
@@ -96,9 +101,25 @@ def parse_date(series: pd.Series) -> pd.Series:
     return parsed
 
 
-def date_to_days(series: pd.Series, ref: pd.Timestamp = REFERENCE_DATE) -> pd.Series:
-    delta = (series - ref).dt.days
-    return delta.fillna(0).astype(np.float32)
+def date_to_days(series: pd.Series, anchor: pd.Series) -> pd.Series:
+    delta = (series - anchor).dt.days
+    return delta.astype(np.float32)
+
+
+def _clip_non_negative(series: pd.Series) -> pd.Series:
+    return series.where(series.isna() | (series >= 0), 0.0)
+
+
+def _elapsed_years(anchor: pd.Series, earlier: pd.Series) -> pd.Series:
+    delta_years = (anchor - earlier).dt.days / 365.25
+    return _clip_non_negative(delta_years).astype(np.float32)
+
+
+def _vehicle_age_years(anchor: pd.Series, year_matriculation: pd.Series) -> pd.Series:
+    observation_year = anchor.dt.year.astype(np.float32)
+    vehicle_year = pd.to_numeric(year_matriculation, errors="coerce")
+    vehicle_age = observation_year - vehicle_year
+    return _clip_non_negative(vehicle_age).astype(np.float32)
 
 
 def engineer_date_features(df: pd.DataFrame) -> pd.DataFrame:
@@ -107,24 +128,25 @@ def engineer_date_features(df: pd.DataFrame) -> pd.DataFrame:
     for col in DATE_COLS:
         df[col] = parse_date(df[col])
 
-    for col in DATE_COLS:
-        df[col + "_days"] = date_to_days(df[col])
+    observation_date = df[OBSERVATION_DATE_COL]
+    for col in DATE_DIFF_SOURCE_COLS:
+        df[col + "_days"] = date_to_days(df[col], observation_date)
 
     df["driving_experience_years"] = (
-        (REFERENCE_DATE - df["Date_driving_licence"]).dt.days / 365.25
-    ).clip(lower=0).fillna(0).astype(np.float32)
+        _elapsed_years(observation_date, df["Date_driving_licence"])
+    )
 
     df["insured_age_years"] = (
-        (REFERENCE_DATE - df["Date_birth"]).dt.days / 365.25
-    ).clip(lower=0).fillna(0).astype(np.float32)
+        _elapsed_years(observation_date, df["Date_birth"])
+    )
 
     df["contract_duration_years"] = (
-        (df["Date_last_renewal"] - df["Date_start_contract"]).dt.days / 365.25
-    ).clip(lower=0).fillna(0).astype(np.float32)
+        _elapsed_years(observation_date, df["Date_start_contract"])
+    )
 
     df["vehicle_age_years"] = (
-        REFERENCE_DATE.year - pd.to_numeric(df["Year_matriculation"], errors="coerce")
-    ).clip(lower=0).fillna(0).astype(np.float32)
+        _vehicle_age_years(observation_date, df["Year_matriculation"])
+    )
 
     df.drop(columns=DATE_COLS, inplace=True)
     return df
@@ -281,6 +303,10 @@ def build_inference_reference(df_raw: pd.DataFrame) -> dict:
 
     feature_df = prepare_features(raw_source, raw_defaults=raw_defaults)
     return {
+        "feature_engineering_version": FEATURE_ENGINEERING_VERSION,
+        "feature_engineering_strategy": FEATURE_ENGINEERING_STRATEGY,
+        "observation_date_column": OBSERVATION_DATE_COL,
+        "relative_date_source_columns": DATE_DIFF_SOURCE_COLS.copy(),
         "raw_feature_columns": RAW_FEATURE_COLS.copy(),
         "feature_columns": feature_df.columns.tolist(),
         "feature_fill_values": _build_fill_values(feature_df),
@@ -288,12 +314,39 @@ def build_inference_reference(df_raw: pd.DataFrame) -> dict:
     }
 
 
+def validate_inference_reference(reference: dict) -> dict:
+    if not isinstance(reference, dict):
+        raise TypeError("Inference reference must be a dictionary")
+
+    required_keys = {"feature_columns", "feature_fill_values", "raw_defaults"}
+    missing_keys = sorted(required_keys.difference(reference))
+    if missing_keys:
+        raise ValueError(
+            f"Inference reference is missing required fields: {', '.join(missing_keys)}"
+        )
+
+    version = reference.get("feature_engineering_version")
+    strategy = reference.get("feature_engineering_strategy")
+    observation_date_column = reference.get("observation_date_column")
+    if (
+        version != FEATURE_ENGINEERING_VERSION
+        or strategy != FEATURE_ENGINEERING_STRATEGY
+        or observation_date_column != OBSERVATION_DATE_COL
+    ):
+        raise ValueError(
+            "Inference artifacts were created with an outdated date feature engineering pipeline. "
+            "Please retrain the model to regenerate preprocess_reference.pkl, scaler.pkl, and model checkpoints."
+        )
+    return reference
+
+
 def clean_and_engineer_for_inference(df: pd.DataFrame, reference: dict) -> pd.DataFrame:
+    validated_reference = validate_inference_reference(reference)
     return prepare_features(
         df,
-        raw_defaults=reference["raw_defaults"],
-        feature_columns=reference["feature_columns"],
-        fill_values=reference["feature_fill_values"],
+        raw_defaults=validated_reference["raw_defaults"],
+        feature_columns=validated_reference["feature_columns"],
+        fill_values=validated_reference["feature_fill_values"],
     )
 
 
@@ -451,9 +504,12 @@ def preprocess_for_inference(
 __all__ = [
     "DROP_COLS",
     "DATE_COLS",
+    "DATE_DIFF_SOURCE_COLS",
     "TARGET_COLUMN",
     "AUXILIARY_LABEL_COLUMNS",
-    "REFERENCE_DATE",
+    "FEATURE_ENGINEERING_STRATEGY",
+    "FEATURE_ENGINEERING_VERSION",
+    "OBSERVATION_DATE_COL",
     "RAW_FEATURE_COLS",
     "InsuranceDataset",
     "build_dataloaders",
@@ -465,4 +521,5 @@ __all__ = [
     "prepare_features",
     "preprocess_for_inference",
     "preprocess_single",
+    "validate_inference_reference",
 ]

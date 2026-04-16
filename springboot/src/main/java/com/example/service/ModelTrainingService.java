@@ -15,9 +15,19 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpSession;
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -25,6 +35,8 @@ import java.util.Map;
 
 @Service
 public class ModelTrainingService {
+
+    private static final String TRAIN_DATA_CSV_FILE_NAME = "train_data.csv";
 
     @Value("${fastapi.base-url:http://localhost:8000}")
     private String fastApiBaseUrl;
@@ -38,6 +50,8 @@ public class ModelTrainingService {
     public Object startTraining(Map<String, Object> payload, HttpSession session) {
         SessionUserUtil.requireAdmin(session);
         ensureTrainDataTableInitialized();
+        pruneIncompleteTrainDataRows();
+        syncTrainDataCsv();
         return postForData("/training/start", payload);
     }
 
@@ -92,22 +106,27 @@ public class ModelTrainingService {
     public Object getTrainDataOverview(HttpSession session) {
         SessionUserUtil.requireAdmin(session);
         ensureTrainDataTableInitialized();
+        pruneIncompleteTrainDataRows();
 
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("totalCount", jdbcTemplate.queryForObject("SELECT COUNT(*) FROM train_data", Integer.class));
-        result.put("distinctIdCount", jdbcTemplate.queryForObject("SELECT COUNT(DISTINCT ID) FROM train_data", Integer.class));
         result.put("availableYears", jdbcTemplate.queryForList(
-                "SELECT DISTINCT RIGHT(TRIM(Date_start_contract), 4) AS contractYear " +
-                        "FROM motor_insurance WHERE Date_start_contract IS NOT NULL AND TRIM(Date_start_contract) <> '' " +
+                "SELECT DISTINCT RIGHT(TRIM(m.Date_start_contract), 4) AS contractYear " +
+                        "FROM motor_insurance m " +
+                        "INNER JOIN claim_record c ON c.ID = m.ID " +
+                        "INNER JOIN vehicle_info v ON v.ID = m.ID " +
+                        "WHERE m.Date_start_contract IS NOT NULL AND TRIM(m.Date_start_contract) <> '' " +
                         "ORDER BY contractYear DESC",
                 String.class
         ));
         return result;
     }
 
+    @Transactional
     public Object importTrainData(Integer contractYear, Boolean overwriteExisting, HttpSession session) {
         SessionUserUtil.requireAdmin(session);
         ensureTrainDataTableInitialized();
+        pruneIncompleteTrainDataRows();
 
         boolean overwrite = Boolean.TRUE.equals(overwriteExisting);
         String candidateWhere = buildYearWhere("m", contractYear);
@@ -166,7 +185,6 @@ public class ModelTrainingService {
             result.put("skippedCount", skippedIds.size());
             result.put("skippedIds", skippedIds);
             result.put("trainDataTotalCount", jdbcTemplate.queryForObject("SELECT COUNT(*) FROM train_data", Integer.class));
-            result.put("trainDataDistinctIdCount", jdbcTemplate.queryForObject("SELECT COUNT(DISTINCT ID) FROM train_data", Integer.class));
             return result;
         }
 
@@ -232,7 +250,8 @@ public class ModelTrainingService {
         result.put("skippedCount", skippedIds.size());
         result.put("skippedIds", skippedIds);
         result.put("trainDataTotalCount", jdbcTemplate.queryForObject("SELECT COUNT(*) FROM train_data", Integer.class));
-        result.put("trainDataDistinctIdCount", jdbcTemplate.queryForObject("SELECT COUNT(DISTINCT ID) FROM train_data", Integer.class));
+        syncTrainDataCsv();
+        result.put("trainDataCsvPath", resolveTrainDataCsvPath().toString());
         return result;
     }
 
@@ -298,6 +317,88 @@ public class ModelTrainingService {
             return " WHERE (c.ID IS NULL OR v.ID IS NULL)";
         }
         return " WHERE RIGHT(TRIM(m.Date_start_contract), 4) = ? AND (c.ID IS NULL OR v.ID IS NULL)";
+    }
+
+    private void syncTrainDataCsv() {
+        Path csvPath = resolveTrainDataCsvPath();
+        try {
+            Path parent = csvPath.getParent();
+            if (parent != null) {
+                Files.createDirectories(parent);
+            }
+            jdbcTemplate.query("SELECT * FROM train_data ORDER BY ID", resultSet -> {
+                try {
+                    writeResultSetToCsv(resultSet, csvPath);
+                } catch (SQLException | IOException ex) {
+                    throw new IllegalStateException(ex);
+                }
+                return null;
+            });
+        } catch (IllegalStateException ex) {
+            Throwable cause = ex.getCause() == null ? ex : ex.getCause();
+            throw new CustomException("同步 train_data.csv 失败: " + cause.getMessage());
+        } catch (Exception ex) {
+            throw new CustomException("同步 train_data.csv 失败: " + ex.getMessage());
+        }
+    }
+
+    private void pruneIncompleteTrainDataRows() {
+        jdbcTemplate.update(
+                "DELETE t FROM train_data t " +
+                        "LEFT JOIN motor_insurance m ON m.ID = t.ID " +
+                        "LEFT JOIN claim_record c ON c.ID = t.ID " +
+                        "LEFT JOIN vehicle_info v ON v.ID = t.ID " +
+                        "WHERE m.ID IS NULL OR c.ID IS NULL OR v.ID IS NULL"
+        );
+    }
+
+    private Path resolveTrainDataCsvPath() {
+        Path workingDir = Paths.get(System.getProperty("user.dir", ".")).toAbsolutePath().normalize();
+        Path direct = workingDir.resolve("MLP").resolve("DataSet").resolve(TRAIN_DATA_CSV_FILE_NAME);
+        if (Files.exists(direct.getParent())) {
+            return direct;
+        }
+        Path sibling = workingDir.resolve("..").resolve("MLP").resolve("DataSet").resolve(TRAIN_DATA_CSV_FILE_NAME).normalize();
+        if (Files.exists(sibling.getParent())) {
+            return sibling;
+        }
+        return sibling;
+    }
+
+    private void writeResultSetToCsv(ResultSet resultSet, Path csvPath) throws SQLException, IOException {
+        ResultSetMetaData metaData = resultSet.getMetaData();
+        int columnCount = metaData.getColumnCount();
+        try (BufferedWriter writer = Files.newBufferedWriter(csvPath, StandardCharsets.UTF_8)) {
+            for (int index = 1; index <= columnCount; index++) {
+                if (index > 1) {
+                    writer.write(',');
+                }
+                writer.write(escapeCsv(metaData.getColumnLabel(index)));
+            }
+            writer.newLine();
+
+            while (resultSet.next()) {
+                for (int index = 1; index <= columnCount; index++) {
+                    if (index > 1) {
+                        writer.write(',');
+                    }
+                    String value = resultSet.getString(index);
+                    writer.write(escapeCsv(value));
+                }
+                writer.newLine();
+            }
+        }
+    }
+
+    private String escapeCsv(String value) {
+        if (value == null) {
+            return "";
+        }
+        boolean needsQuotes = value.contains(",") || value.contains("\"") || value.contains("\n") || value.contains("\r");
+        if (!needsQuotes) {
+            return value;
+        }
+        return "\"" + value.replace("\"", "\"\"") + "\"";
     }
 
     private Object getForData(String path) {

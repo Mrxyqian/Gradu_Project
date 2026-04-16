@@ -115,7 +115,22 @@ def read_mysql_dataframe(query: str, config: Optional[MySqlConfig] = None) -> pd
     return pd.read_csv(io.StringIO(output), sep="\t")
 
 
+def load_csv_dataframe(csv_path: str | Path) -> pd.DataFrame:
+    dataset_path = Path(csv_path).expanduser()
+    if not dataset_path.is_absolute():
+        dataset_path = (BASE_DIR / dataset_path).resolve()
+    if not dataset_path.exists():
+        raise RuntimeError(f"Training csv '{dataset_path}' does not exist")
+    df = pd.read_csv(dataset_path)
+    if df.empty:
+        raise RuntimeError(f"Training csv '{dataset_path}' is empty")
+    return df
+
+
 def load_training_dataframe(table_name: str = "train_data") -> pd.DataFrame:
+    dataset_path = Path(table_name).expanduser()
+    if dataset_path.suffix.lower() == ".csv" or dataset_path.exists():
+        return load_csv_dataframe(dataset_path)
     df = read_mysql_dataframe(f"SELECT * FROM `{table_name}`")
     if df.empty:
         raise RuntimeError(f"Training table '{table_name}' is empty")
@@ -124,6 +139,7 @@ def load_training_dataframe(table_name: str = "train_data") -> pd.DataFrame:
 
 __all__ = [
     "MySqlConfig",
+    "load_csv_dataframe",
     "load_mysql_config",
     "load_training_dataframe",
     "read_mysql_dataframe",

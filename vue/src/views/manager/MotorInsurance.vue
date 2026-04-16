@@ -80,12 +80,12 @@
           </el-col>
           <el-col :span="8">
             <el-form-item label="合同开始日期">
-              <el-input v-model="data.queryForm.dateStartContract" placeholder="YYYY/MM/DD" />
+              <el-input v-model="data.queryForm.dateStartContract" placeholder="年/月/日，支持模糊查询" />
             </el-form-item>
           </el-col>
           <el-col :span="8">
             <el-form-item label="最后续保日期">
-              <el-input v-model="data.queryForm.dateLastRenewal" placeholder="YYYY/MM/DD" />
+              <el-input v-model="data.queryForm.dateLastRenewal" placeholder="年/月/日，支持模糊查询" />
             </el-form-item>
           </el-col>
         </el-row>
@@ -93,7 +93,7 @@
         <el-row :gutter="20">
           <el-col :span="8">
             <el-form-item label="下次续保日期">
-              <el-input v-model="data.queryForm.dateNextRenewal" placeholder="YYYY/MM/DD" />
+              <el-input v-model="data.queryForm.dateNextRenewal" placeholder="年/月/日，支持模糊查询" />
             </el-form-item>
           </el-col>
           <el-col :span="8">
@@ -106,7 +106,7 @@
           </el-col>
           <el-col :span="8">
             <el-form-item label="被保人出生日期">
-              <el-input v-model="data.queryForm.dateBirth" placeholder="YYYY/MM/DD" />
+              <el-input v-model="data.queryForm.dateBirth" placeholder="年/月/日，支持模糊查询" />
             </el-form-item>
           </el-col>
         </el-row>
@@ -114,7 +114,7 @@
         <el-row :gutter="20">
           <el-col :span="8">
             <el-form-item label="驾照签发日期">
-              <el-input v-model="data.queryForm.dateDrivingLicence" placeholder="YYYY/MM/DD" />
+              <el-input v-model="data.queryForm.dateDrivingLicence" placeholder="年/月/日，支持模糊查询" />
             </el-form-item>
           </el-col>
           <el-col :span="8">
@@ -150,7 +150,7 @@
         <el-row :gutter="20">
           <el-col :span="8">
             <el-form-item label="合同终止日期">
-              <el-input v-model="data.queryForm.dateLapse" placeholder="YYYY/MM/DD" />
+              <el-input v-model="data.queryForm.dateLapse" placeholder="年/月/日，支持模糊查询" />
             </el-form-item>
           </el-col>
           <el-col :span="8">

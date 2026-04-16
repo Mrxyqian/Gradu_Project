@@ -32,11 +32,11 @@
         <where>
             <if test="id != null">and ID = #{id}</if>
             <if test="creatorEmployeeNo != null and creatorEmployeeNo != ''">and creator_employee_no = #{creatorEmployeeNo}</if>
-            <if test="dateStartContract != null and dateStartContract != ''">and Date_start_contract = #{dateStartContract}</if>
-            <if test="dateLastRenewal != null and dateLastRenewal != ''">and Date_last_renewal = #{dateLastRenewal}</if>
-            <if test="dateNextRenewal != null and dateNextRenewal != ''">and Date_next_renewal = #{dateNextRenewal}</if>
-            <if test="dateBirth != null and dateBirth != ''">and Date_birth = #{dateBirth}</if>
-            <if test="dateDrivingLicence != null and dateDrivingLicence != ''">and Date_driving_licence = #{dateDrivingLicence}</if>
+            <if test="dateStartContract != null and dateStartContract != ''">and Date_start_contract like #{dateStartContract}</if>
+            <if test="dateLastRenewal != null and dateLastRenewal != ''">and Date_last_renewal like #{dateLastRenewal}</if>
+            <if test="dateNextRenewal != null and dateNextRenewal != ''">and Date_next_renewal like #{dateNextRenewal}</if>
+            <if test="dateBirth != null and dateBirth != ''">and Date_birth like #{dateBirth}</if>
+            <if test="dateDrivingLicence != null and dateDrivingLicence != ''">and Date_driving_licence like #{dateDrivingLicence}</if>
             <if test="typeRisk != null">and Type_risk = #{typeRisk}</if>
             <if test="area != null">and Area = #{area}</if>
             <if test="distributionChannel != null">and Distribution_channel = #{distributionChannel}</if>
@@ -45,7 +45,7 @@
             <if test="maxPolicies != null">and Max_policies = #{maxPolicies}</if>
             <if test="maxProducts != null">and Max_products = #{maxProducts}</if>
             <if test="lapse != null">and Lapse = #{lapse}</if>
-            <if test="dateLapse != null and dateLapse != ''">and Date_lapse = #{dateLapse}</if>
+            <if test="dateLapse != null and dateLapse != ''">and Date_lapse like #{dateLapse}</if>
             <if test="payment != null">and Payment = #{payment}</if>
             <if test="premium != null">and Premium = #{premium}</if>
             <if test="secondDriver != null">and Second_driver = #{secondDriver}</if>

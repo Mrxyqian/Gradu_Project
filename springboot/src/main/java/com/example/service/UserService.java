@@ -25,7 +25,8 @@ import java.util.stream.Collectors;
 public class UserService {
 
     public static final String CURRENT_USER = "currentUser";
-    private static final String REGISTER_CODE = "add123";
+    private static final String ADMIN_REGISTER_CODE = "add123";
+    private static final String USER_REGISTER_CODE = "add";
     private static final String DEFAULT_ADMIN_EMPLOYEE_NO = "000001";
     private static final String DEFAULT_ADMIN_PASSWORD = "admin123";
     private static final String ROLE_ADMIN = "ADMIN";
@@ -72,11 +73,9 @@ public class UserService {
         validatePassword(user.getPassword());
         validateRole(user.getRole());
 
-        if (!REGISTER_CODE.equals(user.getRegisterCode())) {
-            throw new CustomException("注册密码不正确");
-        }
+        validateRegisterCode(user.getRole(), user.getRegisterCode());
         if (userMapper.selectByEmployeeNo(user.getEmployeeNo()) != null) {
-            throw new CustomException("该工号已注册");
+            throw new CustomException("\u8be5\u7528\u6237\u5df2\u5b58\u5728");
         }
 
         User newUser = new User();
@@ -252,25 +251,32 @@ public class UserService {
 
     private void validateEmployeeNo(String employeeNo) {
         if (employeeNo == null || !employeeNo.matches("\\d{6}")) {
-            throw new CustomException("请输入6位数字工号");
+            throw new CustomException("\u8bf7\u8f93\u51656\u4f4d\u6570\u5b57\u5de5\u53f7");
         }
     }
 
     private void validateName(String name) {
         if (name == null || name.trim().isEmpty()) {
-            throw new CustomException("姓名不能为空");
+            throw new CustomException("\u59d3\u540d\u4e0d\u80fd\u4e3a\u7a7a");
         }
     }
 
     private void validatePassword(String password) {
         if (password == null || password.trim().isEmpty()) {
-            throw new CustomException("密码不能为空");
+            throw new CustomException("\u5bc6\u7801\u4e0d\u80fd\u4e3a\u7a7a");
         }
     }
 
     private void validateRole(String role) {
         if (!ROLE_ADMIN.equals(role) && !ROLE_USER.equals(role)) {
-            throw new CustomException("角色参数不正确");
+            throw new CustomException("\u89d2\u8272\u53c2\u6570\u4e0d\u6b63\u786e");
+        }
+    }
+
+    private void validateRegisterCode(String role, String registerCode) {
+        String expectedCode = ROLE_ADMIN.equals(role) ? ADMIN_REGISTER_CODE : USER_REGISTER_CODE;
+        if (registerCode == null || !expectedCode.equals(registerCode.trim())) {
+            throw new CustomException("\u6ce8\u518c\u53e3\u4ee4\u9519\u8bef");
         }
     }
 

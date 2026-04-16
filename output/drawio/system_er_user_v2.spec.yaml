@@ -1,0 +1,424 @@
+meta:
+  profile: default
+  source: replicated
+  theme: academic
+  layout: horizontal
+  canvas: auto
+  routing: orthogonal
+  title: "普通用户视角系统E-R图"
+  description: "包含用户实体的普通用户数据表关系图。"
+  replication:
+    colorMode: preserve-original
+    background: "#FFFFFF"
+    palette:
+      - hex: "#000000"
+        role: entity, attribute, relation stroke
+        appliesTo: mixed
+        confidence: high
+
+nodes:
+  - id: e_user
+    label: |-
+      用户
+      (sys_user)
+    type: service
+    size: xl
+    position: { x: 800, y: 184 }
+    style: &entityStyle
+      fillColor: "#FFFFFF"
+      strokeColor: "#000000"
+      fontColor: "#000000"
+      strokeWidth: 1.5
+      fontSize: 16
+
+  - id: u_pk
+    label: "_id_ (PK)"
+    type: user
+    size: medium
+    position: { x: 624, y: 64 }
+    style: &attrStyle
+      fillColor: "#FFFFFF"
+      strokeColor: "#000000"
+      fontColor: "#000000"
+      strokeWidth: 1.2
+      fontSize: 12
+
+  - id: u_emp
+    label: "employee_no"
+    type: user
+    size: medium
+    position: { x: 736, y: 24 }
+    style: *attrStyle
+
+  - id: u_name
+    label: "name"
+    type: user
+    size: medium
+    position: { x: 920, y: 24 }
+    style: *attrStyle
+
+  - id: u_role
+    label: "role"
+    type: user
+    size: medium
+    position: { x: 1040, y: 64 }
+    style: *attrStyle
+
+  - id: u_login
+    label: "last_login_time"
+    type: user
+    size: large
+    position: { x: 1064, y: 184 }
+    style: *attrStyle
+
+  - id: e_motor
+    label: |-
+      车险保单
+      (motor_insurance)
+    type: service
+    size: xl
+    position: { x: 336, y: 488 }
+    style: *entityStyle
+
+  - id: m_pk
+    label: "_tab_id_ (PK)"
+    type: user
+    size: medium
+    position: { x: 136, y: 376 }
+    style: *attrStyle
+
+  - id: m_id
+    label: "ID"
+    type: user
+    size: medium
+    position: { x: 104, y: 488 }
+    style: *attrStyle
+
+  - id: m_creator
+    label: "creator_employee_no (FK)"
+    type: user
+    size: large
+    position: { x: 248, y: 632 }
+    style: *attrStyle
+
+  - id: m_contract
+    label: "Date_start_contract"
+    type: user
+    size: large
+    position: { x: 464, y: 360 }
+    style: *attrStyle
+
+  - id: m_premium
+    label: "Premium"
+    type: user
+    size: medium
+    position: { x: 520, y: 576 }
+    style: *attrStyle
+
+  - id: e_claim
+    label: |-
+      理赔记录
+      (claim_record)
+    type: service
+    size: xl
+    position: { x: 1248, y: 296 }
+    style: *entityStyle
+
+  - id: c_pk
+    label: "_tab_id_ (PK)"
+    type: user
+    size: medium
+    position: { x: 1456, y: 184 }
+    style: *attrStyle
+
+  - id: c_id
+    label: "ID (FK)"
+    type: user
+    size: medium
+    position: { x: 1496, y: 304 }
+    style: *attrStyle
+
+  - id: c_creator
+    label: "creator_employee_no (FK)"
+    type: user
+    size: large
+    position: { x: 1368, y: 448 }
+    style: *attrStyle
+
+  - id: c_cost
+    label: "Cost_claims_year"
+    type: user
+    size: large
+    position: { x: 1112, y: 184 }
+    style: *attrStyle
+
+  - id: c_nyear
+    label: "N_claims_year"
+    type: user
+    size: medium
+    position: { x: 1064, y: 360 }
+    style: *attrStyle
+
+  - id: e_pred
+    label: |-
+      预测记录
+      (insur_pred)
+    type: service
+    size: xl
+    position: { x: 1248, y: 624 }
+    style: *entityStyle
+
+  - id: p_pk
+    label: "_pred_id_ (PK)"
+    type: user
+    size: medium
+    position: { x: 1456, y: 512 }
+    style: *attrStyle
+
+  - id: p_id
+    label: "ID (FK)"
+    type: user
+    size: medium
+    position: { x: 1496, y: 632 }
+    style: *attrStyle
+
+  - id: p_prob
+    label: "claim_probability"
+    type: user
+    size: large
+    position: { x: 1368, y: 776 }
+    style: *attrStyle
+
+  - id: p_risk
+    label: "risk_level"
+    type: user
+    size: medium
+    position: { x: 1064, y: 776 }
+    style: *attrStyle
+
+  - id: p_time
+    label: "prediction_time"
+    type: user
+    size: large
+    position: { x: 1064, y: 552 }
+    style: *attrStyle
+
+  - id: e_vehicle
+    label: |-
+      车辆信息
+      (vehicle_info)
+    type: service
+    size: xl
+    position: { x: 336, y: 824 }
+    style: *entityStyle
+
+  - id: v_pk
+    label: "_tab_id_ (PK)"
+    type: user
+    size: medium
+    position: { x: 136, y: 720 }
+    style: *attrStyle
+
+  - id: v_id
+    label: "ID (FK)"
+    type: user
+    size: medium
+    position: { x: 96, y: 832 }
+    style: *attrStyle
+
+  - id: v_creator
+    label: "creator_employee_no (FK)"
+    type: user
+    size: large
+    position: { x: 248, y: 968 }
+    style: *attrStyle
+
+  - id: v_year
+    label: "Year_matriculation"
+    type: user
+    size: large
+    position: { x: 472, y: 704 }
+    style: *attrStyle
+
+  - id: v_value
+    label: "Value_vehicle"
+    type: user
+    size: medium
+    position: { x: 528, y: 912 }
+    style: *attrStyle
+
+  - id: r_um
+    label: "管理保单"
+    type: decision
+    size: medium
+    position: { x: 560, y: 320 }
+    style: &relStyle
+      fillColor: "#FFFFFF"
+      strokeColor: "#000000"
+      fontColor: "#000000"
+      strokeWidth: 1.2
+      fontSize: 12
+
+  - id: r_uc
+    label: "维护理赔"
+    type: decision
+    size: medium
+    position: { x: 1040, y: 232 }
+    style: *relStyle
+
+  - id: r_up
+    label: "查询预测"
+    type: decision
+    size: medium
+    position: { x: 1040, y: 456 }
+    style: *relStyle
+
+  - id: r_uv
+    label: "维护车辆"
+    type: decision
+    size: medium
+    position: { x: 560, y: 640 }
+    style: *relStyle
+
+  - id: r_mc
+    label: "关联理赔"
+    type: decision
+    size: medium
+    position: { x: 800, y: 392 }
+    style: *relStyle
+
+  - id: r_mp
+    label: "生成预测"
+    type: decision
+    size: medium
+    position: { x: 800, y: 560 }
+    style: *relStyle
+
+  - id: r_mv
+    label: "关联车辆"
+    type: decision
+    size: medium
+    position: { x: 336, y: 656 }
+    style: *relStyle
+
+edges:
+  - { from: u_pk, to: e_user, type: bidirectional, style: &edgeStyle { strokeColor: "#000000", strokeWidth: 1.2 } }
+  - { from: u_emp, to: e_user, type: bidirectional, style: *edgeStyle }
+  - { from: u_name, to: e_user, type: bidirectional, style: *edgeStyle }
+  - { from: u_role, to: e_user, type: bidirectional, style: *edgeStyle }
+  - { from: u_login, to: e_user, type: bidirectional, style: *edgeStyle }
+
+  - { from: m_pk, to: e_motor, type: bidirectional, style: *edgeStyle }
+  - { from: m_id, to: e_motor, type: bidirectional, style: *edgeStyle }
+  - { from: m_creator, to: e_motor, type: bidirectional, style: *edgeStyle }
+  - { from: m_contract, to: e_motor, type: bidirectional, style: *edgeStyle }
+  - { from: m_premium, to: e_motor, type: bidirectional, style: *edgeStyle }
+
+  - { from: c_pk, to: e_claim, type: bidirectional, style: *edgeStyle }
+  - { from: c_id, to: e_claim, type: bidirectional, style: *edgeStyle }
+  - { from: c_creator, to: e_claim, type: bidirectional, style: *edgeStyle }
+  - { from: c_cost, to: e_claim, type: bidirectional, style: *edgeStyle }
+  - { from: c_nyear, to: e_claim, type: bidirectional, style: *edgeStyle }
+
+  - { from: p_pk, to: e_pred, type: bidirectional, style: *edgeStyle }
+  - { from: p_id, to: e_pred, type: bidirectional, style: *edgeStyle }
+  - { from: p_prob, to: e_pred, type: bidirectional, style: *edgeStyle }
+  - { from: p_risk, to: e_pred, type: bidirectional, style: *edgeStyle }
+  - { from: p_time, to: e_pred, type: bidirectional, style: *edgeStyle }
+
+  - { from: v_pk, to: e_vehicle, type: bidirectional, style: *edgeStyle }
+  - { from: v_id, to: e_vehicle, type: bidirectional, style: *edgeStyle }
+  - { from: v_creator, to: e_vehicle, type: bidirectional, style: *edgeStyle }
+  - { from: v_year, to: e_vehicle, type: bidirectional, style: *edgeStyle }
+  - { from: v_value, to: e_vehicle, type: bidirectional, style: *edgeStyle }
+
+  - from: e_user
+    to: r_um
+    type: bidirectional
+    label: "1"
+    labelPosition: end
+    style: *edgeStyle
+  - from: r_um
+    to: e_motor
+    type: bidirectional
+    label: "N"
+    labelPosition: start
+    style: *edgeStyle
+
+  - from: e_user
+    to: r_uc
+    type: bidirectional
+    label: "1"
+    labelPosition: end
+    style: *edgeStyle
+  - from: r_uc
+    to: e_claim
+    type: bidirectional
+    label: "N"
+    labelPosition: start
+    style: *edgeStyle
+
+  - from: e_user
+    to: r_up
+    type: bidirectional
+    label: "1"
+    labelPosition: end
+    style: *edgeStyle
+  - from: r_up
+    to: e_pred
+    type: bidirectional
+    label: "N"
+    labelPosition: start
+    style: *edgeStyle
+
+  - from: e_user
+    to: r_uv
+    type: bidirectional
+    label: "1"
+    labelPosition: end
+    style: *edgeStyle
+  - from: r_uv
+    to: e_vehicle
+    type: bidirectional
+    label: "N"
+    labelPosition: start
+    style: *edgeStyle
+
+  - from: e_motor
+    to: r_mc
+    type: bidirectional
+    label: "1"
+    labelPosition: end
+    style: *edgeStyle
+  - from: r_mc
+    to: e_claim
+    type: bidirectional
+    label: "1"
+    labelPosition: start
+    style: *edgeStyle
+
+  - from: e_motor
+    to: r_mp
+    type: bidirectional
+    label: "1"
+    labelPosition: end
+    style: *edgeStyle
+  - from: r_mp
+    to: e_pred
+    type: bidirectional
+    label: "N"
+    labelPosition: start
+    style: *edgeStyle
+
+  - from: e_motor
+    to: r_mv
+    type: bidirectional
+    label: "1"
+    labelPosition: end
+    style: *edgeStyle
+  - from: r_mv
+    to: e_vehicle
+    type: bidirectional
+    label: "1"
+    labelPosition: start
+    style: *edgeStyle

@@ -16,7 +16,7 @@ else:
 
 app = FastAPI(
     title="Motor Insurance Claim Prediction FastAPI",
-    version="2.0.0",
+    version="2.1.0",
     description="MLP classification service for model training management and manual prediction.",
 )
 
@@ -136,6 +136,7 @@ class TrainingStartRequest(BaseModel):
         "recall",
     ] = Field("auc")
     thresholdMetric: Literal["f1", "precision", "recall"] = Field("f1")
+    thresholdMinRecall: Optional[float] = Field(None, ge=0.0, le=1.0)
     hiddenDims: list[int] = Field(default_factory=lambda: [256, 512, 512, 256, 256], min_length=1, max_length=10)
     headHiddenDim: int = Field(64, ge=1, le=4096)
 

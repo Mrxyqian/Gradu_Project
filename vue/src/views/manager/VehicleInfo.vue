@@ -1,31 +1,14 @@
 <template>
   <div>
-    <div class="card" style="margin-bottom: 10px">
-      <el-input
-        v-model="data.id"
-        style="width: 220px; margin-right: 10px"
-        placeholder="请输入保单编号查询"
-        :prefix-icon="Search"
-      />
-      <el-select v-model="data.typeRisk" style="width: 200px; margin-right: 10px" placeholder="请选择车辆类型" clearable>
-        <el-option label="摩托车" :value="1" />
-        <el-option label="货车" :value="2" />
-        <el-option label="乘用车" :value="3" />
-        <el-option label="农用车" :value="4" />
-      </el-select>
-      <el-select v-model="data.typeFuel" style="width: 200px; margin-right: 10px" placeholder="请选择燃料类型" clearable>
-        <el-option label="汽油" value="P" />
-        <el-option label="柴油" value="D" />
-      </el-select>
-      <el-input v-model.number="data.yearMatriculation" style="width: 200px; margin-right: 10px" placeholder="请输入注册年份" />
-      <el-button type="primary" style="margin-left: 10px" @click="load">查询</el-button>
-      <el-button type="info" @click="reset">重置</el-button>
+    <div class="card toolbar-card">
+      <div class="toolbar-actions">
+        <el-button type="primary" @click="handleAdd">新增</el-button>
+        <el-button type="success" plain @click="openQueryDialog">查询</el-button>
+        <el-button type="info" plain @click="resetQuery">重置查询</el-button>
+      </div>
     </div>
 
     <div class="card">
-      <div style="margin-bottom: 10px">
-        <el-button type="primary" @click="handleAdd">新增</el-button>
-      </div>
       <div style="overflow-x: auto">
         <el-table :data="data.tableData" style="width: 100%">
           <el-table-column prop="id" label="保单编号" width="110" />
@@ -41,7 +24,7 @@
           <el-table-column prop="nDoors" label="车门数量" width="100" />
           <el-table-column prop="typeFuel" label="燃料类型" width="100">
             <template #default="scope">
-              {{ scope.row.typeFuel === 'P' ? '汽油' : '柴油' }}
+              {{ getFuelText(scope.row.typeFuel) }}
             </template>
           </el-table-column>
           <el-table-column prop="length" label="车辆长度(米)" width="130" />
@@ -66,6 +49,87 @@
         @current-change="handleCurrentChange"
       />
     </div>
+
+    <el-dialog v-model="data.queryVisible" title="查询车辆信息" width="78%" destroy-on-close>
+      <el-form :model="data.queryForm" label-width="160px" label-position="right" style="padding-right: 30px">
+        <el-row :gutter="20">
+          <el-col :span="8">
+            <el-form-item label="保单编号">
+              <el-input-number v-model="data.queryForm.id" :min="1" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="车辆类型">
+              <el-select v-model="data.queryForm.typeRisk" style="width: 100%" clearable>
+                <el-option label="摩托车" :value="1" />
+                <el-option label="货车" :value="2" />
+                <el-option label="乘用车" :value="3" />
+                <el-option label="农用车" :value="4" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="注册年份">
+              <el-input-number v-model="data.queryForm.yearMatriculation" :min="0" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <el-row :gutter="20">
+          <el-col :span="8">
+            <el-form-item label="车辆功率(HP)">
+              <el-input-number v-model="data.queryForm.power" :min="0" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="发动机排量(cc)">
+              <el-input-number v-model="data.queryForm.cylinderCapacity" :min="0" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="车辆市场价值">
+              <el-input-number v-model="data.queryForm.valueVehicle" :precision="2" :step="100" :min="0" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <el-row :gutter="20">
+          <el-col :span="8">
+            <el-form-item label="车门数量">
+              <el-input-number v-model="data.queryForm.nDoors" :min="0" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="燃料类型">
+              <el-select v-model="data.queryForm.typeFuel" style="width: 100%" clearable>
+                <el-option label="汽油" value="P" />
+                <el-option label="柴油" value="D" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="车辆长度(米)">
+              <el-input-number v-model="data.queryForm.length" :precision="2" :step="0.1" :min="0" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <el-row :gutter="20">
+          <el-col :span="8">
+            <el-form-item label="车辆重量(千克)">
+              <el-input-number v-model="data.queryForm.weight" :min="0" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+      </el-form>
+
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="data.queryVisible = false">取消</el-button>
+          <el-button type="primary" @click="submitQuery">开始查询</el-button>
+        </span>
+      </template>
+    </el-dialog>
 
     <el-dialog v-model="data.formVisible" width="50%" :title="data.formMode === 'edit' ? '车辆信息' : '新增车辆信息'" destroy-on-close>
       <el-form ref="formRef" :model="data.form" :rules="rules" label-width="140px" label-position="right" style="padding-right: 40px">
@@ -154,7 +218,6 @@
 
 <script setup>
 import { reactive, ref } from 'vue'
-import { Search } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import request from '@/utils/request'
 
@@ -174,11 +237,22 @@ const createEmptyForm = () => ({
   weight: null,
 })
 
-const data = reactive({
-  id: '',
+const createEmptyQueryForm = () => ({
+  id: null,
   typeRisk: null,
-  typeFuel: '',
   yearMatriculation: null,
+  power: null,
+  cylinderCapacity: null,
+  valueVehicle: null,
+  nDoors: null,
+  typeFuel: '',
+  length: null,
+  weight: null,
+})
+
+const data = reactive({
+  queryVisible: false,
+  queryForm: createEmptyQueryForm(),
   tableData: [],
   total: 0,
   pageNum: 1,
@@ -205,16 +279,27 @@ const getTypeRiskText = (type) => {
   return map[type] || type
 }
 
+const getFuelText = (typeFuel) => (typeFuel === 'P' ? '汽油' : '柴油')
+
+const buildQueryParams = () => {
+  const params = {
+    pageNum: data.pageNum,
+    pageSize: data.pageSize,
+    ...data.queryForm,
+  }
+
+  Object.keys(params).forEach((key) => {
+    if (params[key] === '' || params[key] === undefined) {
+      params[key] = null
+    }
+  })
+
+  return params
+}
+
 const load = () => {
   request.get(baseUrl + '/selectPage', {
-    params: {
-      pageNum: data.pageNum,
-      pageSize: data.pageSize,
-      id: data.id || null,
-      typeRisk: data.typeRisk,
-      typeFuel: data.typeFuel,
-      yearMatriculation: data.yearMatriculation,
-    },
+    params: buildQueryParams(),
   }).then((res) => {
     data.tableData = res.data?.list || []
     data.total = res.data?.total || 0
@@ -228,11 +313,18 @@ const handleCurrentChange = (pageNum) => {
   load()
 }
 
-const reset = () => {
-  data.id = ''
-  data.typeRisk = null
-  data.typeFuel = ''
-  data.yearMatriculation = null
+const openQueryDialog = () => {
+  data.queryVisible = true
+}
+
+const submitQuery = () => {
+  data.pageNum = 1
+  data.queryVisible = false
+  load()
+}
+
+const resetQuery = () => {
+  data.queryForm = createEmptyQueryForm()
   data.pageNum = 1
   load()
 }
@@ -289,6 +381,17 @@ const del = (id) => {
 </script>
 
 <style scoped>
+.toolbar-card {
+  margin-bottom: 10px;
+}
+
+.toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .edit-action-btn {
   color: #1f5a4c;
   border-color: rgba(47, 125, 107, 0.28);

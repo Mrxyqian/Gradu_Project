@@ -50,8 +50,10 @@ def write_json(path: Path, data: Dict[str, Any]) -> None:
 class TrainingJobManager:
     def __init__(self, base_dir: Optional[Path] = None):
         self.base_dir = Path(base_dir or (BASE_DIR / "outputs" / "training_jobs"))
+        self.outputs_dir = BASE_DIR / "outputs"
         self.saved_weights_dir = BASE_DIR / "outputs" / "saved_weights"
         self.base_dir.mkdir(parents=True, exist_ok=True)
+        self.outputs_dir.mkdir(parents=True, exist_ok=True)
         self.saved_weights_dir.mkdir(parents=True, exist_ok=True)
         self._lock = threading.Lock()
         self._jobs: Dict[str, Dict[str, Any]] = {}
@@ -102,6 +104,7 @@ class TrainingJobManager:
         run_dir.mkdir(parents=True, exist_ok=True)
         cfg.path.output_dir = str(run_dir)
         cfg.path.scaler_path = str(run_dir / "scaler.pkl")
+        cfg.path.reference_path = str(run_dir / "preprocess_reference.pkl")
         cfg.path.best_model_path = str(run_dir / "best_model.pth")
         cfg.path.last_model_path = str(run_dir / "last_model.pth")
         cfg.path.log_dir = str(run_dir / "runs")
@@ -146,6 +149,10 @@ class TrainingJobManager:
         cfg.train.clf_threshold = float(params.get("clfThreshold", cfg.train.clf_threshold))
         cfg.train.threshold_metric = str(params.get("thresholdMetric", cfg.train.threshold_metric))
         cfg.train.threshold_beta = float(params.get("thresholdBeta", cfg.train.threshold_beta))
+        threshold_min_recall = params.get("thresholdMinRecall", cfg.train.threshold_min_recall)
+        cfg.train.threshold_min_recall = (
+            None if threshold_min_recall in (None, "") else float(threshold_min_recall)
+        )
         cfg.train.log_interval = 100
         cfg.train.resume_from = ""
         return cfg
@@ -166,6 +173,31 @@ class TrainingJobManager:
             job.update(make_json_safe(payload))
             self._sanitize_job_snapshot(job)
             self._persist_job(job_id)
+
+    def _publish_active_artifacts(self, artifacts: Dict[str, Any]) -> Dict[str, Any]:
+        publish_targets = {
+            "bestModelPath": self.outputs_dir / "best_model.pth",
+            "lastModelPath": self.outputs_dir / "last_model.pth",
+            "scalerPath": self.outputs_dir / "scaler.pkl",
+            "referencePath": self.outputs_dir / "preprocess_reference.pkl",
+            "bestThresholdPath": self.outputs_dir / "best_threshold.pt",
+        }
+        published_artifacts: Dict[str, Any] = {}
+        for artifact_key, target_path in publish_targets.items():
+            source_value = artifacts.get(artifact_key)
+            if not source_value:
+                continue
+            source_path = Path(str(source_value)).resolve()
+            if not source_path.exists() or not source_path.is_file():
+                raise FileNotFoundError(
+                    f"Cannot publish artifact '{artifact_key}': source file does not exist ({source_path})"
+                )
+            target_path.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source_path, target_path)
+            published_artifacts[artifact_key] = str(target_path.resolve())
+
+        published_artifacts["publishedAt"] = iso_now()
+        return published_artifacts
 
     def start_training(self, params: Dict[str, Any]) -> Dict[str, Any]:
         with self._lock:
@@ -233,14 +265,23 @@ class TrainingJobManager:
                 cfg,
                 progress_callback=lambda payload: self._update_job(job_id, payload),
             )
+            history = make_json_safe(result["history"])
+            summary = make_json_safe(result["summary"])
+            artifacts = make_json_safe(result["artifacts"])
+            publish_error = None
+            try:
+                artifacts["publishedArtifacts"] = self._publish_active_artifacts(artifacts)
+                artifacts["isActiveModel"] = True
+            except Exception as exc:
+                publish_error = str(exc)
+                artifacts["publishedArtifacts"] = None
+                artifacts["isActiveModel"] = False
+                artifacts["publishError"] = publish_error
+
             with self._lock:
                 job = self._jobs.get(job_id)
                 if not job:
                     return
-
-                history = make_json_safe(result["history"])
-                summary = make_json_safe(result["summary"])
-                artifacts = make_json_safe(result["artifacts"])
                 latest_epoch = None
                 if result["history"]["epochs"]:
                     index = -1
@@ -275,6 +316,8 @@ class TrainingJobManager:
                 job["artifacts"] = artifacts
                 job["error"] = None
                 job["errorDetail"] = None
+                if publish_error:
+                    job["message"] = "训练完成，但默认推理产物发布失败"
                 self._sanitize_job_snapshot(job)
                 self._active_job_id = None
                 self._persist_job(job_id)

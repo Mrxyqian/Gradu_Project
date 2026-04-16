@@ -1,0 +1,501 @@
+{
+  "version": 1,
+  "title": "普通用户视角系统E-R图",
+  "type": "flow-diagram",
+  "source": "replicated",
+  "profile": "default",
+  "theme": "academic",
+  "layout": "horizontal",
+  "counts": {
+    "nodes": 37,
+    "edges": 39,
+    "modules": 0
+  },
+  "nodes": [
+    {
+      "id": "e_user",
+      "label": "用户\n(sys_user)",
+      "type": "service",
+      "size": "xl"
+    },
+    {
+      "id": "u_pk",
+      "label": "_id_ (PK)",
+      "type": "user",
+      "size": "medium"
+    },
+    {
+      "id": "u_emp",
+      "label": "employee_no",
+      "type": "user",
+      "size": "medium"
+    },
+    {
+      "id": "u_name",
+      "label": "name",
+      "type": "user",
+      "size": "medium"
+    },
+    {
+      "id": "u_role",
+      "label": "role",
+      "type": "user",
+      "size": "medium"
+    },
+    {
+      "id": "u_login",
+      "label": "last_login_time",
+      "type": "user",
+      "size": "large"
+    },
+    {
+      "id": "e_motor",
+      "label": "车险保单\n(motor_insurance)",
+      "type": "service",
+      "size": "xl"
+    },
+    {
+      "id": "m_pk",
+      "label": "_tab_id_ (PK)",
+      "type": "user",
+      "size": "medium"
+    },
+    {
+      "id": "m_id",
+      "label": "ID",
+      "type": "user",
+      "size": "medium"
+    },
+    {
+      "id": "m_creator",
+      "label": "creator_employee_no (FK)",
+      "type": "user",
+      "size": "large"
+    },
+    {
+      "id": "m_contract",
+      "label": "Date_start_contract",
+      "type": "user",
+      "size": "large"
+    },
+    {
+      "id": "m_premium",
+      "label": "Premium",
+      "type": "user",
+      "size": "medium"
+    },
+    {
+      "id": "e_claim",
+      "label": "理赔记录\n(claim_record)",
+      "type": "service",
+      "size": "xl"
+    },
+    {
+      "id": "c_pk",
+      "label": "_tab_id_ (PK)",
+      "type": "user",
+      "size": "medium"
+    },
+    {
+      "id": "c_id",
+      "label": "ID (FK)",
+      "type": "user",
+      "size": "medium"
+    },
+    {
+      "id": "c_creator",
+      "label": "creator_employee_no (FK)",
+      "type": "user",
+      "size": "large"
+    },
+    {
+      "id": "c_cost",
+      "label": "Cost_claims_year",
+      "type": "user",
+      "size": "large"
+    },
+    {
+      "id": "c_nyear",
+      "label": "N_claims_year",
+      "type": "user",
+      "size": "medium"
+    },
+    {
+      "id": "e_pred",
+      "label": "预测记录\n(insur_pred)",
+      "type": "service",
+      "size": "xl"
+    },
+    {
+      "id": "p_pk",
+      "label": "_pred_id_ (PK)",
+      "type": "user",
+      "size": "medium"
+    },
+    {
+      "id": "p_id",
+      "label": "ID (FK)",
+      "type": "user",
+      "size": "medium"
+    },
+    {
+      "id": "p_prob",
+      "label": "claim_probability",
+      "type": "user",
+      "size": "large"
+    },
+    {
+      "id": "p_risk",
+      "label": "risk_level",
+      "type": "user",
+      "size": "medium"
+    },
+    {
+      "id": "p_time",
+      "label": "prediction_time",
+      "type": "user",
+      "size": "large"
+    },
+    {
+      "id": "e_vehicle",
+      "label": "车辆信息\n(vehicle_info)",
+      "type": "service",
+      "size": "xl"
+    },
+    {
+      "id": "v_pk",
+      "label": "_tab_id_ (PK)",
+      "type": "user",
+      "size": "medium"
+    },
+    {
+      "id": "v_id",
+      "label": "ID (FK)",
+      "type": "user",
+      "size": "medium"
+    },
+    {
+      "id": "v_creator",
+      "label": "creator_employee_no (FK)",
+      "type": "user",
+      "size": "large"
+    },
+    {
+      "id": "v_year",
+      "label": "Year_matriculation",
+      "type": "user",
+      "size": "large"
+    },
+    {
+      "id": "v_value",
+      "label": "Value_vehicle",
+      "type": "user",
+      "size": "medium"
+    },
+    {
+      "id": "r_um",
+      "label": "管理保单",
+      "type": "decision",
+      "size": "medium"
+    },
+    {
+      "id": "r_uc",
+      "label": "维护理赔",
+      "type": "decision",
+      "size": "medium"
+    },
+    {
+      "id": "r_up",
+      "label": "查询预测",
+      "type": "decision",
+      "size": "medium"
+    },
+    {
+      "id": "r_uv",
+      "label": "维护车辆",
+      "type": "decision",
+      "size": "medium"
+    },
+    {
+      "id": "r_mc",
+      "label": "关联理赔",
+      "type": "decision",
+      "size": "medium"
+    },
+    {
+      "id": "r_mp",
+      "label": "生成预测",
+      "type": "decision",
+      "size": "medium"
+    },
+    {
+      "id": "r_mv",
+      "label": "关联车辆",
+      "type": "decision",
+      "size": "medium"
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-1",
+      "from": "u_pk",
+      "to": "e_user",
+      "type": "bidirectional"
+    },
+    {
+      "id": "edge-2",
+      "from": "u_emp",
+      "to": "e_user",
+      "type": "bidirectional"
+    },
+    {
+      "id": "edge-3",
+      "from": "u_name",
+      "to": "e_user",
+      "type": "bidirectional"
+    },
+    {
+      "id": "edge-4",
+      "from": "u_role",
+      "to": "e_user",
+      "type": "bidirectional"
+    },
+    {
+      "id": "edge-5",
+      "from": "u_login",
+      "to": "e_user",
+      "type": "bidirectional"
+    },
+    {
+      "id": "edge-6",
+      "from": "m_pk",
+      "to": "e_motor",
+      "type": "bidirectional"
+    },
+    {
+      "id": "edge-7",
+      "from": "m_id",
+      "to": "e_motor",
+      "type": "bidirectional"
+    },
+    {
+      "id": "edge-8",
+      "from": "m_creator",
+      "to": "e_motor",
+      "type": "bidirectional"
+    },
+    {
+      "id": "edge-9",
+      "from": "m_contract",
+      "to": "e_motor",
+      "type": "bidirectional"
+    },
+    {
+      "id": "edge-10",
+      "from": "m_premium",
+      "to": "e_motor",
+      "type": "bidirectional"
+    },
+    {
+      "id": "edge-11",
+      "from": "c_pk",
+      "to": "e_claim",
+      "type": "bidirectional"
+    },
+    {
+      "id": "edge-12",
+      "from": "c_id",
+      "to": "e_claim",
+      "type": "bidirectional"
+    },
+    {
+      "id": "edge-13",
+      "from": "c_creator",
+      "to": "e_claim",
+      "type": "bidirectional"
+    },
+    {
+      "id": "edge-14",
+      "from": "c_cost",
+      "to": "e_claim",
+      "type": "bidirectional"
+    },
+    {
+      "id": "edge-15",
+      "from": "c_nyear",
+      "to": "e_claim",
+      "type": "bidirectional"
+    },
+    {
+      "id": "edge-16",
+      "from": "p_pk",
+      "to": "e_pred",
+      "type": "bidirectional"
+    },
+    {
+      "id": "edge-17",
+      "from": "p_id",
+      "to": "e_pred",
+      "type": "bidirectional"
+    },
+    {
+      "id": "edge-18",
+      "from": "p_prob",
+      "to": "e_pred",
+      "type": "bidirectional"
+    },
+    {
+      "id": "edge-19",
+      "from": "p_risk",
+      "to": "e_pred",
+      "type": "bidirectional"
+    },
+    {
+      "id": "edge-20",
+      "from": "p_time",
+      "to": "e_pred",
+      "type": "bidirectional"
+    },
+    {
+      "id": "edge-21",
+      "from": "v_pk",
+      "to": "e_vehicle",
+      "type": "bidirectional"
+    },
+    {
+      "id": "edge-22",
+      "from": "v_id",
+      "to": "e_vehicle",
+      "type": "bidirectional"
+    },
+    {
+      "id": "edge-23",
+      "from": "v_creator",
+      "to": "e_vehicle",
+      "type": "bidirectional"
+    },
+    {
+      "id": "edge-24",
+      "from": "v_year",
+      "to": "e_vehicle",
+      "type": "bidirectional"
+    },
+    {
+      "id": "edge-25",
+      "from": "v_value",
+      "to": "e_vehicle",
+      "type": "bidirectional"
+    },
+    {
+      "id": "edge-26",
+      "from": "e_user",
+      "to": "r_um",
+      "type": "bidirectional",
+      "label": "1"
+    },
+    {
+      "id": "edge-27",
+      "from": "r_um",
+      "to": "e_motor",
+      "type": "bidirectional",
+      "label": "N"
+    },
+    {
+      "id": "edge-28",
+      "from": "e_user",
+      "to": "r_uc",
+      "type": "bidirectional",
+      "label": "1"
+    },
+    {
+      "id": "edge-29",
+      "from": "r_uc",
+      "to": "e_claim",
+      "type": "bidirectional",
+      "label": "N"
+    },
+    {
+      "id": "edge-30",
+      "from": "e_user",
+      "to": "r_up",
+      "type": "bidirectional",
+      "label": "1"
+    },
+    {
+      "id": "edge-31",
+      "from": "r_up",
+      "to": "e_pred",
+      "type": "bidirectional",
+      "label": "N"
+    },
+    {
+      "id": "edge-32",
+      "from": "e_user",
+      "to": "r_uv",
+      "type": "bidirectional",
+      "label": "1"
+    },
+    {
+      "id": "edge-33",
+      "from": "r_uv",
+      "to": "e_vehicle",
+      "type": "bidirectional",
+      "label": "N"
+    },
+    {
+      "id": "edge-34",
+      "from": "e_motor",
+      "to": "r_mc",
+      "type": "bidirectional",
+      "label": "1"
+    },
+    {
+      "id": "edge-35",
+      "from": "r_mc",
+      "to": "e_claim",
+      "type": "bidirectional",
+      "label": "1"
+    },
+    {
+      "id": "edge-36",
+      "from": "e_motor",
+      "to": "r_mp",
+      "type": "bidirectional",
+      "label": "1"
+    },
+    {
+      "id": "edge-37",
+      "from": "r_mp",
+      "to": "e_pred",
+      "type": "bidirectional",
+      "label": "N"
+    },
+    {
+      "id": "edge-38",
+      "from": "e_motor",
+      "to": "r_mv",
+      "type": "bidirectional",
+      "label": "1"
+    },
+    {
+      "id": "edge-39",
+      "from": "r_mv",
+      "to": "e_vehicle",
+      "type": "bidirectional",
+      "label": "1"
+    }
+  ],
+  "modules": [],
+  "replication": {
+    "colorMode": "preserve-original",
+    "background": "#FFFFFF",
+    "palette": [
+      {
+        "hex": "#000000",
+        "role": "entity, attribute, relation stroke",
+        "appliesTo": "mixed",
+        "confidence": "high"
+      }
+    ]
+  }
+}

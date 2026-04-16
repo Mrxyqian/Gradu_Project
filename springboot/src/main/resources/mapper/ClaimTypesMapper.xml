@@ -18,6 +18,10 @@
         <where>
             <if test="id != null">and ID = #{id}</if>
             <if test="creatorEmployeeNo != null and creatorEmployeeNo != ''">and creator_employee_no = #{creatorEmployeeNo}</if>
+            <if test="costClaimsYear != null">and Cost_claims_year = #{costClaimsYear}</if>
+            <if test="nClaimsYear != null">and N_claims_year = #{nClaimsYear}</if>
+            <if test="nClaimsHistory != null">and N_claims_history = #{nClaimsHistory}</if>
+            <if test="rClaimsHistory != null">and R_Claims_history = #{rClaimsHistory}</if>
             <if test="typeRisk != null">and Type_risk = #{typeRisk}</if>
             <if test="area != null">and Area = #{area}</if>
         </where>

@@ -5,16 +5,31 @@
 <mapper namespace="com.example.mapper.VehicleInfoMapper">
 
     <select id="selectAll" resultType="com.example.entity.VehicleInfo">
-        select ID, creator_employee_no as creatorEmployeeNo, Type_risk as typeRisk, Year_matriculation as yearMatriculation, Power, 
-               Cylinder_capacity as cylinderCapacity, Value_vehicle as valueVehicle, 
-               N_doors as nDoors, Type_fuel as typeFuel, Length, Weight
+        select
+            ID as id,
+            creator_employee_no as creatorEmployeeNo,
+            Type_risk as typeRisk,
+            Year_matriculation as yearMatriculation,
+            Power as power,
+            Cylinder_capacity as cylinderCapacity,
+            Value_vehicle as valueVehicle,
+            N_doors as nDoors,
+            Type_fuel as typeFuel,
+            Length as length,
+            Weight as weight
         from vehicle_info
         <where>
             <if test="id != null">and ID = #{id}</if>
             <if test="creatorEmployeeNo != null and creatorEmployeeNo != ''">and creator_employee_no = #{creatorEmployeeNo}</if>
             <if test="typeRisk != null">and Type_risk = #{typeRisk}</if>
+            <if test="power != null">and Power = #{power}</if>
+            <if test="cylinderCapacity != null">and Cylinder_capacity = #{cylinderCapacity}</if>
+            <if test="valueVehicle != null">and Value_vehicle = #{valueVehicle}</if>
+            <if test="nDoors != null">and N_doors = #{nDoors}</if>
             <if test="typeFuel != null and typeFuel != ''">and Type_fuel = #{typeFuel}</if>
             <if test="yearMatriculation != null">and Year_matriculation = #{yearMatriculation}</if>
+            <if test="length != null">and Length = #{length}</if>
+            <if test="weight != null">and Weight = #{weight}</if>
         </where>
         order by ID desc
     </select>
