@@ -5,6 +5,7 @@ import com.example.entity.User;
 import com.example.entity.UserHomeShortcutRequest;
 import com.example.exception.CustomException;
 import com.example.mapper.UserMapper;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
@@ -16,6 +17,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -49,6 +51,9 @@ public class UserService {
 
     @Resource
     private UserMapper userMapper;
+
+    @Resource
+    private JdbcTemplate jdbcTemplate;
 
     @PostConstruct
     public void init() {
@@ -188,6 +193,64 @@ public class UserService {
         Map<String, Object> result = new HashMap<>();
         result.put("selectedPaths", selectedPaths);
         result.put("user", safeUser);
+        return result;
+    }
+
+    public Map<String, Object> getHomeTodos(HttpSession session) {
+        User currentUser = requireLogin(session);
+        Map<String, Object> result = new HashMap<>();
+        if (ROLE_ADMIN.equals(currentUser.getRole())) {
+            result.put("items", new ArrayList<>());
+            result.put("totalCount", 0);
+            result.put("missingClaimCount", 0);
+            result.put("missingVehicleCount", 0);
+            return result;
+        }
+
+        String sql = "SELECT m.ID AS policyId, " +
+                "CASE WHEN c.ID IS NULL THEN 1 ELSE 0 END AS missingClaimRecord, " +
+                "CASE WHEN v.ID IS NULL THEN 1 ELSE 0 END AS missingVehicleInfo " +
+                "FROM motor_insurance m " +
+                "LEFT JOIN claim_record c ON c.ID = m.ID " +
+                "LEFT JOIN vehicle_info v ON v.ID = m.ID " +
+                "WHERE m.creator_employee_no = ? AND (c.ID IS NULL OR v.ID IS NULL) " +
+                "ORDER BY m.ID DESC";
+
+        List<Map<String, Object>> items = jdbcTemplate.query(sql, (rs, rowNum) -> {
+            List<String> missingItems = new ArrayList<>();
+            boolean missingClaimRecord = rs.getInt("missingClaimRecord") == 1;
+            boolean missingVehicleInfo = rs.getInt("missingVehicleInfo") == 1;
+            if (missingClaimRecord) {
+                missingItems.add("缺理赔记录");
+            }
+            if (missingVehicleInfo) {
+                missingItems.add("缺车辆信息");
+            }
+
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("policyId", rs.getInt("policyId"));
+            item.put("missingClaimRecord", missingClaimRecord);
+            item.put("missingVehicleInfo", missingVehicleInfo);
+            item.put("missingItems", missingItems);
+            item.put("missingSummary", String.join("、", missingItems));
+            return item;
+        }, currentUser.getEmployeeNo());
+
+        int missingClaimCount = 0;
+        int missingVehicleCount = 0;
+        for (Map<String, Object> item : items) {
+            if (Boolean.TRUE.equals(item.get("missingClaimRecord"))) {
+                missingClaimCount++;
+            }
+            if (Boolean.TRUE.equals(item.get("missingVehicleInfo"))) {
+                missingVehicleCount++;
+            }
+        }
+
+        result.put("items", items);
+        result.put("totalCount", items.size());
+        result.put("missingClaimCount", missingClaimCount);
+        result.put("missingVehicleCount", missingVehicleCount);
         return result;
     }
 

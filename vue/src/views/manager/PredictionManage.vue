@@ -150,20 +150,57 @@
             <el-table-column prop="claimProbability" label="理赔概率" width="110">
               <template #default="scope">{{ formatPercent(scope.row.claimProbability) }}</template>
             </el-table-column>
-            <el-table-column prop="claimFlag" label="预测标签" width="90">
-              <template #default="scope">{{ Number(scope.row.claimFlag) === 1 ? '理赔' : '不理赔' }}</template>
+            <el-table-column prop="claimFlag" width="110">
+              <template #header>
+                <div class="filterable-header">
+                  <span>预测标签</span>
+                  <el-popover v-model:visible="claimFlagFilterVisible" placement="bottom" :width="156" trigger="click">
+                    <template #reference>
+                      <el-button class="header-filter-button" :class="{ active: isHistoryFilterActive('claimFlag') }" link>
+                        <el-icon><Filter /></el-icon>
+                      </el-button>
+                    </template>
+                    <div class="header-filter-panel">
+                      <el-button text @click="clearHistoryFilter('claimFlag')">全部</el-button>
+                      <el-button text @click="applyHistoryFilter('claimFlag', 1)">理赔</el-button>
+                      <el-button text @click="applyHistoryFilter('claimFlag', 0)">不理赔</el-button>
+                    </div>
+                  </el-popover>
+                </div>
+              </template>
+              <template #default="scope">{{ getClaimFlagText(scope.row.claimFlag) }}</template>
             </el-table-column>
-            <el-table-column prop="riskLevel" label="风险等级" width="100">
+            <el-table-column prop="riskLevel" width="120">
+              <template #header>
+                <div class="filterable-header">
+                  <span>风险等级</span>
+                  <el-popover v-model:visible="riskLevelFilterVisible" placement="bottom" :width="156" trigger="click">
+                    <template #reference>
+                      <el-button class="header-filter-button" :class="{ active: isHistoryFilterActive('riskLevel') }" link>
+                        <el-icon><Filter /></el-icon>
+                      </el-button>
+                    </template>
+                    <div class="header-filter-panel">
+                      <el-button text @click="clearHistoryFilter('riskLevel')">全部</el-button>
+                      <el-button text @click="applyHistoryFilter('riskLevel', 'LOW')">低风险</el-button>
+                      <el-button text @click="applyHistoryFilter('riskLevel', 'MEDIUM')">中风险</el-button>
+                      <el-button text @click="applyHistoryFilter('riskLevel', 'HIGH')">高风险</el-button>
+                    </div>
+                  </el-popover>
+                </div>
+              </template>
               <template #default="scope">
                 <el-tag :type="getRiskLevelTag(scope.row.riskLevel)">{{ getRiskLevelText(scope.row.riskLevel) }}</el-tag>
               </template>
             </el-table-column>
             <el-table-column prop="predictionTime" label="预测时间" min-width="160" />
             <el-table-column prop="modelVersion" label="模型版本" min-width="180" show-overflow-tooltip />
-            <el-table-column prop="thresholdUsed" label="阈值" width="90" />
-            <el-table-column label="操作" width="82" fixed="right">
+            <el-table-column label="操作" width="150" fixed="right">
               <template #default="scope">
-                <el-button type="danger" plain size="small" @click="deleteHistory(scope.row.predId)">删除</el-button>
+                <div class="history-actions">
+                  <el-button plain size="small" @click="viewHistoryDetail(scope.row.predId)">查看解释</el-button>
+                  <el-button type="danger" plain size="small" @click="deleteHistory(scope.row.predId)">删除</el-button>
+                </div>
               </template>
             </el-table-column>
           </el-table>
@@ -181,7 +218,7 @@
       </el-col>
     </el-row>
 
-    <el-dialog v-model="resultDialogVisible" title="预测结果" width="520px" destroy-on-close>
+    <el-dialog v-model="resultDialogVisible" title="预测结果" width="780px" destroy-on-close>
       <div v-if="latestResult" class="result-grid">
         <div class="result-card blue-card">
           <div class="result-label">理赔概率</div>
@@ -203,6 +240,52 @@
         <el-descriptions-item label="分类阈值">{{ latestResult.thresholdUsed ?? '-' }}</el-descriptions-item>
         <el-descriptions-item label="预测时间">{{ latestResult.predictionTime || '-' }}</el-descriptions-item>
       </el-descriptions>
+      <div v-if="latestResult" class="explanation-panel">
+        <div class="explanation-title">关键影响因素</div>
+        <div class="explanation-summary">
+          {{ latestResult.explanationSummary || '本次预测暂未生成可解释信息。' }}
+        </div>
+        <div class="factor-columns">
+          <div class="factor-section factor-section-up">
+            <div class="factor-section-title">主要风险提升因素</div>
+            <div v-if="hasFactors(latestResult.positiveFactors)" class="factor-list">
+              <div
+                v-for="(factor, index) in latestResult.positiveFactors"
+                :key="`${factor.featureCode || factor.featureKey}-${index}`"
+                class="factor-item"
+              >
+                <div class="factor-header">
+                  <span class="factor-rank">TOP {{ index + 1 }}</span>
+                  <span class="factor-name">{{ factor.featureName }}</span>
+                  <span class="factor-impact up-text">{{ factor.impactLabel }}</span>
+                </div>
+                <div class="factor-meta">当前值：{{ factor.currentDisplay }} · 典型水平：{{ factor.baselineDisplay }}</div>
+                <div class="factor-explanation">{{ factor.explanation }}</div>
+              </div>
+            </div>
+            <div v-else class="factor-empty">当前未识别出明显的风险提升因素。</div>
+          </div>
+          <div class="factor-section factor-section-down">
+            <div class="factor-section-title">风险缓释因素</div>
+            <div v-if="hasFactors(latestResult.negativeFactors)" class="factor-list">
+              <div
+                v-for="(factor, index) in latestResult.negativeFactors"
+                :key="`${factor.featureCode || factor.featureKey}-${index}`"
+                class="factor-item"
+              >
+                <div class="factor-header">
+                  <span class="factor-rank">TOP {{ index + 1 }}</span>
+                  <span class="factor-name">{{ factor.featureName }}</span>
+                  <span class="factor-impact down-text">{{ factor.impactLabel }}</span>
+                </div>
+                <div class="factor-meta">当前值：{{ factor.currentDisplay }} · 典型水平：{{ factor.baselineDisplay }}</div>
+                <div class="factor-explanation">{{ factor.explanation }}</div>
+              </div>
+            </div>
+            <div v-else class="factor-empty">当前未识别出明显的风险缓释因素。</div>
+          </div>
+        </div>
+      </div>
     </el-dialog>
 
     <el-dialog v-model="existingPolicyDialogVisible" title="预测已有保单" width="420px" destroy-on-close>
@@ -223,6 +306,7 @@
 import { onMounted, reactive, ref } from 'vue'
 import request from '@/utils/request'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Filter } from '@element-plus/icons-vue'
 
 const defaultPredictForm = () => ({
   dateStartContract: '',
@@ -265,6 +349,12 @@ const historyTableData = ref([])
 const historyPageNum = ref(1)
 const historyPageSize = ref(10)
 const historyTotal = ref(0)
+const claimFlagFilterVisible = ref(false)
+const riskLevelFilterVisible = ref(false)
+const historyFilters = reactive({
+  claimFlag: null,
+  riskLevel: '',
+})
 
 const modelVersions = ref([])
 const selectedModelVersion = ref('')
@@ -297,6 +387,39 @@ const getRiskLevelTag = (riskLevel) => {
 
 const formatPercent = (value) => `${(Number(value || 0) * 100).toFixed(2)}%`
 
+const getClaimFlagText = (claimFlag) => (Number(claimFlag) === 1 ? '理赔' : '不理赔')
+
+const hasFactors = (factors) => Array.isArray(factors) && factors.length > 0
+
+const isHistoryFilterActive = (key) => {
+  const value = historyFilters[key]
+  return value !== null && value !== ''
+}
+
+const closeHistoryFilterPopover = (key) => {
+  if (key === 'claimFlag') {
+    claimFlagFilterVisible.value = false
+    return
+  }
+  if (key === 'riskLevel') {
+    riskLevelFilterVisible.value = false
+  }
+}
+
+const applyHistoryFilter = (key, value) => {
+  historyFilters[key] = value
+  closeHistoryFilterPopover(key)
+  historyPageNum.value = 1
+  loadHistoryPage()
+}
+
+const clearHistoryFilter = (key) => {
+  historyFilters[key] = key === 'riskLevel' ? '' : null
+  closeHistoryFilterPopover(key)
+  historyPageNum.value = 1
+  loadHistoryPage()
+}
+
 const buildModelVersionLabel = (item) => {
   const tags = []
   if (item.savedAt) tags.push(String(item.savedAt).replace('T', ' '))
@@ -310,6 +433,8 @@ const loadHistoryPage = () => {
     params: {
       pageNum: historyPageNum.value,
       pageSize: historyPageSize.value,
+      claimFlag: historyFilters.claimFlag,
+      riskLevel: historyFilters.riskLevel || null,
     },
   }).then((res) => {
     historyTableData.value = res.data?.list || []
@@ -410,6 +535,21 @@ const deleteHistory = async (predId) => {
   } catch (error) {}
 }
 
+const viewHistoryDetail = async (predId) => {
+  try {
+    const res = await request.get(`/insurPred/selectByPredId/${predId}`)
+    if (res.code === '200') {
+      latestResult.value = res.data || null
+      resultDialogVisible.value = true
+      return
+    }
+    ElMessage.error(res.msg || '加载预测解释失败')
+  } catch (error) {
+    console.error(error)
+    ElMessage.error('加载预测解释失败')
+  }
+}
+
 onMounted(() => {
   loadHistoryPage()
   loadModelVersions()
@@ -500,6 +640,33 @@ onMounted(() => {
   justify-content: flex-end;
 }
 
+.filterable-header {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.header-filter-button {
+  padding: 0;
+  min-height: auto;
+  color: #64748b;
+}
+
+.header-filter-button.active {
+  color: #2563eb;
+}
+
+.header-filter-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.header-filter-panel :deep(.el-button) {
+  justify-content: flex-start;
+  margin-left: 0;
+}
+
 .result-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -535,6 +702,132 @@ onMounted(() => {
   font-weight: 700;
 }
 
+.explanation-panel {
+  margin-top: 18px;
+}
+
+.explanation-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.explanation-summary {
+  margin-top: 12px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #334155;
+  line-height: 1.7;
+}
+
+.factor-columns {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.factor-section {
+  border-radius: 18px;
+  padding: 16px;
+  border: 1px solid #e2e8f0;
+}
+
+.factor-section-up {
+  background: linear-gradient(180deg, rgba(248, 113, 113, 0.08), rgba(255, 255, 255, 0.96));
+}
+
+.factor-section-down {
+  background: linear-gradient(180deg, rgba(34, 197, 94, 0.08), rgba(255, 255, 255, 0.96));
+}
+
+.factor-section-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.factor-list {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.factor-item {
+  border-radius: 14px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.factor-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.factor-rank {
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  font-size: 12px;
+  font-weight: 700;
+  color: #334155;
+}
+
+.factor-name {
+  flex: 1;
+  min-width: 96px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.factor-impact {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.up-text {
+  color: #dc2626;
+}
+
+.down-text {
+  color: #059669;
+}
+
+.factor-meta {
+  margin-top: 8px;
+  font-size: 13px;
+  color: #475569;
+}
+
+.factor-explanation {
+  margin-top: 8px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: #334155;
+}
+
+.factor-empty {
+  margin-top: 12px;
+  border-radius: 14px;
+  padding: 18px 14px;
+  background: rgba(255, 255, 255, 0.82);
+  color: #64748b;
+  font-size: 13px;
+}
+
+.history-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 @media (max-width: 1280px) {
   .result-grid {
     grid-template-columns: 1fr;
@@ -551,6 +844,10 @@ onMounted(() => {
     width: 100%;
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .factor-columns {
+    grid-template-columns: 1fr;
   }
 }
 </style>

@@ -18,6 +18,7 @@
         <where>
             <if test="predId != null">and pred_id = #{predId}</if>
             <if test="id != null">and ID = #{id}</if>
+            <if test="claimFlag != null">and claim_flag = #{claimFlag}</if>
             <if test="riskLevel != null and riskLevel != ''">and risk_level = #{riskLevel}</if>
         </where>
         order by pred_id desc

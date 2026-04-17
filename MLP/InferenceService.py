@@ -13,7 +13,9 @@ if __package__:
         FEATURE_ENGINEERING_STRATEGY,
         FEATURE_ENGINEERING_VERSION,
         OBSERVATION_DATE_COL,
+        RAW_FEATURE_COLS,
         build_inference_reference,
+        build_raw_feature_defaults,
         preprocess_for_inference,
         validate_inference_reference,
     )
@@ -24,7 +26,9 @@ else:
         FEATURE_ENGINEERING_STRATEGY,
         FEATURE_ENGINEERING_VERSION,
         OBSERVATION_DATE_COL,
+        RAW_FEATURE_COLS,
         build_inference_reference,
+        build_raw_feature_defaults,
         preprocess_for_inference,
         validate_inference_reference,
     )
@@ -65,6 +69,91 @@ RAW_TO_CAMEL = {
 }
 
 CAMEL_TO_RAW = {value: key for key, value in RAW_TO_CAMEL.items()}
+
+RISK_LEVEL_TEXT = {
+    "LOW": "低风险",
+    "MEDIUM": "中风险",
+    "HIGH": "高风险",
+}
+
+FEATURE_LABELS = {
+    "Date_start_contract": "合同持续时长",
+    "Date_last_renewal": "最近续保时点",
+    "Date_next_renewal": "距下次续保时长",
+    "Distribution_channel": "分销渠道",
+    "Date_birth": "被保人年龄",
+    "Date_driving_licence": "驾驶经验",
+    "Seniority": "合作年数",
+    "Policies_in_force": "当前生效保单数",
+    "Max_policies": "历史最高保单数",
+    "Max_products": "历史最高产品数",
+    "Lapse": "失效保单数",
+    "Payment": "缴费方式",
+    "Premium": "净保费",
+    "N_claims_history": "历史索赔次数",
+    "R_Claims_history": "历史出险率",
+    "Type_risk": "风险类型",
+    "Area": "地区",
+    "Second_driver": "第二驾驶员",
+    "Year_matriculation": "车龄",
+    "Power": "马力",
+    "Cylinder_capacity": "排量",
+    "Value_vehicle": "车辆价值",
+    "N_doors": "车门数",
+    "Type_fuel": "燃料类型",
+    "Length": "车长",
+    "Weight": "车重",
+}
+
+CATEGORICAL_VALUE_LABELS = {
+    "Distribution_channel": {0: "代理人", 1: "保险经纪"},
+    "Payment": {0: "年缴", 1: "半年缴"},
+    "Type_risk": {1: "摩托车", 2: "货车", 3: "乘用车", 4: "农用车"},
+    "Area": {0: "农村", 1: "城市"},
+    "Second_driver": {0: "无", 1: "有"},
+    "Type_fuel": {"P": "汽油", "D": "柴油"},
+}
+
+DATE_FIELDS = {
+    "Date_start_contract",
+    "Date_last_renewal",
+    "Date_next_renewal",
+    "Date_birth",
+    "Date_driving_licence",
+}
+
+INTEGER_FIELDS = {
+    "Seniority",
+    "Policies_in_force",
+    "Max_policies",
+    "Max_products",
+    "Lapse",
+    "N_claims_history",
+    "Distribution_channel",
+    "Payment",
+    "Type_risk",
+    "Area",
+    "Second_driver",
+    "Year_matriculation",
+    "Power",
+    "Cylinder_capacity",
+    "N_doors",
+    "Weight",
+}
+
+PERCENT_FIELDS = {"R_Claims_history"}
+MONEY_FIELDS = {"Premium", "Value_vehicle"}
+METER_FIELDS = {"Length"}
+KG_FIELDS = {"Weight"}
+
+TEMPORAL_FEATURE_NOTES = {
+    "Date_birth": "以最近续保日期为时间观测点换算后的被保人年龄",
+    "Date_driving_licence": "以最近续保日期为时间观测点换算后的驾驶经验",
+    "Date_start_contract": "以最近续保日期为时间观测点换算后的合同持续时长",
+    "Date_next_renewal": "以最近续保日期为时间观测点换算后的距下次续保时长",
+    "Date_last_renewal": "该字段本身就是时间观测点，会联动影响年龄、驾驶经验、合同持续时长、车龄和续保阶段的计算",
+    "Year_matriculation": "以最近续保日期为时间观测点换算后的车龄",
+}
 
 
 class InsuranceInferenceService:
@@ -168,18 +257,24 @@ class InsuranceInferenceService:
         results: List[Dict[str, Any]] = []
         for index, claim_prob in enumerate(claim_probs, start=1):
             probability = float(claim_prob)
-            results.append(
-                {
-                    "requestIndex": index,
-                    "claimProbability": round(probability, 6),
-                    "claimProbabilityPercent": round(probability * 100, 2),
-                    "claimFlag": int(probability >= bundle["classificationThreshold"]),
-                    "riskLevel": self.map_risk_level(probability),
-                    "thresholdUsed": round(float(bundle["classificationThreshold"]), 6),
-                    "modelVersion": bundle["modelVersion"],
-                    "generatedAt": generated_at,
-                }
+            result = {
+                "requestIndex": index,
+                "claimProbability": round(probability, 6),
+                "claimProbabilityPercent": round(probability * 100, 2),
+                "claimFlag": int(probability >= bundle["classificationThreshold"]),
+                "riskLevel": self.map_risk_level(probability),
+                "thresholdUsed": round(float(bundle["classificationThreshold"]), 6),
+                "modelVersion": bundle["modelVersion"],
+                "generatedAt": generated_at,
+            }
+            result.update(
+                self._build_local_explanation(
+                    normalized_records[index - 1],
+                    probability,
+                    bundle,
+                )
             )
+            results.append(result)
         return results
 
     def list_model_versions(self) -> Dict[str, Any]:
@@ -263,6 +358,9 @@ class InsuranceInferenceService:
                 {"name": "thresholdUsed", "type": "float"},
                 {"name": "modelVersion", "type": "string"},
                 {"name": "generatedAt", "type": "string"},
+                {"name": "explanationSummary", "type": "string"},
+                {"name": "positiveFactors", "type": "array"},
+                {"name": "negativeFactors", "type": "array"},
             ],
         }
 
@@ -313,9 +411,11 @@ class InsuranceInferenceService:
     def _build_reference(self) -> Dict[str, Any]:
         if self.reference_path.exists():
             with open(self.reference_path, "rb") as file:
-                return validate_inference_reference(pickle.load(file))
-        return validate_inference_reference(
-            build_inference_reference(load_training_dataframe(self.train_table))
+                return self._ensure_reference_extras(validate_inference_reference(pickle.load(file)))
+        return self._ensure_reference_extras(
+            validate_inference_reference(
+                build_inference_reference(load_training_dataframe(self.train_table))
+            )
         )
 
     @staticmethod
@@ -325,10 +425,385 @@ class InsuranceInferenceService:
 
     def _load_reference(self, reference_path: Optional[Path]) -> Dict[str, Any]:
         if reference_path is not None and reference_path.exists():
-            return validate_inference_reference(self._load_pickle(reference_path))
+            return self._ensure_reference_extras(
+                validate_inference_reference(self._load_pickle(reference_path))
+            )
         if self.reference is None:
             self.reference = self._build_reference()
         return self.reference
+
+    def _ensure_reference_extras(self, reference: Dict[str, Any]) -> Dict[str, Any]:
+        enriched = dict(reference)
+        enriched["raw_feature_columns"] = list(
+            enriched.get("raw_feature_columns") or RAW_FEATURE_COLS
+        )
+        if enriched.get("raw_feature_defaults"):
+            return enriched
+        training_df = load_training_dataframe(self.train_table)
+        enriched["raw_feature_defaults"] = build_raw_feature_defaults(training_df)
+        return enriched
+
+    def _predict_probability_from_normalized_record(
+        self,
+        record: Dict[str, Any],
+        bundle: Dict[str, Any],
+    ) -> float:
+        x_tensor, _ = preprocess_for_inference(
+            [record],
+            bundle["reference"],
+            bundle["scaler"],
+        )
+        x_tensor = x_tensor.to(self.device)
+        with torch.no_grad():
+            logits = bundle["model"](x_tensor)
+            probability = torch.sigmoid(logits).cpu().numpy()[0]
+        return float(probability)
+
+    @staticmethod
+    def _has_explainable_value(value: Any) -> bool:
+        return value is not None and value != ""
+
+    @staticmethod
+    def _coerce_int(value: Any) -> Optional[int]:
+        if value is None or value == "":
+            return None
+        try:
+            return int(round(float(value)))
+        except (TypeError, ValueError):
+            return None
+
+    @staticmethod
+    def _coerce_float(value: Any) -> Optional[float]:
+        if value is None or value == "":
+            return None
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return None
+
+    def _format_feature_value(self, feature_key: str, value: Any) -> str:
+        if not self._has_explainable_value(value):
+            return "未填写"
+
+        if feature_key in DATE_FIELDS:
+            return str(value).replace("/", "-")
+
+        if feature_key in CATEGORICAL_VALUE_LABELS:
+            mapping = CATEGORICAL_VALUE_LABELS[feature_key]
+            if feature_key == "Type_fuel":
+                mapped = mapping.get(str(value).upper())
+                return mapped or str(value)
+            int_value = self._coerce_int(value)
+            return mapping.get(int_value, str(value))
+
+        if feature_key in PERCENT_FIELDS:
+            numeric = self._coerce_float(value)
+            if numeric is None:
+                return str(value)
+            return f"{numeric * 100:.2f}%"
+
+        if feature_key in MONEY_FIELDS:
+            numeric = self._coerce_float(value)
+            if numeric is None:
+                return str(value)
+            return f"{numeric:,.2f}"
+
+        if feature_key in METER_FIELDS:
+            numeric = self._coerce_float(value)
+            if numeric is None:
+                return str(value)
+            return f"{numeric:.2f} 米"
+
+        if feature_key in KG_FIELDS:
+            numeric = self._coerce_float(value)
+            if numeric is None:
+                return str(value)
+            return f"{int(round(numeric))} kg"
+
+        if feature_key in INTEGER_FIELDS:
+            numeric = self._coerce_int(value)
+            if numeric is None:
+                return str(value)
+            return str(numeric)
+
+        numeric = self._coerce_float(value)
+        if numeric is None:
+            return str(value)
+        return f"{numeric:.2f}"
+
+    @staticmethod
+    def _parse_date_value(value: Any) -> Optional[datetime]:
+        if value is None or value == "":
+            return None
+        raw = str(value).strip()
+        if not raw:
+            return None
+        for fmt in ("%d/%m/%Y", "%Y/%m/%d", "%Y-%m-%d", "%d-%m-%Y"):
+            try:
+                return datetime.strptime(raw, fmt)
+            except ValueError:
+                continue
+        return None
+
+    @staticmethod
+    def _format_date_display(date_value: Optional[datetime]) -> str:
+        if date_value is None:
+            return "未填写"
+        return date_value.strftime("%Y-%m-%d")
+
+    @staticmethod
+    def _format_years_display(years: Optional[float], suffix: str = "年") -> str:
+        if years is None:
+            return "未填写"
+        return f"{years:.1f} {suffix}"
+
+    @staticmethod
+    def _format_days_display(days: Optional[int]) -> str:
+        if days is None:
+            return "未填写"
+        if days >= 0:
+            return f"{days} 天"
+        return f"已过期 {abs(days)} 天"
+
+    @staticmethod
+    def _safe_elapsed_years(later: Optional[datetime], earlier: Optional[datetime]) -> Optional[float]:
+        if later is None or earlier is None:
+            return None
+        return max((later - earlier).days / 365.25, 0.0)
+
+    @staticmethod
+    def _safe_day_delta(later: Optional[datetime], earlier: Optional[datetime]) -> Optional[int]:
+        if later is None or earlier is None:
+            return None
+        return int((later - earlier).days)
+
+    @staticmethod
+    def _safe_vehicle_age(observation_date: Optional[datetime], matriculation_year: Any) -> Optional[float]:
+        if observation_date is None:
+            return None
+        try:
+            vehicle_year = int(float(matriculation_year))
+        except (TypeError, ValueError):
+            return None
+        return max(float(observation_date.year - vehicle_year), 0.0)
+
+    def _build_temporal_semantic_meta(
+        self,
+        feature_key: str,
+        current_value: Any,
+        baseline_value: Any,
+        normalized_record: Dict[str, Any],
+    ) -> Optional[Dict[str, str]]:
+        observation_date = self._parse_date_value(normalized_record.get("Date_last_renewal"))
+        observation_display = self._format_date_display(observation_date)
+
+        if feature_key == "Date_birth":
+            current_age = self._safe_elapsed_years(observation_date, self._parse_date_value(current_value))
+            baseline_age = self._safe_elapsed_years(observation_date, self._parse_date_value(baseline_value))
+            if current_age is None or baseline_age is None:
+                return None
+            return {
+                "featureName": FEATURE_LABELS[feature_key],
+                "currentDisplay": self._format_years_display(current_age, "岁"),
+                "baselineDisplay": self._format_years_display(baseline_age, "岁"),
+                "semanticNote": f"{TEMPORAL_FEATURE_NOTES[feature_key]}（观测点：{observation_display}）",
+            }
+
+        if feature_key == "Date_driving_licence":
+            current_years = self._safe_elapsed_years(observation_date, self._parse_date_value(current_value))
+            baseline_years = self._safe_elapsed_years(observation_date, self._parse_date_value(baseline_value))
+            if current_years is None or baseline_years is None:
+                return None
+            return {
+                "featureName": FEATURE_LABELS[feature_key],
+                "currentDisplay": self._format_years_display(current_years),
+                "baselineDisplay": self._format_years_display(baseline_years),
+                "semanticNote": f"{TEMPORAL_FEATURE_NOTES[feature_key]}（观测点：{observation_display}）",
+            }
+
+        if feature_key == "Date_start_contract":
+            current_years = self._safe_elapsed_years(observation_date, self._parse_date_value(current_value))
+            baseline_years = self._safe_elapsed_years(observation_date, self._parse_date_value(baseline_value))
+            if current_years is None or baseline_years is None:
+                return None
+            return {
+                "featureName": FEATURE_LABELS[feature_key],
+                "currentDisplay": self._format_years_display(current_years),
+                "baselineDisplay": self._format_years_display(baseline_years),
+                "semanticNote": f"{TEMPORAL_FEATURE_NOTES[feature_key]}（观测点：{observation_display}）",
+            }
+
+        if feature_key == "Date_next_renewal":
+            current_days = self._safe_day_delta(self._parse_date_value(current_value), observation_date)
+            baseline_days = self._safe_day_delta(self._parse_date_value(baseline_value), observation_date)
+            if current_days is None or baseline_days is None:
+                return None
+            return {
+                "featureName": FEATURE_LABELS[feature_key],
+                "currentDisplay": self._format_days_display(current_days),
+                "baselineDisplay": self._format_days_display(baseline_days),
+                "semanticNote": f"{TEMPORAL_FEATURE_NOTES[feature_key]}（观测点：{observation_display}）",
+            }
+
+        if feature_key == "Date_last_renewal":
+            current_date = self._parse_date_value(current_value)
+            baseline_date = self._parse_date_value(baseline_value)
+            if current_date is None or baseline_date is None:
+                return None
+            return {
+                "featureName": FEATURE_LABELS[feature_key],
+                "currentDisplay": self._format_date_display(current_date),
+                "baselineDisplay": self._format_date_display(baseline_date),
+                "semanticNote": TEMPORAL_FEATURE_NOTES[feature_key],
+            }
+
+        if feature_key == "Year_matriculation":
+            current_age = self._safe_vehicle_age(observation_date, current_value)
+            baseline_age = self._safe_vehicle_age(observation_date, baseline_value)
+            if current_age is None or baseline_age is None:
+                return None
+            return {
+                "featureName": FEATURE_LABELS[feature_key],
+                "currentDisplay": self._format_years_display(current_age),
+                "baselineDisplay": self._format_years_display(baseline_age),
+                "semanticNote": f"{TEMPORAL_FEATURE_NOTES[feature_key]}（观测点：{observation_display}）",
+            }
+
+        return None
+
+    def _build_factor_item(
+        self,
+        feature_key: str,
+        current_value: Any,
+        baseline_value: Any,
+        probability_delta: float,
+        normalized_record: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        temporal_meta = self._build_temporal_semantic_meta(
+            feature_key,
+            current_value,
+            baseline_value,
+            normalized_record,
+        )
+        feature_name = temporal_meta["featureName"] if temporal_meta else FEATURE_LABELS.get(feature_key, feature_key)
+        current_display = (
+            temporal_meta["currentDisplay"]
+            if temporal_meta
+            else self._format_feature_value(feature_key, current_value)
+        )
+        baseline_display = (
+            temporal_meta["baselineDisplay"]
+            if temporal_meta
+            else self._format_feature_value(feature_key, baseline_value)
+        )
+        impact_label = (
+            f"使理赔概率上升 {abs(probability_delta) * 100:.2f} 个百分点"
+            if probability_delta >= 0
+            else f"使理赔概率下降 {abs(probability_delta) * 100:.2f} 个百分点"
+        )
+        if temporal_meta:
+            explanation = (
+                f"{temporal_meta['semanticNote']}。当前{feature_name}为 {current_display}，"
+                f"相较于训练样本中的典型水平 {baseline_display}，{impact_label}。"
+            )
+        else:
+            explanation = (
+                f"当前{feature_name}为 {current_display}，相较于训练样本中的典型水平 {baseline_display}，"
+                f"{impact_label}。"
+            )
+        return {
+            "featureKey": feature_key,
+            "featureCode": RAW_TO_CAMEL.get(feature_key, feature_key),
+            "featureName": feature_name,
+            "currentValue": current_value,
+            "baselineValue": baseline_value,
+            "currentDisplay": current_display,
+            "baselineDisplay": baseline_display,
+            "probabilityDelta": round(float(probability_delta), 6),
+            "probabilityDeltaPercent": round(float(probability_delta) * 100, 2),
+            "impactLabel": impact_label,
+            "explanation": explanation,
+        }
+
+    def _build_explanation_summary(
+        self,
+        risk_level: str,
+        positive_factors: List[Dict[str, Any]],
+        negative_factors: List[Dict[str, Any]],
+    ) -> str:
+        risk_text = RISK_LEVEL_TEXT.get(risk_level, risk_level)
+        positive_names = "、".join(item["featureName"] for item in positive_factors[:3])
+        negative_names = "、".join(item["featureName"] for item in negative_factors[:2])
+
+        if positive_names and negative_names:
+            return (
+                f"本次保单被判定为{risk_text}，模型认为最主要的风险提升因素是{positive_names}；"
+                f"相对起到缓释作用的因素是{negative_names}。"
+            )
+        if positive_names:
+            return f"本次保单被判定为{risk_text}，模型认为最主要的风险提升因素是{positive_names}。"
+        if negative_names:
+            return f"本次保单被判定为{risk_text}，当前更显著的风险缓释因素是{negative_names}。"
+        return f"本次保单被判定为{risk_text}，各项特征的影响较为分散，没有特别突出的单一因素。"
+
+    def _build_local_explanation(
+        self,
+        normalized_record: Dict[str, Any],
+        probability: float,
+        bundle: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        raw_feature_defaults = bundle["reference"].get("raw_feature_defaults") or {}
+        impacts: List[Dict[str, Any]] = []
+
+        for feature_key in bundle["reference"].get("raw_feature_columns") or RAW_FEATURE_COLS:
+            current_value = normalized_record.get(feature_key)
+            if not self._has_explainable_value(current_value):
+                continue
+
+            baseline_value = raw_feature_defaults.get(feature_key)
+            if baseline_value is None:
+                continue
+
+            ablated_record = dict(normalized_record)
+            ablated_record[feature_key] = baseline_value
+            ablated_probability = self._predict_probability_from_normalized_record(
+                ablated_record,
+                bundle,
+            )
+            probability_delta = probability - ablated_probability
+            if abs(probability_delta) < 1e-4:
+                continue
+
+            impacts.append(
+                self._build_factor_item(
+                    feature_key,
+                    current_value,
+                    baseline_value,
+                    probability_delta,
+                    normalized_record,
+                )
+            )
+
+        positive_factors = sorted(
+            [item for item in impacts if item["probabilityDelta"] > 0],
+            key=lambda item: abs(item["probabilityDelta"]),
+            reverse=True,
+        )[:3]
+        negative_factors = sorted(
+            [item for item in impacts if item["probabilityDelta"] < 0],
+            key=lambda item: abs(item["probabilityDelta"]),
+            reverse=True,
+        )[:2]
+
+        return {
+            "explanationSummary": self._build_explanation_summary(
+                self.map_risk_level(probability),
+                positive_factors,
+                negative_factors,
+            ),
+            "positiveFactors": positive_factors,
+            "negativeFactors": negative_factors,
+        }
 
     @staticmethod
     def _load_scaler(scaler_path: Path, reference: Dict[str, Any]):

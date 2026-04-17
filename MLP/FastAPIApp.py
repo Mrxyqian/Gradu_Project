@@ -100,6 +100,20 @@ class SinglePredictionRequest(BaseModel):
     record: PolicyRecordInput
 
 
+class FactorExplanation(BaseModel):
+    featureKey: str
+    featureCode: str
+    featureName: str
+    currentValue: Optional[Any] = None
+    baselineValue: Optional[Any] = None
+    currentDisplay: str
+    baselineDisplay: str
+    probabilityDelta: float
+    probabilityDeltaPercent: float
+    impactLabel: str
+    explanation: str
+
+
 class PredictionResult(BaseModel):
     requestIndex: int
     claimProbability: float
@@ -109,6 +123,9 @@ class PredictionResult(BaseModel):
     thresholdUsed: float
     modelVersion: str
     generatedAt: str
+    explanationSummary: str = ""
+    positiveFactors: list[FactorExplanation] = Field(default_factory=list)
+    negativeFactors: list[FactorExplanation] = Field(default_factory=list)
 
 
 class SinglePredictionResponse(BaseModel):

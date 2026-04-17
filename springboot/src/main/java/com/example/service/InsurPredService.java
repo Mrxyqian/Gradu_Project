@@ -55,7 +55,7 @@ public class InsurPredService {
         JSONObject resultObject = callFastApiPredict(record, modelVersion);
         InsurPred insurPred = convertToInsurPred(resultObject, 0);
         insurPredMapper.insert(insurPred);
-        return insurPredMapper.selectByPredId(insurPred.getPredId());
+        return hydrateExplanationFields(insurPredMapper.selectByPredId(insurPred.getPredId()));
     }
 
     public InsurPred predictAndSaveByPolicyId(Integer id, String modelVersion, HttpSession session) {
@@ -67,7 +67,7 @@ public class InsurPredService {
         JSONObject resultObject = callFastApiPredict(record, modelVersion);
         InsurPred insurPred = convertToInsurPred(resultObject, id);
         insurPredMapper.insert(insurPred);
-        return insurPredMapper.selectByPredId(insurPred.getPredId());
+        return hydrateExplanationFields(insurPredMapper.selectByPredId(insurPred.getPredId()));
     }
 
     public void deleteByPredId(Integer predId) {
@@ -75,7 +75,7 @@ public class InsurPredService {
     }
 
     public InsurPred selectByPredId(Integer predId) {
-        return insurPredMapper.selectByPredId(predId);
+        return hydrateExplanationFields(insurPredMapper.selectByPredId(predId));
     }
 
     public PageInfo<InsurPred> selectPage(Integer pageNum, Integer pageSize, InsurPred insurPred) {
@@ -211,6 +211,22 @@ public class InsurPredService {
         insurPred.setThresholdUsed(toBigDecimal(item.get("thresholdUsed")));
         insurPred.setModelVersion(item.getStr("modelVersion"));
         insurPred.setPredictionTime(normalizeDateTime(item.getStr("generatedAt")));
+        insurPred.setExplanationSummary(item.getStr("explanationSummary"));
+        List<Map<String, Object>> positiveFactors = toFactorList(item.get("positiveFactors"));
+        List<Map<String, Object>> negativeFactors = toFactorList(item.get("negativeFactors"));
+        insurPred.setPositiveFactors(positiveFactors);
+        insurPred.setNegativeFactors(negativeFactors);
+        insurPred.setPositiveFactorsJson(JSONUtil.toJsonStr(positiveFactors));
+        insurPred.setNegativeFactorsJson(JSONUtil.toJsonStr(negativeFactors));
+        return insurPred;
+    }
+
+    private InsurPred hydrateExplanationFields(InsurPred insurPred) {
+        if (insurPred == null) {
+            return null;
+        }
+        insurPred.setPositiveFactors(parseFactorJson(insurPred.getPositiveFactorsJson()));
+        insurPred.setNegativeFactors(parseFactorJson(insurPred.getNegativeFactorsJson()));
         return insurPred;
     }
 
@@ -273,5 +289,36 @@ public class InsurPredService {
         }
 
         return value;
+    }
+
+    private List<Map<String, Object>> toFactorList(Object value) {
+        Object normalized = normalizeJsonValue(value);
+        List<Map<String, Object>> factors = new ArrayList<>();
+        if (!(normalized instanceof List<?>)) {
+            return factors;
+        }
+
+        for (Object item : (List<?>) normalized) {
+            if (!(item instanceof Map<?, ?>)) {
+                continue;
+            }
+            Map<String, Object> factor = new LinkedHashMap<>();
+            for (Map.Entry<?, ?> entry : ((Map<?, ?>) item).entrySet()) {
+                factor.put(String.valueOf(entry.getKey()), entry.getValue());
+            }
+            factors.add(factor);
+        }
+        return factors;
+    }
+
+    private List<Map<String, Object>> parseFactorJson(String json) {
+        if (json == null || json.trim().isEmpty()) {
+            return new ArrayList<>();
+        }
+        try {
+            return toFactorList(JSONUtil.parse(json));
+        } catch (Exception e) {
+            return new ArrayList<>();
+        }
     }
 }

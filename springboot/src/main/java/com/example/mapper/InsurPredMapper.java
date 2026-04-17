@@ -11,8 +11,8 @@ import java.util.Map;
 
 public interface InsurPredMapper {
 
-    @Insert("INSERT INTO insur_pred (ID, claim_probability, claim_flag, risk_level, threshold_used, model_version, prediction_time) " +
-            "VALUES (#{id}, #{claimProbability}, #{claimFlag}, #{riskLevel}, #{thresholdUsed}, #{modelVersion}, #{predictionTime})")
+    @Insert("INSERT INTO insur_pred (ID, claim_probability, claim_flag, risk_level, threshold_used, model_version, prediction_time, explanation_summary, positive_factors_json, negative_factors_json) " +
+            "VALUES (#{id}, #{claimProbability}, #{claimFlag}, #{riskLevel}, #{thresholdUsed}, #{modelVersion}, #{predictionTime}, #{explanationSummary}, #{positiveFactorsJson}, #{negativeFactorsJson})")
     @Options(useGeneratedKeys = true, keyProperty = "predId", keyColumn = "pred_id")
     void insert(InsurPred insurPred);
 
@@ -21,7 +21,9 @@ public interface InsurPredMapper {
 
     @Select("SELECT pred_id as predId, ID as id, claim_probability as claimProbability, claim_flag as claimFlag, " +
             "risk_level as riskLevel, threshold_used as thresholdUsed, model_version as modelVersion, " +
-            "prediction_time as predictionTime FROM insur_pred WHERE pred_id = #{predId}")
+            "prediction_time as predictionTime, explanation_summary as explanationSummary, " +
+            "positive_factors_json as positiveFactorsJson, negative_factors_json as negativeFactorsJson " +
+            "FROM insur_pred WHERE pred_id = #{predId}")
     InsurPred selectByPredId(Integer predId);
 
     List<InsurPred> selectAll(InsurPred insurPred);

@@ -13,6 +13,31 @@
           <span>理赔率预测</span>
           <span v-if="currentUser.role === 'ADMIN'">模型训练</span>
         </div>
+
+        <div
+          v-if="showTodoPanel"
+          class="todo-panel"
+          role="button"
+          tabindex="0"
+          @click="openTodoDialog"
+          @keyup.enter="openTodoDialog"
+          @keyup.space.prevent="openTodoDialog"
+        >
+          <div class="todo-icon-wrap">
+            <el-icon><Calendar /></el-icon>
+          </div>
+
+          <div class="todo-body">
+            <div class="todo-head">
+              <div class="todo-title">待办事项清单</div>
+            </div>
+
+            <div class="todo-badge-row">
+              <span class="todo-badge">缺理赔记录 {{ homeTodo.missingClaimCount || 0 }}</span>
+              <span class="todo-badge">缺车辆信息 {{ homeTodo.missingVehicleCount || 0 }}</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div class="hero-side">
@@ -101,6 +126,21 @@
         <el-button type="primary" :loading="savingShortcuts" @click="saveShortcuts">保存</el-button>
       </template>
     </el-dialog>
+
+    <el-dialog v-model="todoDialogVisible" title="待办事项详情" width="560px" destroy-on-close>
+      <div class="todo-badge-row todo-badge-row-dialog">
+        <span class="todo-badge">缺理赔记录 {{ homeTodo.missingClaimCount || 0 }}</span>
+        <span class="todo-badge">缺车辆信息 {{ homeTodo.missingVehicleCount || 0 }}</span>
+      </div>
+
+      <div v-if="homeTodo.items?.length" class="todo-list">
+        <div v-for="item in homeTodo.items" :key="item.policyId" class="todo-item">
+          <span class="todo-policy">保单编号 {{ item.policyId }}</span>
+          <span class="todo-missing">{{ item.missingSummary }}</span>
+        </div>
+      </div>
+      <el-empty v-else description="当前暂无待补录事项" />
+    </el-dialog>
   </div>
 </template>
 
@@ -109,6 +149,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import {
+  Calendar,
   DataAnalysis,
   Document,
   MagicStick,
@@ -128,9 +169,16 @@ const statistics = ref({
   policyCount2018: 0,
   avgHistoryClaimRate: 0,
 })
+const homeTodo = ref({
+  totalCount: 0,
+  missingClaimCount: 0,
+  missingVehicleCount: 0,
+  items: [],
+})
 const selectedShortcutPaths = ref([])
 const shortcutDraft = ref([])
 const shortcutDialogVisible = ref(false)
+const todoDialogVisible = ref(false)
 const savingShortcuts = ref(false)
 
 const todayLabel = computed(() => {
@@ -142,6 +190,7 @@ const todayLabel = computed(() => {
 })
 
 const roleLabel = computed(() => currentUser.value?.role === 'ADMIN' ? '管理员' : '普通用户')
+const showTodoPanel = computed(() => currentUser.value?.role === 'USER')
 
 const formatNumber = (value) => {
   const number = Number(value || 0)
@@ -258,6 +307,10 @@ const openShortcutDialog = () => {
   shortcutDialogVisible.value = true
 }
 
+const openTodoDialog = () => {
+  todoDialogVisible.value = true
+}
+
 const toggleShortcut = (path) => {
   if (shortcutDraft.value.includes(path)) {
     shortcutDraft.value = shortcutDraft.value.filter(item => item !== path)
@@ -316,6 +369,31 @@ const saveShortcuts = async () => {
   }
 }
 
+const loadHomeTodos = () => {
+  if (!showTodoPanel.value) {
+    homeTodo.value = {
+      totalCount: 0,
+      missingClaimCount: 0,
+      missingVehicleCount: 0,
+      items: [],
+    }
+    return
+  }
+
+  request.get('/user/homeTodos').then((res) => {
+    if (res.code === '200' && res.data) {
+      homeTodo.value = {
+        totalCount: Number(res.data.totalCount || 0),
+        missingClaimCount: Number(res.data.missingClaimCount || 0),
+        missingVehicleCount: Number(res.data.missingVehicleCount || 0),
+        items: Array.isArray(res.data.items) ? res.data.items : [],
+      }
+    }
+  }).catch((error) => {
+    console.error('加载首页待办失败', error)
+  })
+}
+
 const loadStatistics = () => {
   request.get('/motorInsurance/overallStatistics').then((res) => {
     if (res.code === '200' && res.data) {
@@ -329,6 +407,7 @@ const loadStatistics = () => {
 onMounted(() => {
   loadStatistics()
   loadShortcutSettings()
+  loadHomeTodos()
 })
 </script>
 
@@ -356,7 +435,8 @@ onMounted(() => {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
+  padding-top: 6px;
 }
 
 .hero-chip-row {
@@ -386,7 +466,7 @@ onMounted(() => {
 }
 
 .hero-module-row {
-  margin-top: 22px;
+  margin-top: 16px;
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
@@ -402,6 +482,121 @@ onMounted(() => {
   font-weight: 600;
   font-size: 13px;
   white-space: nowrap;
+}
+
+.todo-panel {
+  margin-top: 18px;
+  max-width: 720px;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 16px 18px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid rgba(95, 123, 114, 0.14);
+  box-shadow: 0 14px 30px rgba(48, 77, 67, 0.06);
+  cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.todo-panel:hover,
+.todo-panel:focus {
+  transform: translateY(-1px);
+  border-color: rgba(47, 125, 107, 0.24);
+  box-shadow: 0 18px 34px rgba(48, 77, 67, 0.1);
+  outline: none;
+}
+
+.todo-icon-wrap {
+  width: 58px;
+  height: 58px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(47, 125, 107, 0.18), rgba(91, 143, 203, 0.18));
+  color: #2f7d6b;
+  font-size: 28px;
+}
+
+.todo-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.todo-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+}
+
+.todo-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #24483d;
+}
+
+.todo-badge-row {
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.todo-badge {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(248, 251, 249, 0.96);
+  border: 1px solid rgba(95, 123, 114, 0.12);
+  color: #4b625a;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.todo-badge-row-dialog {
+  margin-top: 0;
+  margin-bottom: 12px;
+}
+
+.todo-list {
+  margin-top: 12px;
+  max-height: 180px;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
+.todo-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px dashed rgba(95, 123, 114, 0.16);
+}
+
+.todo-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.todo-policy {
+  color: #29433a;
+  font-weight: 700;
+}
+
+.todo-missing {
+  color: #8b5a2b;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.todo-empty {
+  margin-top: 14px;
+  color: #6f837c;
+  font-size: 13px;
 }
 
 .hero-side {
@@ -695,6 +890,17 @@ onMounted(() => {
   .quick-grid,
   .shortcut-option-grid {
     grid-template-columns: 1fr;
+  }
+
+  .todo-panel,
+  .todo-head,
+  .todo-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .todo-missing {
+    white-space: normal;
   }
 }
 </style>

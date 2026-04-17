@@ -26,6 +26,11 @@ public class UserController {
         return Result.success(userService.getHomeShortcuts(session));
     }
 
+    @GetMapping("/homeTodos")
+    public Result homeTodos(HttpSession session) {
+        return Result.success(userService.getHomeTodos(session));
+    }
+
     @PutMapping("/homeShortcuts")
     public Result updateHomeShortcuts(@RequestBody UserHomeShortcutRequest request, HttpSession session) {
         return Result.success(userService.updateHomeShortcuts(request, session));

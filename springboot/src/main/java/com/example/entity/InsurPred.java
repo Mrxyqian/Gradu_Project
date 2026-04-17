@@ -1,6 +1,10 @@
 package com.example.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import java.math.BigDecimal;
+import java.util.List;
+import java.util.Map;
 
 public class InsurPred {
     private Integer predId;
@@ -11,6 +15,11 @@ public class InsurPred {
     private BigDecimal thresholdUsed;
     private String modelVersion;
     private String predictionTime;
+    private String explanationSummary;
+    private String positiveFactorsJson;
+    private String negativeFactorsJson;
+    private List<Map<String, Object>> positiveFactors;
+    private List<Map<String, Object>> negativeFactors;
 
     public Integer getPredId() {
         return predId;
@@ -74,5 +83,47 @@ public class InsurPred {
 
     public void setPredictionTime(String predictionTime) {
         this.predictionTime = predictionTime;
+    }
+
+    public String getExplanationSummary() {
+        return explanationSummary;
+    }
+
+    public void setExplanationSummary(String explanationSummary) {
+        this.explanationSummary = explanationSummary;
+    }
+
+    @JsonIgnore
+    public String getPositiveFactorsJson() {
+        return positiveFactorsJson;
+    }
+
+    public void setPositiveFactorsJson(String positiveFactorsJson) {
+        this.positiveFactorsJson = positiveFactorsJson;
+    }
+
+    @JsonIgnore
+    public String getNegativeFactorsJson() {
+        return negativeFactorsJson;
+    }
+
+    public void setNegativeFactorsJson(String negativeFactorsJson) {
+        this.negativeFactorsJson = negativeFactorsJson;
+    }
+
+    public List<Map<String, Object>> getPositiveFactors() {
+        return positiveFactors;
+    }
+
+    public void setPositiveFactors(List<Map<String, Object>> positiveFactors) {
+        this.positiveFactors = positiveFactors;
+    }
+
+    public List<Map<String, Object>> getNegativeFactors() {
+        return negativeFactors;
+    }
+
+    public void setNegativeFactors(List<Map<String, Object>> negativeFactors) {
+        this.negativeFactors = negativeFactors;
     }
 }

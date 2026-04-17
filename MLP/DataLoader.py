@@ -76,6 +76,29 @@ RAW_NUMERIC_COLS = [
     column for column in RAW_FEATURE_COLS if column not in DATE_COLS + ["Type_fuel"]
 ]
 
+RAW_CATEGORICAL_COLS = [
+    "Distribution_channel",
+    "Payment",
+    "Type_risk",
+    "Area",
+    "Second_driver",
+    "Type_fuel",
+]
+
+RAW_INTEGER_BASELINE_COLS = [
+    "Seniority",
+    "Policies_in_force",
+    "Max_policies",
+    "Max_products",
+    "Lapse",
+    "N_claims_history",
+    "Year_matriculation",
+    "Power",
+    "Cylinder_capacity",
+    "N_doors",
+    "Weight",
+]
+
 CLIP_COLS = [
     "Premium",
     "Value_vehicle",
@@ -231,6 +254,50 @@ def _build_fill_values(feature_df: pd.DataFrame) -> dict[str, float]:
     return fill_values
 
 
+def build_raw_feature_defaults(df_raw: pd.DataFrame) -> dict[str, object]:
+    raw_source = _ensure_raw_columns(df_raw.copy())
+    raw_source = _coerce_numeric(
+        raw_source,
+        [column for column in RAW_NUMERIC_COLS if column not in RAW_CATEGORICAL_COLS],
+    )
+
+    defaults: dict[str, object] = {}
+    for col in RAW_FEATURE_COLS:
+        if col in DATE_COLS:
+            parsed = parse_date(raw_source[col]).dropna().sort_values()
+            defaults[col] = (
+                parsed.iloc[len(parsed) // 2].strftime("%Y-%m-%d")
+                if not parsed.empty
+                else None
+            )
+            continue
+
+        if col == "Type_fuel":
+            defaults[col] = _infer_type_fuel_mode(raw_source)
+            continue
+
+        if col in RAW_CATEGORICAL_COLS:
+            series = raw_source[col].dropna()
+            if series.empty:
+                defaults[col] = None
+                continue
+            mode_value = series.mode().iloc[0]
+            defaults[col] = int(mode_value) if col != "Type_fuel" else str(mode_value).upper()
+            continue
+
+        numeric = pd.to_numeric(raw_source[col], errors="coerce").dropna()
+        if numeric.empty:
+            defaults[col] = None
+            continue
+        median = float(numeric.median())
+        if col in RAW_INTEGER_BASELINE_COLS:
+            defaults[col] = int(round(median))
+        else:
+            defaults[col] = median
+
+    return defaults
+
+
 def prepare_features(
     df: pd.DataFrame,
     *,
@@ -308,6 +375,7 @@ def build_inference_reference(df_raw: pd.DataFrame) -> dict:
         "observation_date_column": OBSERVATION_DATE_COL,
         "relative_date_source_columns": DATE_DIFF_SOURCE_COLS.copy(),
         "raw_feature_columns": RAW_FEATURE_COLS.copy(),
+        "raw_feature_defaults": build_raw_feature_defaults(raw_source),
         "feature_columns": feature_df.columns.tolist(),
         "feature_fill_values": _build_fill_values(feature_df),
         "raw_defaults": raw_defaults,
@@ -511,9 +579,12 @@ __all__ = [
     "FEATURE_ENGINEERING_VERSION",
     "OBSERVATION_DATE_COL",
     "RAW_FEATURE_COLS",
+    "RAW_CATEGORICAL_COLS",
+    "RAW_INTEGER_BASELINE_COLS",
     "InsuranceDataset",
     "build_dataloaders",
     "build_inference_reference",
+    "build_raw_feature_defaults",
     "clean_and_engineer",
     "clean_and_engineer_for_inference",
     "engineer_date_features",
