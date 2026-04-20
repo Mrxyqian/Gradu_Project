@@ -51,6 +51,7 @@ public class InsurPredService {
         if (record == null) {
             throw new CustomException("预测记录不能为空");
         }
+        validateManualPredictionRecord(record);
 
         JSONObject resultObject = callFastApiPredict(record, modelVersion);
         InsurPred insurPred = convertToInsurPred(resultObject, 0);
@@ -117,6 +118,56 @@ public class InsurPredService {
         } catch (Exception e) {
             throw new CustomException("Failed to call FastAPI model versions service: " + e.getMessage());
         }
+    }
+
+    private void validateManualPredictionRecord(MotorInsurance record) {
+        Map<String, Object> requiredFields = new LinkedHashMap<>();
+        requiredFields.put("dateStartContract", record.getDateStartContract());
+        requiredFields.put("dateLastRenewal", record.getDateLastRenewal());
+        requiredFields.put("dateNextRenewal", record.getDateNextRenewal());
+        requiredFields.put("distributionChannel", record.getDistributionChannel());
+        requiredFields.put("dateBirth", record.getDateBirth());
+        requiredFields.put("dateDrivingLicence", record.getDateDrivingLicence());
+        requiredFields.put("seniority", record.getSeniority());
+        requiredFields.put("policiesInForce", record.getPoliciesInForce());
+        requiredFields.put("maxPolicies", record.getMaxPolicies());
+        requiredFields.put("maxProducts", record.getMaxProducts());
+        requiredFields.put("lapse", record.getLapse());
+        requiredFields.put("payment", record.getPayment());
+        requiredFields.put("premium", record.getPremium());
+        requiredFields.put("nClaimsHistory", record.getNClaimsHistory());
+        requiredFields.put("rClaimsHistory", record.getRClaimsHistory());
+        requiredFields.put("typeRisk", record.getTypeRisk());
+        requiredFields.put("area", record.getArea());
+        requiredFields.put("secondDriver", record.getSecondDriver());
+        requiredFields.put("yearMatriculation", record.getYearMatriculation());
+        requiredFields.put("power", record.getPower());
+        requiredFields.put("cylinderCapacity", record.getCylinderCapacity());
+        requiredFields.put("valueVehicle", record.getValueVehicle());
+        requiredFields.put("nDoors", record.getNDoors());
+        requiredFields.put("typeFuel", record.getTypeFuel());
+        requiredFields.put("length", record.getLength());
+        requiredFields.put("weight", record.getWeight());
+
+        List<String> missingFields = new ArrayList<>();
+        for (Map.Entry<String, Object> entry : requiredFields.entrySet()) {
+            if (isMissingValue(entry.getValue())) {
+                missingFields.add(entry.getKey());
+            }
+        }
+        if (!missingFields.isEmpty()) {
+            throw new CustomException("手工预测需要完整填写全部特征，缺少字段: " + String.join(", ", missingFields));
+        }
+    }
+
+    private boolean isMissingValue(Object value) {
+        if (value == null) {
+            return true;
+        }
+        if (value instanceof String) {
+            return ((String) value).trim().isEmpty();
+        }
+        return false;
     }
 
     private JSONObject callFastApiPredict(MotorInsurance record, String modelVersion) {

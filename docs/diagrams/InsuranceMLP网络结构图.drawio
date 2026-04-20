@@ -13,25 +13,25 @@
         <mxCell id="backboneTitle" value="主干网络" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=25;fontStyle=1;fontColor=#0f172a;" parent="1" vertex="1">
           <mxGeometry x="150" y="146" width="420" height="28" as="geometry" />
         </mxCell>
-        <mxCell id="backboneWidth" value="沙漏型宽度：input_dim → 256 → 512 → 512 → 256 → 256" style="text;html=1;strokeColor=none;fillColor=none;align=right;verticalAlign=middle;fontFamily=Consolas;fontSize=19;fontColor=#475569;" parent="1" vertex="1">
+        <mxCell id="backboneWidth" value="沙漏型宽度：input_dim → 128 → 256 → 256 → 128 → 128" style="text;html=1;strokeColor=none;fillColor=none;align=right;verticalAlign=middle;fontFamily=Consolas;fontSize=22;fontColor=#475569;" parent="1" vertex="1">
           <mxGeometry x="930" y="148" width="600" height="24" as="geometry" />
         </mxCell>
-        <mxCell id="input" value="输入层&lt;br&gt;x / structured features&lt;br&gt;input_dim (dynamic, typical 28-32)" style="ellipse;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=17;strokeColor=#334155;strokeWidth=1.8;fillColor=#ffffff;" parent="1" vertex="1">
-          <mxGeometry x="200" y="230" width="210" height="105" as="geometry" />
+        <mxCell id="input" value="输入层&lt;br&gt;x&lt;br&gt;input_dim (dynamic, typical 28-32)" style="ellipse;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=23;strokeColor=#334155;strokeWidth=1.8;fillColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="110" y="202.5" width="280" height="160" as="geometry" />
         </mxCell>
-        <mxCell id="inputProj" value="输入投影层&lt;br&gt;Linear(input_dim→256)&lt;br&gt;LayerNorm + GELU + Dropout" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=18;strokeColor=#1d4ed8;strokeWidth=2;fillColor=#dbeafe;" parent="1" vertex="1">
-          <mxGeometry x="430" y="215" width="250" height="135" as="geometry" />
+        <mxCell id="inputProj" value="输入投影层&lt;br&gt;Linear(input_dim→128)&lt;br&gt;LayerNorm + GELU + Dropout" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=23;strokeColor=#1d4ed8;strokeWidth=2;fillColor=#dbeafe;" parent="1" vertex="1">
+          <mxGeometry x="420" y="215" width="260" height="135" as="geometry" />
         </mxCell>
-        <mxCell id="rb1" value="残差块1 （扩宽阶段）&lt;br&gt;ResidualBlock 256→512" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=18;strokeColor=#0f766e;strokeWidth=2;fillColor=#ccfbf1;" parent="1" vertex="1">
+        <mxCell id="rb1" value="残差块1 （扩宽阶段）&lt;br&gt;ResidualBlock 128→256" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=23;strokeColor=#0f766e;strokeWidth=2;fillColor=#ccfbf1;" parent="1" vertex="1">
           <mxGeometry x="710" y="215" width="185" height="135" as="geometry" />
         </mxCell>
-        <mxCell id="rb2" value="残差块2 （深化阶段）&lt;br&gt;ResidualBlock 512→512" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=18;strokeColor=#0f766e;strokeWidth=2;fillColor=#ccfbf1;" parent="1" vertex="1">
+        <mxCell id="rb2" value="残差块2 （深化阶段）&lt;br&gt;ResidualBlock 256→256" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=23;strokeColor=#0f766e;strokeWidth=2;fillColor=#ccfbf1;" parent="1" vertex="1">
           <mxGeometry x="930" y="215" width="185" height="135" as="geometry" />
         </mxCell>
-        <mxCell id="rb3" value="残差块3 （收窄阶段）&lt;br&gt;ResidualBlock 512→256" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=18;strokeColor=#0f766e;strokeWidth=2;fillColor=#ccfbf1;" parent="1" vertex="1">
+        <mxCell id="rb3" value="残差块3 （收窄阶段）&lt;br&gt;ResidualBlock 256→128" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=23;strokeColor=#0f766e;strokeWidth=2;fillColor=#ccfbf1;" parent="1" vertex="1">
           <mxGeometry x="1140" y="215" width="185" height="135" as="geometry" />
         </mxCell>
-        <mxCell id="rb4" value="残差块4 （精炼阶段）&lt;br&gt;ResidualBlock 256→256" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=18;strokeColor=#0f766e;strokeWidth=2;fillColor=#ccfbf1;" parent="1" vertex="1">
+        <mxCell id="rb4" value="残差块4 （精炼阶段）&lt;br&gt;ResidualBlock 128→128" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=23;strokeColor=#0f766e;strokeWidth=2;fillColor=#ccfbf1;" parent="1" vertex="1">
           <mxGeometry x="1345" y="215" width="185" height="135" as="geometry" />
         </mxCell>
         <mxCell id="e1" style="endArrow=block;endFill=1;html=1;strokeColor=#334155;strokeWidth=2;rounded=0;fontSize=17;" parent="1" source="input" target="inputProj" edge="1">
@@ -59,14 +59,14 @@
             <mxPoint x="1165" y="834" as="sourcePoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="sharedOut" value="特征向量&lt;br&gt;feature vector&lt;br&gt;dim = 256" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Consolas;fontSize=17;fontStyle=1;strokeColor=#334155;strokeWidth=1.8;fillColor=#ffffff;" parent="1" vertex="1">
+        <mxCell id="sharedOut" value="特征向量&lt;br&gt;feature vector&lt;br&gt;dim = 128" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Consolas;fontSize=23;fontStyle=1;strokeColor=#334155;strokeWidth=1.8;fillColor=#ffffff;" parent="1" vertex="1">
           <mxGeometry x="360" y="540" width="210" height="110" as="geometry" />
         </mxCell>
-        <mxCell id="clfHead" value="分类头（Classification Head）&lt;br&gt;Linear 256→64&lt;br&gt;LayerNorm + GELU + Dropout&lt;br&gt;Linear 64→1" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=18;strokeColor=#7c3aed;strokeWidth=2;fillColor=#ede9fe;" parent="1" vertex="1">
+        <mxCell id="clfHead" value="分类头（Classification Head）&lt;br&gt;Linear 128→32&lt;br&gt;LayerNorm + GELU + Dropout&lt;br&gt;Linear 32→1" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=23;strokeColor=#7c3aed;strokeWidth=2;fillColor=#ede9fe;" parent="1" vertex="1">
           <mxGeometry x="690" y="530" width="360" height="130" as="geometry" />
         </mxCell>
-        <mxCell id="clfFinal" value="输出结果&lt;br&gt;claim_prob / claim_flag" style="ellipse;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Consolas;fontSize=18;strokeColor=#334155;strokeWidth=1.8;fillColor=#ffffff;" parent="1" vertex="1">
-          <mxGeometry x="1160" y="547.5" width="190" height="95" as="geometry" />
+        <mxCell id="clfFinal" value="输出结果&lt;br&gt;claim_prob / claim_flag" style="ellipse;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Consolas;fontSize=23;strokeColor=#334155;strokeWidth=1.8;fillColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="1160" y="547.5" width="210" height="92.5" as="geometry" />
         </mxCell>
         <mxCell id="Ku6WPuDTfpG4L0HoEHgz-2" value="" style="endArrow=classic;html=1;rounded=0;exitX=0.568;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;exitPerimeter=0;strokeWidth=2.5;" parent="1" target="sharedOut" edge="1">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
@@ -89,12 +89,6 @@
           <mxGeometry width="50" height="50" relative="1" as="geometry">
             <mxPoint x="910" y="600" as="sourcePoint" />
             <mxPoint x="960" y="550" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="Ku6WPuDTfpG4L0HoEHgz-8" value="" style="endArrow=classic;html=1;rounded=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" parent="1" source="regHead" edge="1">
-          <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="1055" y="697.2" as="sourcePoint" />
-            <mxPoint x="1150" y="697.5" as="targetPoint" />
           </mxGeometry>
         </mxCell>
         <mxCell id="XMXc6E8-o9kiYlDSW0sY-2" value="分类头" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=25;fontStyle=1;fontColor=#0f172a;" parent="1" vertex="1">

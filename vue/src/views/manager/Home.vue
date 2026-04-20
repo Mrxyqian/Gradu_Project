@@ -4,15 +4,8 @@
       <div class="hero-main">
         <div class="hero-chip-row">
           <span class="hero-chip">{{ todayLabel }}</span>
-          <span class="hero-chip">{{ roleLabel }}</span>
         </div>
         <h1 class="hero-title">欢迎回来，{{ currentUser.name || '用户' }}</h1>
-        <div class="hero-module-row">
-          <span>保单管理</span>
-          <span>理赔管理</span>
-          <span>理赔率预测</span>
-          <span v-if="currentUser.role === 'ADMIN'">模型训练</span>
-        </div>
 
         <div
           v-if="showTodoPanel"
@@ -189,7 +182,6 @@ const todayLabel = computed(() => {
   }).format(new Date())
 })
 
-const roleLabel = computed(() => currentUser.value?.role === 'ADMIN' ? '管理员' : '普通用户')
 const showTodoPanel = computed(() => currentUser.value?.role === 'USER')
 
 const formatNumber = (value) => {
@@ -465,27 +457,8 @@ onMounted(() => {
   color: #20352e;
 }
 
-.hero-module-row {
-  margin-top: 16px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  padding-left: 2px;
-}
-
-.hero-module-row span {
-  padding: 8px 14px;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.82);
-  border: 1px solid rgba(95, 123, 114, 0.12);
-  color: #3e544d;
-  font-weight: 600;
-  font-size: 13px;
-  white-space: nowrap;
-}
-
 .todo-panel {
-  margin-top: 18px;
+  margin-top: 14px;
   max-width: 720px;
   display: flex;
   align-items: flex-start;

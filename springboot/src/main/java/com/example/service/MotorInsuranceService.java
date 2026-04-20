@@ -18,11 +18,17 @@ import javax.annotation.Resource;
 import javax.servlet.http.HttpSession;
 import java.sql.PreparedStatement;
 import java.sql.Statement;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Map;
 
 @Service
 public class MotorInsuranceService {
+
+    private static final DateTimeFormatter DISPLAY_DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy/MM/dd");
+    private static final DateTimeFormatter DB_DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     @Resource
     private MotorInsuranceMapper motorInsuranceMapper;
@@ -92,6 +98,37 @@ public class MotorInsuranceService {
 
     private boolean isBlank(String value) {
         return value == null || value.trim().isEmpty();
+    }
+
+    private LocalDate parsePolicyDate(String value, String fieldName) {
+        if (isBlank(value)) {
+            return null;
+        }
+
+        String trimmedValue = value.trim();
+        try {
+            return LocalDate.parse(trimmedValue, DISPLAY_DATE_FORMATTER);
+        } catch (DateTimeParseException ignored) {
+            try {
+                return LocalDate.parse(trimmedValue, DB_DATE_FORMATTER);
+            } catch (DateTimeParseException ex) {
+                throw new CustomException(fieldName + "格式不正确");
+            }
+        }
+    }
+
+    private void validateDateConstraints(MotorInsurance motorInsurance) {
+        LocalDate contractStartDate = parsePolicyDate(motorInsurance.getDateStartContract(), "合同开始日期");
+        LocalDate lastRenewalDate = parsePolicyDate(motorInsurance.getDateLastRenewal(), "最后续保日期");
+        if (contractStartDate != null && lastRenewalDate != null && lastRenewalDate.isBefore(contractStartDate)) {
+            throw new CustomException("最后续保日期不能早于合同开始日期");
+        }
+
+        LocalDate birthDate = parsePolicyDate(motorInsurance.getDateBirth(), "被保人出生日期");
+        LocalDate drivingLicenceDate = parsePolicyDate(motorInsurance.getDateDrivingLicence(), "驾照签发日期");
+        if (birthDate != null && drivingLicenceDate != null && drivingLicenceDate.isBefore(birthDate.plusYears(18))) {
+            throw new CustomException("驾照签发日期必须晚于被保人出生日期满18年");
+        }
     }
 
     private void convertDatesToDBFormat(MotorInsurance motorInsurance) {
@@ -192,6 +229,7 @@ public class MotorInsuranceService {
     @Transactional
     public MotorInsurance add(MotorInsurance motorInsurance, HttpSession session) {
         validateRequiredFields(motorInsurance, false);
+        validateDateConstraints(motorInsurance);
         User currentUser = SessionUserUtil.requireLogin(session);
         Integer nextPolicyId = allocateNextPolicyId();
         normalizeOptionalFields(motorInsurance);
@@ -209,6 +247,7 @@ public class MotorInsuranceService {
 
     public void updateById(MotorInsurance motorInsurance, HttpSession session) {
         validateRequiredFields(motorInsurance, true);
+        validateDateConstraints(motorInsurance);
         MotorInsurance existing = requireAccessibleMotorInsurance(motorInsurance.getId(), session);
         normalizeOptionalFields(motorInsurance);
         convertDatesToDBFormat(motorInsurance);

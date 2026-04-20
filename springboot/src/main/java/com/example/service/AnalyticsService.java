@@ -1,5 +1,6 @@
 package com.example.service;
 
+import com.example.common.DateUtil;
 import com.example.common.SessionUserUtil;
 import com.example.entity.AnalyticsFilters;
 import com.example.entity.AnalyticsQueryRequest;
@@ -242,6 +243,7 @@ public class AnalyticsService {
                 fromClause +
                 whereClause +
                 " GROUP BY " + groupExpression +
+                " HAVING groupKey IS NOT NULL AND TRIM(CAST(groupKey AS CHAR)) <> ''" +
                 " ORDER BY " + sortBy + " " + sortOrder +
                 " LIMIT " + topN;
 
@@ -297,6 +299,8 @@ public class AnalyticsService {
                 return "0".equals(String.valueOf(groupKey)) ? "代理人" : "保险经纪";
             case "payment":
                 return "0".equals(String.valueOf(groupKey)) ? "年缴" : "半年缴";
+            case "contractStartDate":
+                return DateUtil.convertDDMMYYYYToYYYYMMDD(String.valueOf(groupKey));
             case "typeFuel":
                 return "P".equalsIgnoreCase(String.valueOf(groupKey)) ? "汽油" : "柴油";
             case "secondDriver":

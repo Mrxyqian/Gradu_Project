@@ -16,6 +16,7 @@ public class ClaimTypes {
     private BigDecimal rClaimsHistory;
     private Integer typeRisk;
     private Integer area;
+    private Integer historyClaimStatus;
 
     public Integer getId() {
         return id;
@@ -79,5 +80,13 @@ public class ClaimTypes {
 
     public void setArea(Integer area) {
         this.area = area;
+    }
+
+    public Integer getHistoryClaimStatus() {
+        return historyClaimStatus;
+    }
+
+    public void setHistoryClaimStatus(Integer historyClaimStatus) {
+        this.historyClaimStatus = historyClaimStatus;
     }
 }

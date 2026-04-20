@@ -134,8 +134,16 @@
             </el-row>
 
             <div class="form-actions">
-              <el-button type="primary" :loading="predicting" @click="handlePredict">开始预测</el-button>
+              <el-button
+                type="primary"
+                :loading="predicting"
+                :disabled="predicting || !selectedModelVersion || !isPredictFormComplete"
+                @click="handlePredict"
+              >开始预测</el-button>
               <el-button @click="resetPredictForm">重置</el-button>
+            </div>
+            <div v-if="missingPredictFields.length" class="form-hint">
+              {{ missingPredictHint }}
             </div>
           </el-form>
         </div>
@@ -303,7 +311,7 @@
 </template>
 
 <script setup>
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import request from '@/utils/request'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Filter } from '@element-plus/icons-vue'
@@ -312,7 +320,7 @@ const defaultPredictForm = () => ({
   dateStartContract: '',
   dateLastRenewal: '',
   dateNextRenewal: '',
-  distributionChannel: 0,
+  distributionChannel: null,
   dateBirth: '',
   dateDrivingLicence: '',
   seniority: null,
@@ -320,19 +328,19 @@ const defaultPredictForm = () => ({
   maxPolicies: null,
   maxProducts: null,
   lapse: null,
-  payment: 0,
+  payment: null,
   premium: null,
   nClaimsHistory: null,
   rClaimsHistory: null,
   typeRisk: null,
   area: null,
-  secondDriver: 0,
+  secondDriver: null,
   yearMatriculation: null,
   power: null,
   cylinderCapacity: null,
   valueVehicle: null,
   nDoors: null,
-  typeFuel: 'P',
+  typeFuel: '',
   length: null,
   weight: null,
 })
@@ -361,6 +369,35 @@ const selectedModelVersion = ref('')
 const defaultModelVersion = ref('')
 const modelVersionLoading = ref(false)
 
+const predictFieldLabels = {
+  dateStartContract: '合同开始日期',
+  dateLastRenewal: '最后续保日期',
+  dateNextRenewal: '下次续保日期',
+  distributionChannel: '分销渠道',
+  dateBirth: '出生日期',
+  dateDrivingLicence: '驾照签发日期',
+  seniority: '合作年数',
+  policiesInForce: '当前生效保单数',
+  maxPolicies: '历史最高保单数',
+  maxProducts: '历史最高产品数',
+  lapse: '失效保单数',
+  payment: '缴费方式',
+  premium: '净保费',
+  nClaimsHistory: '历史索赔次数',
+  rClaimsHistory: '历史出险率',
+  typeRisk: '风险类型',
+  area: '地区',
+  secondDriver: '第二驾驶员',
+  yearMatriculation: '注册年份',
+  power: '马力',
+  cylinderCapacity: '排量',
+  valueVehicle: '车辆价值',
+  nDoors: '车门数',
+  typeFuel: '燃料类型',
+  length: '车长',
+  weight: '车重',
+}
+
 const buildPayloadRecord = () => {
   const payload = {}
   Object.entries(predictForm).forEach(([key, value]) => {
@@ -374,6 +411,36 @@ const buildPayloadRecord = () => {
 const resetPredictForm = () => {
   Object.assign(predictForm, defaultPredictForm())
 }
+
+const isMissingPredictValue = (value) => {
+  if (value === null || value === undefined) {
+    return true
+  }
+  if (typeof value === 'string') {
+    return value.trim() === ''
+  }
+  if (typeof value === 'number') {
+    return Number.isNaN(value)
+  }
+  return false
+}
+
+const missingPredictFields = computed(() =>
+  Object.entries(predictFieldLabels)
+    .filter(([key]) => isMissingPredictValue(predictForm[key]))
+    .map(([, label]) => label)
+)
+
+const isPredictFormComplete = computed(() => missingPredictFields.value.length === 0)
+
+const missingPredictHint = computed(() => {
+  if (!missingPredictFields.value.length) {
+    return ''
+  }
+  const preview = missingPredictFields.value.slice(0, 6).join(', ')
+  const suffix = missingPredictFields.value.length > 6 ? ` 等 ${missingPredictFields.value.length} 项` : ''
+  return `请完整填写全部特征后再开始预测，当前仍缺少：${preview}${suffix}`
+})
 
 const getRiskLevelText = (riskLevel) => {
   const map = { LOW: '低风险', MEDIUM: '中风险', HIGH: '高风险' }
@@ -463,6 +530,10 @@ const loadModelVersions = async () => {
 const handlePredict = async () => {
   if (!selectedModelVersion.value) {
     ElMessage.warning('请先选择模型版本')
+    return
+  }
+  if (!isPredictFormComplete.value) {
+    ElMessage.warning(`请完整填写全部特征后再预测，缺少：${missingPredictFields.value.join(', ')}`)
     return
   }
 
@@ -628,6 +699,13 @@ onMounted(() => {
   margin-top: 8px;
   display: flex;
   gap: 12px;
+}
+
+.form-hint {
+  margin-top: 10px;
+  color: #b45309;
+  font-size: 13px;
+  line-height: 1.6;
 }
 
 .history-card {

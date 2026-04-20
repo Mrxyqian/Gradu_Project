@@ -404,7 +404,7 @@
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue'
+import { reactive, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import request from '@/utils/request'
 
@@ -465,14 +465,80 @@ const data = reactive({
   form: createEmptyForm(),
 })
 
+const parseFormDate = (value) => {
+  if (!value) return null
+  const parts = String(value).split('/').map(item => Number(item))
+  if (parts.length !== 3 || parts.some(item => Number.isNaN(item))) return null
+
+  const [year, month, day] = parts
+  const parsedDate = new Date(year, month - 1, day)
+  if (
+    parsedDate.getFullYear() !== year
+    || parsedDate.getMonth() !== month - 1
+    || parsedDate.getDate() !== day
+  ) {
+    return null
+  }
+  return parsedDate
+}
+
+const validateLastRenewalDate = (rule, value, callback) => {
+  if (!value || !data.form.dateStartContract) {
+    callback()
+    return
+  }
+
+  const contractStartDate = parseFormDate(data.form.dateStartContract)
+  const lastRenewalDate = parseFormDate(value)
+  if (!contractStartDate || !lastRenewalDate) {
+    callback()
+    return
+  }
+
+  if (lastRenewalDate < contractStartDate) {
+    callback(new Error('最后续保日期不能早于合同开始日期'))
+    return
+  }
+  callback()
+}
+
+const validateDrivingLicenceDate = (rule, value, callback) => {
+  if (!value || !data.form.dateBirth) {
+    callback()
+    return
+  }
+
+  const birthDate = parseFormDate(data.form.dateBirth)
+  const drivingLicenceDate = parseFormDate(value)
+  if (!birthDate || !drivingLicenceDate) {
+    callback()
+    return
+  }
+
+  const minimumLicenceDate = new Date(birthDate)
+  minimumLicenceDate.setFullYear(minimumLicenceDate.getFullYear() + 18)
+
+  if (drivingLicenceDate < minimumLicenceDate) {
+    callback(new Error('驾照签发日期必须晚于被保人出生日期满18年'))
+    return
+  }
+  callback()
+}
+
 const rules = reactive({
   id: [{ required: true, message: '保单编号不能为空', trigger: 'blur' }],
-  dateStartContract: [{ required: true, message: '请输入合同开始日期', trigger: 'blur' }],
-  dateLastRenewal: [{ required: true, message: '请输入最后续保日期', trigger: 'blur' }],
-  dateNextRenewal: [{ required: true, message: '请输入下次续保日期', trigger: 'blur' }],
+  dateStartContract: [{ required: true, message: '请输入合同开始日期', trigger: 'change' }],
+  dateLastRenewal: [
+    { required: true, message: '请输入最后续保日期', trigger: 'change' },
+    { validator: validateLastRenewalDate, trigger: 'change' },
+  ],
+  dateNextRenewal: [{ required: true, message: '请输入下次续保日期', trigger: 'change' }],
   distributionChannel: [{ required: true, message: '请选择分销渠道', trigger: 'change' }],
-  dateBirth: [{ required: true, message: '请输入被保人出生日期', trigger: 'blur' }],
-  dateDrivingLicence: [{ required: true, message: '请输入驾照签发日期', trigger: 'blur' }],
+  dateBirth: [{ required: true, message: '请输入被保人出生日期', trigger: 'change' }],
+  dateDrivingLicence: [
+    { required: true, message: '请输入驾照签发日期', trigger: 'change' },
+    { validator: validateDrivingLicenceDate, trigger: 'change' },
+  ],
   seniority: [{ required: true, message: '请输入合作年数', trigger: 'blur' }],
   policiesInForce: [{ required: true, message: '请输入有效保单数', trigger: 'blur' }],
   maxPolicies: [{ required: true, message: '请输入历史最高保单数', trigger: 'blur' }],
@@ -486,6 +552,24 @@ const rules = reactive({
 })
 
 const formRef = ref()
+
+watch(
+  () => data.form.dateStartContract,
+  () => {
+    if (data.formVisible && data.form.dateLastRenewal) {
+      formRef.value?.validateField('dateLastRenewal')
+    }
+  }
+)
+
+watch(
+  () => data.form.dateBirth,
+  () => {
+    if (data.formVisible && data.form.dateDrivingLicence) {
+      formRef.value?.validateField('dateDrivingLicence')
+    }
+  }
+)
 
 const getRiskTypeText = (type) => {
   const map = { 1: '摩托车', 2: '货车', 3: '乘用车', 4: '农用车' }

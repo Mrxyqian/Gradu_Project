@@ -14,7 +14,24 @@
           <el-table-column prop="id" label="保单编号" width="110" />
           <el-table-column prop="costClaimsYear" label="索赔成本" width="140" />
           <el-table-column prop="nClaimsYear" label="本年度索赔次数" width="150" />
-          <el-table-column prop="nClaimsHistory" label="历史索赔次数" width="150" />
+          <el-table-column prop="nClaimsHistory" width="150">
+            <template #header>
+              <div class="filterable-header">
+                <span>&#x5386;&#x53F2;&#x7D22;&#x8D54;&#x6B21;&#x6570;</span>
+                <el-popover v-model:visible="historyClaimFilterVisible" placement="bottom" :width="156" trigger="click">
+                  <template #reference>
+                    <el-button class="header-filter-button" :class="{ active: isHistoryClaimFilterActive }" link>
+                      <el-icon><Filter /></el-icon>
+                    </el-button>
+                  </template>
+                  <div class="header-filter-panel">
+                    <el-button text @click="clearHistoryClaimFilter">&#x5168;&#x90E8;</el-button>
+                    <el-button text @click="applyHistoryClaimFilter(1)">&#x53D1;&#x751F;&#x7406;&#x8D54;</el-button>
+                  </div>
+                </el-popover>
+              </div>
+            </template>
+          </el-table-column>
           <el-table-column prop="rClaimsHistory" label="历史出险率" width="140" />
           <el-table-column prop="typeRisk" label="风险类型" width="110">
             <template #default="scope">
@@ -155,8 +172,9 @@
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Filter } from '@element-plus/icons-vue'
 import request from '@/utils/request'
 
 const baseUrl = '/claimTypes'
@@ -194,6 +212,9 @@ const data = reactive({
   form: createEmptyForm(),
 })
 
+const historyClaimFilterVisible = ref(false)
+const historyClaimStatus = ref(null)
+
 const rules = reactive({
   id: [{ required: true, message: '请输入保单编号', trigger: 'blur' }],
   costClaimsYear: [{ required: true, message: '请输入索赔成本', trigger: 'blur' }],
@@ -203,6 +224,7 @@ const rules = reactive({
 })
 
 const formRef = ref()
+const isHistoryClaimFilterActive = computed(() => historyClaimStatus.value !== null)
 
 const getRiskTypeText = (type) => {
   const map = { 1: '摩托车', 2: '货车', 3: '乘用车', 4: '农用车' }
@@ -215,6 +237,7 @@ const buildQueryParams = () => {
   const params = {
     pageNum: data.pageNum,
     pageSize: data.pageSize,
+    historyClaimStatus: historyClaimStatus.value,
     ...data.queryForm,
   }
 
@@ -225,6 +248,20 @@ const buildQueryParams = () => {
   })
 
   return params
+}
+
+const applyHistoryClaimFilter = (value) => {
+  historyClaimStatus.value = value
+  historyClaimFilterVisible.value = false
+  data.pageNum = 1
+  load()
+}
+
+const clearHistoryClaimFilter = () => {
+  historyClaimStatus.value = null
+  historyClaimFilterVisible.value = false
+  data.pageNum = 1
+  load()
 }
 
 const load = () => {
@@ -255,6 +292,8 @@ const submitQuery = () => {
 
 const resetQuery = () => {
   data.queryForm = createEmptyQueryForm()
+  historyClaimStatus.value = null
+  historyClaimFilterVisible.value = false
   data.pageNum = 1
   load()
 }
@@ -333,5 +372,32 @@ const del = (id) => {
   color: #173f35;
   border-color: rgba(47, 125, 107, 0.42);
   background: rgba(214, 234, 227, 0.98);
+}
+
+.filterable-header {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.header-filter-button {
+  padding: 0;
+  min-height: auto;
+  color: #64748b;
+}
+
+.header-filter-button.active {
+  color: #2563eb;
+}
+
+.header-filter-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.header-filter-panel :deep(.el-button) {
+  justify-content: flex-start;
+  margin-left: 0;
 }
 </style>

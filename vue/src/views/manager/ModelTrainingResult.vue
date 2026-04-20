@@ -191,6 +191,7 @@ import request from '@/utils/request'
 
 const route = useRoute()
 const router = useRouter()
+const PENDING_TRAINING_JOB_KEY = 'modelTrainingPendingJobId'
 
 const currentJob = ref(null)
 const loading = ref(false)
@@ -201,6 +202,14 @@ const saveForm = reactive({
 })
 
 let pollTimer = null
+
+const clearPendingTrainingJobId = () => {
+  if (typeof window === 'undefined') return
+  const currentPendingJobId = window.sessionStorage.getItem(PENDING_TRAINING_JOB_KEY) || ''
+  if (currentPendingJobId && currentPendingJobId === String(route.params.jobId || '')) {
+    window.sessionStorage.removeItem(PENDING_TRAINING_JOB_KEY)
+  }
+}
 
 const isCompleted = computed(() => currentJob.value?.status === 'completed')
 const isRunning = computed(() => currentJob.value?.status === 'running')
@@ -405,6 +414,7 @@ const stopPolling = () => {
 const loadJob = async () => {
   if (!route.params.jobId) return
   try {
+    clearPendingTrainingJobId()
     loading.value = true
     const res = await request.get(`/modelTraining/jobs/${route.params.jobId}`)
     if (String(res.code) !== '200') {

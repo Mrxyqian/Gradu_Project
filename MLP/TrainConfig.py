@@ -48,21 +48,21 @@ class DataConfig:
 @dataclass
 class ModelConfig:
     input_dim: int = -1
-    #hidden_dims: tuple[int, ...] = (256, 512, 512, 256, 256)
-    hidden_dims: tuple[int, ...] = (256, 512, 256, 128)
+    hidden_dims: tuple[int, ...] = (256, 512, 512, 256, 256)
+    #hidden_dims: tuple[int, ...] = (256, 512, 256, 128)
     head_hidden_dim: int = 64
     # input_dropout: float = 0.0
-    input_dropout: float = 0.0
-    backbone_dropout: float = 0.20
-    head_dropout: float = 0.10
+    input_dropout: float = 0.05
+    backbone_dropout: float = 0.25
+    head_dropout: float = 0.15
     # head_samples: int = 1
     head_samples: int = 10
 
 
 @dataclass
 class LossConfig:
-    # pos_weight: float = 4.40
-    pos_weight: float = 4.10
+    pos_weight: float = 3.10
+    #pos_weight: float = 4.10
     label_smoothing: float = 0.05
 
 
@@ -72,7 +72,8 @@ class OptimizerConfig:
     # lr: float = 2e-4
     lr: float = 1e-4
 
-    weight_decay: float = 7e-5
+    # weight_decay: float = 1e-4
+    weight_decay: float = 8e-3
     beta1: float = 0.9
     beta2: float = 0.999
     eps: float = 1e-8
@@ -83,10 +84,10 @@ class OptimizerConfig:
 @dataclass
 class SchedulerConfig:
     scheduler: str = "cosine_warmup"
-    # warmup_epochs: int = 5
-    # min_lr: float = 1e-6
-    warmup_epochs: int = 8  # 延长 warmup 让模型更稳定起步
-    min_lr: float = 5e-7  # 更低的终态 lr 帮助精细收敛
+    warmup_epochs: int = 5
+    min_lr: float = 1e-6
+    # warmup_epochs: int = 8  # 延长 warmup 让模型更稳定起步
+    # min_lr: float = 5e-7  # 更低的终态 lr 帮助精细收敛
     plateau_factor: float = 0.5
     plateau_patience: int = 5
     plateau_min_lr: float = 1e-6
@@ -99,7 +100,7 @@ class TrainSectionConfig:
     num_epochs: int = 100
     early_stop: bool = True
     # patience: int = 20
-    patience: int = 12
+    patience: int = 5
     # min_delta: float = 1e-4
     min_delta: float = 5e-5
     early_stop_metric: str = "auc"

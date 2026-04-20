@@ -319,6 +319,13 @@ def search_best_threshold(
         }
 
     thresholds = np.linspace(0.05, 0.95, n_candidates)
+    # thresholds = np.unique(
+    #     np.clip(
+    #         np.concatenate([np.linspace(0.05, 0.95, n_candidates), probs.astype(np.float64)]),
+    #         0.0,
+    #         1.0,
+    #     )
+    # )
     candidates: list[Dict[str, float]] = []
 
     for threshold in thresholds:

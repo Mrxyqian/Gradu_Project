@@ -39,7 +39,13 @@
               </el-col>
               <el-col :span="12">
                 <el-form-item label="Batch Size">
-                  <el-input-number v-model="trainForm.batchSize" :min="8" :max="4096" controls-position="right" />
+                  <el-input-number
+                    v-model="trainForm.batchSize"
+                    :min="8"
+                    :max="4096"
+                    controls-position="right"
+                    @change="handleBatchSizeChange"
+                  />
                 </el-form-item>
               </el-col>
               <el-col :span="12">
@@ -90,7 +96,13 @@
               </el-col>
               <el-col :span="12">
                 <el-form-item label="分类头隐藏层">
-                  <el-input-number v-model="trainForm.headHiddenDim" :min="1" :max="2048" controls-position="right" />
+                  <el-input-number
+                    v-model="trainForm.headHiddenDim"
+                    :min="1"
+                    :max="2048"
+                    controls-position="right"
+                    @change="handleHeadHiddenDimChange"
+                  />
                 </el-form-item>
               </el-col>
             </el-row>
@@ -209,16 +221,17 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import request from '@/utils/request'
 
 const router = useRouter()
+const PENDING_TRAINING_JOB_KEY = 'modelTrainingPendingJobId'
 
 const defaultTrainForm = () => ({
-  numEpochs: 100,
-  batchSize: 128,
+  numEpochs: 80,
+  batchSize: 256,
   optimizer: 'adamw',
   learningRate: 0.0002,
   earlyStopMetric: 'auc',
-  thresholdMetric: 'f1',
-  hiddenDims: [256, 512, 512, 256, 256],
-  headHiddenDim: 64,
+  thresholdMetric: 'precision',
+  hiddenDims: [128, 256, 256, 128, 128],
+  headHiddenDim: 32,
 })
 
 const trainForm = reactive(defaultTrainForm())
@@ -227,6 +240,24 @@ const starting = ref(false)
 const trackedJobId = ref('')
 const sampleLibraryVisible = ref(false)
 let pollTimer = null
+
+const getPendingTrainingJobId = () => {
+  if (typeof window === 'undefined') return ''
+  return window.sessionStorage.getItem(PENDING_TRAINING_JOB_KEY) || ''
+}
+
+const setPendingTrainingJobId = (jobId) => {
+  if (typeof window === 'undefined' || !jobId) return
+  window.sessionStorage.setItem(PENDING_TRAINING_JOB_KEY, jobId)
+}
+
+const clearPendingTrainingJobId = (jobId = '') => {
+  if (typeof window === 'undefined') return
+  const currentPendingJobId = getPendingTrainingJobId()
+  if (!jobId || !currentPendingJobId || currentPendingJobId === jobId) {
+    window.sessionStorage.removeItem(PENDING_TRAINING_JOB_KEY)
+  }
+}
 
 const trainDataOverview = ref({
   totalCount: 0,
@@ -273,6 +304,29 @@ const progressBarStatus = computed(() => {
 
 const resetTrainForm = () => {
   Object.assign(trainForm, defaultTrainForm())
+}
+
+const applyExponentialInputStep = (field, value, oldValue, min, max) => {
+  const currentValue = Number(value)
+  const previousValue = Number(oldValue)
+  if (!Number.isFinite(currentValue) || !Number.isFinite(previousValue)) return
+
+  if (currentValue === previousValue + 1) {
+    trainForm[field] = Math.min(max, previousValue * 2)
+    return
+  }
+
+  if (currentValue === previousValue - 1) {
+    trainForm[field] = Math.max(min, Math.floor(previousValue / 2))
+  }
+}
+
+const handleBatchSizeChange = (value, oldValue) => {
+  applyExponentialInputStep('batchSize', value, oldValue, 8, 4096)
+}
+
+const handleHeadHiddenDimChange = (value, oldValue) => {
+  applyExponentialInputStep('headHiddenDim', value, oldValue, 1, 2048)
 }
 
 const collectHiddenDims = (values) => {
@@ -352,29 +406,65 @@ const stopPolling = () => {
 
 const openResultPage = async (jobId) => {
   if (!jobId) return
+  clearPendingTrainingJobId(jobId)
   await router.push({
     name: 'ModelTrainingResult',
     params: { jobId },
   })
 }
 
-const loadLatestJob = async () => {
+const tryOpenCompletedPendingJob = async (job, { showMessage = false } = {}) => {
+  if (!job?.jobId) return false
+  const pendingJobId = getPendingTrainingJobId()
+  if (!pendingJobId || job.jobId !== pendingJobId) return false
+
+  if (job.status === 'completed') {
+    if (showMessage) {
+      ElMessage.success('训练完成，正在打开结果页面')
+    }
+    await openResultPage(job.jobId)
+    return true
+  }
+
+  if (job.status === 'failed') {
+    clearPendingTrainingJobId(job.jobId)
+  }
+
+  return false
+}
+
+const loadLatestJob = async ({ allowCompletedRedirect = false } = {}) => {
   const res = await request.get('/modelTraining/jobs/latest')
   if (res.code === '200' && res.data) {
     currentJob.value = res.data
+    if (await tryOpenCompletedPendingJob(res.data, { showMessage: allowCompletedRedirect })) {
+      return true
+    }
     if (res.data.status === 'running') {
       trackedJobId.value = res.data.jobId
+      setPendingTrainingJobId(res.data.jobId)
       startPolling()
     }
+    return true
   }
+  return false
 }
 
-const loadJob = async (jobId) => {
-  if (!jobId) return
+const loadJob = async (jobId, { allowCompletedRedirect = false } = {}) => {
+  if (!jobId) return false
   const res = await request.get(`/modelTraining/jobs/${jobId}`)
   if (res.code === '200') {
     currentJob.value = res.data
+    if (await tryOpenCompletedPendingJob(res.data, { showMessage: allowCompletedRedirect })) {
+      return true
+    }
+    if (res.data.status === 'running') {
+      trackedJobId.value = res.data.jobId
+      setPendingTrainingJobId(res.data.jobId)
+    }
+    return true
   }
+  return false
 }
 
 const startPolling = () => {
@@ -386,6 +476,18 @@ const startPolling = () => {
       stopPolling()
     }
   }, 2500)
+}
+
+const initializeTrainingPage = async () => {
+  const pendingJobId = getPendingTrainingJobId()
+  if (pendingJobId) {
+    const restored = await loadJob(pendingJobId, { allowCompletedRedirect: true })
+    if (restored) {
+      return
+    }
+    clearPendingTrainingJobId(pendingJobId)
+  }
+  await loadLatestJob()
 }
 
 const loadTrainDataOverview = async () => {
@@ -489,6 +591,7 @@ const handleStartTraining = async () => {
     const res = await request.post('/modelTraining/start', payload)
     if (res.code === '200') {
       trackedJobId.value = res.data.jobId
+      setPendingTrainingJobId(res.data.jobId)
       currentJob.value = res.data
       ElMessage.success('训练任务已启动')
       startPolling()
@@ -522,13 +625,14 @@ watch(
       && status === 'failed'
       && currentJob.value?.jobId === trackedJobId.value
     ) {
+      clearPendingTrainingJobId(currentJob.value?.jobId)
       ElMessage.error('训练任务失败，请在当前页面查看报错信息')
     }
   }
 )
 
 onMounted(async () => {
-  await loadLatestJob()
+  await initializeTrainingPage()
 })
 
 onUnmounted(() => {

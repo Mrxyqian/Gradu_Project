@@ -137,7 +137,7 @@ class SinglePredictionResponse(BaseModel):
 class TrainingStartRequest(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
-    numEpochs: int = Field(100, ge=1, le=500)
+    numEpochs: int = Field(80, ge=1, le=500)
     batchSize: int = Field(128, ge=8, le=4096)
     optimizer: Literal["adamw", "adam", "sgd"] = Field("adamw")
     learningRate: float = Field(2e-4, gt=0, le=1)
@@ -147,15 +147,14 @@ class TrainingStartRequest(BaseModel):
         "loss",
         "clf_loss",
         "accuracy",
-        "balanced_accuracy",
         "f1",
         "precision",
         "recall",
     ] = Field("auc")
     thresholdMetric: Literal["f1", "precision", "recall"] = Field("f1")
-    thresholdMinRecall: Optional[float] = Field(None, ge=0.0, le=1.0)
-    hiddenDims: list[int] = Field(default_factory=lambda: [256, 512, 512, 256, 256], min_length=1, max_length=10)
-    headHiddenDim: int = Field(64, ge=1, le=4096)
+    thresholdMinRecall: Optional[float] = Field(0.83, ge=0.0, le=1.0)
+    hiddenDims: list[int] = Field(default_factory=lambda: [128, 256, 256, 128, 128], min_length=1, max_length=10)
+    headHiddenDim: int = Field(32, ge=1, le=4096)
 
     @model_validator(mode="after")
     def validate_hidden_dims(self) -> "TrainingStartRequest":

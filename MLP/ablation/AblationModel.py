@@ -20,7 +20,7 @@ import torch.nn.functional as F
 SUPPORTED_NORM_TYPES = {"layernorm", "none"}
 SUPPORTED_ACTIVATIONS = {"gelu", "relu", "silu"}
 SUPPORTED_HEAD_TYPES = {"mlp", "linear"}
-DEFAULT_ABLATION_HIDDEN_DIMS = (256, 512, 256, 128)
+DEFAULT_ABLATION_HIDDEN_DIMS = (256, 512, 512, 256, 256)
 DEFAULT_ABLATION_HEAD_HIDDEN_DIM = 64
 
 

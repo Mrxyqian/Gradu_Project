@@ -4,9 +4,6 @@
       <div>
         <div class="analytics-eyebrow">动态分析工作台</div>
         <h1 class="analytics-title">{{ subjectTitle }}</h1>
-        <p class="analytics-subtitle">
-          按分析目标分组、按统计指标聚合、按业务条件筛选，动态查看当前业务表现。
-        </p>
       </div>
       <div class="analytics-hero-note">
         <div>当前分析目标：{{ currentGroupLabel }}</div>

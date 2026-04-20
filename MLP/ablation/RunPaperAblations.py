@@ -3,9 +3,10 @@ from __future__ import annotations
 """
 RunPaperAblations.py
 
-Automatic ablation runner for the first two planned studies:
+Automatic ablation runner for the paper-ready ablation studies:
 1. Backbone component ablation
 2. Imbalance-handling ablation
+3. Structure sensitivity ablation
 
 The goal is to change experiment parameters in one place instead of editing
 model code before every run.
@@ -52,13 +53,14 @@ else:
 
 
 SYSTEM_DEFAULT_CONFIG = Config()
-AVAILABLE_GROUPS = ("components", "imbalance", "structure")
+AVAILABLE_GROUPS = ("components", "imbalance", "structure", "structure_v2")
 FIXED_THRESHOLD = 0.5
 DEFAULT_ABLATION_BATCH_SIZE = SYSTEM_DEFAULT_CONFIG.data.batch_size
 DEFAULT_NUM_EPOCHS = SYSTEM_DEFAULT_CONFIG.train.num_epochs
 DEFAULT_LEARNING_RATE = SYSTEM_DEFAULT_CONFIG.optimizer.lr
 DEFAULT_WEIGHT_DECAY = SYSTEM_DEFAULT_CONFIG.optimizer.weight_decay
 DEFAULT_WARMUP_EPOCHS = SYSTEM_DEFAULT_CONFIG.scheduler.warmup_epochs
+DEFAULT_MIN_LR = SYSTEM_DEFAULT_CONFIG.scheduler.min_lr
 DEFAULT_THRESHOLD_BETA = SYSTEM_DEFAULT_CONFIG.train.threshold_beta
 DEFAULT_GLOBAL_PATIENCE = SYSTEM_DEFAULT_CONFIG.train.patience
 RUN_RESULT_FIELDS = [
@@ -233,6 +235,51 @@ STRUCTURE_ABLATIONS = [
     ),
 ]
 
+STRUCTURE_V2_ABLATIONS = [
+    ExperimentSpec(
+        key="structure_v2_3layer_small",
+        group="structure_v2",
+        slug="3layer_small",
+        description="Structure-v2 three-layer residual MLP with hidden dimensions (64, 128, 64), using the same non-variable training defaults as TrainConfig.py.",
+        model_overrides={"hidden_dims": (64, 128, 64)},
+    ),
+    ExperimentSpec(
+        key="structure_v2_3layer_large",
+        group="structure_v2",
+        slug="3layer_large",
+        description="Structure-v2 three-layer residual MLP with hidden dimensions (128, 256, 128), exactly twice the small-width counterpart.",
+        model_overrides={"hidden_dims": (128, 256, 128)},
+    ),
+    ExperimentSpec(
+        key="structure_v2_4layer_small",
+        group="structure_v2",
+        slug="4layer_small",
+        description="Structure-v2 four-layer residual MLP with hidden dimensions (64, 128, 128, 64), using the same non-variable training defaults as TrainConfig.py.",
+        model_overrides={"hidden_dims": (64, 128, 128, 64)},
+    ),
+    ExperimentSpec(
+        key="structure_v2_4layer_large",
+        group="structure_v2",
+        slug="4layer_large",
+        description="Structure-v2 four-layer residual MLP with hidden dimensions (128, 256, 256, 128), exactly twice the small-width counterpart.",
+        model_overrides={"hidden_dims": (128, 256, 256, 128)},
+    ),
+    ExperimentSpec(
+        key="structure_v2_5layer_small",
+        group="structure_v2",
+        slug="5layer_small",
+        description="Structure-v2 five-layer residual MLP with hidden dimensions (128, 256, 256, 128, 128), exactly half of the current system MLP backbone width.",
+        model_overrides={"hidden_dims": (128, 256, 256, 128, 128)},
+    ),
+    ExperimentSpec(
+        key="structure_v2_5layer_large",
+        group="structure_v2",
+        slug="5layer_large",
+        description="Structure-v2 five-layer residual MLP with hidden dimensions (256, 512, 512, 256, 256), matching the current system MLP backbone width in TrainConfig.py.",
+        model_overrides={"hidden_dims": (256, 512, 512, 256, 256)},
+    ),
+]
+
 IMBALANCE_ABLATIONS = [
     ExperimentSpec(
         key="imbalance_weighted_fixed_threshold",
@@ -261,13 +308,13 @@ IMBALANCE_ABLATIONS = [
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Run the first two paper-ready ablation experiment groups."
+        description="Run the paper-ready ablation experiment groups."
     )
     parser.add_argument(
         "--groups",
         type=str,
         default="components,imbalance,structure",
-        help="Comma-separated groups to run: components, imbalance, structure",
+        help="Comma-separated groups to run: components, imbalance, structure, structure_v2",
     )
     parser.add_argument(
         "--seeds",
@@ -315,7 +362,7 @@ def parse_args() -> argparse.Namespace:
         default=DEFAULT_WARMUP_EPOCHS,
         help="Warmup epochs",
     )
-    parser.add_argument("--min-lr", type=float, default=1e-6, help="Minimum learning rate")
+    parser.add_argument("--min-lr", type=float, default=DEFAULT_MIN_LR, help="Minimum learning rate")
     parser.add_argument("--early-stop-metric", type=str, default="auc", help="Early-stop metric")
     parser.add_argument("--threshold-metric", type=str, default="f1", help="Threshold search metric")
     parser.add_argument(
@@ -396,6 +443,9 @@ def build_plan(groups: list[str]) -> list[dict[str, Any]]:
             add(template)
     if "structure" in groups:
         for template in STRUCTURE_ABLATIONS:
+            add(template)
+    if "structure_v2" in groups:
+        for template in STRUCTURE_V2_ABLATIONS:
             add(template)
 
     plan: list[dict[str, Any]] = []
@@ -767,6 +817,11 @@ def main() -> None:
                 "patience": DEFAULT_GLOBAL_PATIENCE,
             },
             "structure": {
+                "numEpochs": DEFAULT_NUM_EPOCHS,
+                "learningRate": DEFAULT_LEARNING_RATE,
+                "patience": DEFAULT_GLOBAL_PATIENCE,
+            },
+            "structure_v2": {
                 "numEpochs": DEFAULT_NUM_EPOCHS,
                 "learningRate": DEFAULT_LEARNING_RATE,
                 "patience": DEFAULT_GLOBAL_PATIENCE,
