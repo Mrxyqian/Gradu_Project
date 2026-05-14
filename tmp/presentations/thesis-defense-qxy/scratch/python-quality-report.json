@@ -1,0 +1,25 @@
+{
+  "pptx": "D:\\Gradua_pro_code-spring\\Vehic_Insur_Claim\\tmp\\presentations\\thesis-defense-qxy\\output\\output.pptx",
+  "exists": true,
+  "file_size_bytes": 954254,
+  "output_dir_files": [
+    "output.pptx"
+  ],
+  "preview_png_count": 15,
+  "montage_exists": true,
+  "checks": {
+    "expected_15_slides": true,
+    "has_media_assets": true,
+    "has_chart_parts": true,
+    "has_speaker_notes": true,
+    "no_placeholders": true,
+    "only_expected_output_file": true,
+    "all_png_previews_present": true,
+    "montage_present": true
+  },
+  "slide_count": 15,
+  "media_count": 5,
+  "chart_count": 2,
+  "notes_count": 15,
+  "placeholder_hits": {}
+}

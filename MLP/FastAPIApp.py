@@ -139,6 +139,8 @@ class TrainingStartRequest(BaseModel):
 
     numEpochs: int = Field(80, ge=1, le=500)
     batchSize: int = Field(128, ge=8, le=4096)
+    valRatio: float = Field(0.15, ge=0.01, le=0.80)
+    testRatio: float = Field(0.10, ge=0.01, le=0.80)
     optimizer: Literal["adamw", "adam", "sgd"] = Field("adamw")
     learningRate: float = Field(2e-4, gt=0, le=1)
     earlyStopMetric: Literal[
@@ -160,6 +162,8 @@ class TrainingStartRequest(BaseModel):
     def validate_hidden_dims(self) -> "TrainingStartRequest":
         if any(int(dim) <= 0 for dim in self.hiddenDims):
             raise ValueError("hiddenDims must contain positive integers")
+        if self.valRatio + self.testRatio >= 0.90:
+            raise ValueError("valRatio + testRatio must be less than 0.90")
         return self
 
 

@@ -28,19 +28,19 @@
         <mxCell id="l4" value="车辆信息查询" style="rounded=0;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=20;fontStyle=1;strokeColor=#111111;strokeWidth=2.2;fillColor=#ffffff;" parent="1" vertex="1">
           <mxGeometry x="410" y="465" width="70" height="245" as="geometry" />
         </mxCell>
-        <mxCell id="l5" value="保单/车辆信息统计概览" style="rounded=0;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=20;fontStyle=1;strokeColor=#111111;strokeWidth=2.2;fillColor=#ffffff;" parent="1" vertex="1">
+        <mxCell id="l5" value="保单/理赔信息统计概览" style="rounded=0;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=20;fontStyle=1;strokeColor=#111111;strokeWidth=2.2;fillColor=#ffffff;" parent="1" vertex="1">
           <mxGeometry x="605" y="465" width="70" height="245" as="geometry" />
         </mxCell>
         <mxCell id="l6" value="预测结果分析" style="rounded=0;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=20;fontStyle=1;strokeColor=#111111;strokeWidth=2.2;fillColor=#ffffff;" parent="1" vertex="1">
           <mxGeometry x="725" y="465" width="70" height="245" as="geometry" />
         </mxCell>
-        <mxCell id="l7" value="输入新特征预测" style="rounded=0;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=20;fontStyle=1;strokeColor=#111111;strokeWidth=2.2;fillColor=#ffffff;" parent="1" vertex="1">
+        <mxCell id="l7" value="模型预测" style="rounded=0;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=20;fontStyle=1;strokeColor=#111111;strokeWidth=2.2;fillColor=#ffffff;" parent="1" vertex="1">
           <mxGeometry x="910" y="465" width="70" height="245" as="geometry" />
         </mxCell>
-        <mxCell id="l8" value="模型预测" style="rounded=0;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=20;fontStyle=1;strokeColor=#111111;strokeWidth=2.2;fillColor=#ffffff;" parent="1" vertex="1">
+        <mxCell id="l8" value="结果输出展示" style="rounded=0;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=20;fontStyle=1;strokeColor=#111111;strokeWidth=2.2;fillColor=#ffffff;" parent="1" vertex="1">
           <mxGeometry x="1030" y="465" width="70" height="245" as="geometry" />
         </mxCell>
-        <mxCell id="l9" value="结果输出展示" style="rounded=0;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=20;fontStyle=1;strokeColor=#111111;strokeWidth=2.2;fillColor=#ffffff;" parent="1" vertex="1">
+        <mxCell id="l9" value="模型训练" style="rounded=0;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=20;fontStyle=1;strokeColor=#111111;strokeWidth=2.2;fillColor=#ffffff;" parent="1" vertex="1">
           <mxGeometry x="1150" y="465" width="70" height="245" as="geometry" />
         </mxCell>
         <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;strokeColor=#111111;strokeWidth=2.2;" parent="1" source="title" target="m2" edge="1">

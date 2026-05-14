@@ -1,0 +1,14 @@
+{
+  "workspace": "D:\\Gradua_pro_code-spring\\Vehic_Insur_Claim\\tmp\\presentations\\thesis-defense-qxy",
+  "pptx": "D:\\Gradua_pro_code-spring\\Vehic_Insur_Claim\\tmp\\presentations\\thesis-defense-qxy\\output\\output.pptx",
+  "checks": {
+    "output_hygiene": {
+      "output_dir": "D:\\Gradua_pro_code-spring\\Vehic_Insur_Claim\\tmp\\presentations\\thesis-defense-qxy\\output",
+      "unexpected_files": []
+    }
+  },
+  "failures": [
+    "PPTX package inspection failed: unzip -Z1 D:\\Gradua_pro_code-spring\\Vehic_Insur_Claim\\tmp\\presentations\\thesis-defense-qxy\\output\\output.pptx failed"
+  ],
+  "warnings": []
+}

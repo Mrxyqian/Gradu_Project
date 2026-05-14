@@ -226,6 +226,8 @@ const PENDING_TRAINING_JOB_KEY = 'modelTrainingPendingJobId'
 const defaultTrainForm = () => ({
   numEpochs: 80,
   batchSize: 256,
+  valRatio: 0.15,
+  testRatio: 0.10,
   optimizer: 'adamw',
   learningRate: 0.0002,
   earlyStopMetric: 'auc',
@@ -578,6 +580,8 @@ const handleStartTraining = async () => {
   const payload = {
     numEpochs: Number(trainForm.numEpochs),
     batchSize: Number(trainForm.batchSize),
+    valRatio: Number(trainForm.valRatio),
+    testRatio: Number(trainForm.testRatio),
     optimizer: trainForm.optimizer,
     learningRate: Number(trainForm.learningRate),
     earlyStopMetric: trainForm.earlyStopMetric,

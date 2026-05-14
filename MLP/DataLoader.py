@@ -40,8 +40,9 @@ OBSERVATION_DATE_COL = "Date_last_renewal"
 DATE_DIFF_SOURCE_COLS = [
     column for column in DATE_COLS if column != OBSERVATION_DATE_COL
 ]
-FEATURE_ENGINEERING_VERSION = 2
+FEATURE_ENGINEERING_VERSION = 3
 FEATURE_ENGINEERING_STRATEGY = "date_last_renewal_anchor"
+LEGACY_FEATURE_ENGINEERING_VERSIONS = {2}
 
 RAW_FEATURE_COLS = [
     "Date_start_contract",
@@ -254,6 +255,46 @@ def _build_fill_values(feature_df: pd.DataFrame) -> dict[str, float]:
     return fill_values
 
 
+def _build_clip_upper_bounds(feature_df: pd.DataFrame) -> dict[str, float]:
+    clip_upper_bounds: dict[str, float] = {}
+    for col in CLIP_COLS:
+        if col not in feature_df.columns:
+            continue
+        numeric = pd.to_numeric(feature_df[col], errors="coerce")
+        upper = numeric.quantile(0.999)
+        if pd.notna(upper):
+            clip_upper_bounds[col] = float(upper)
+    return clip_upper_bounds
+
+
+def _apply_feature_fill_values(
+    feature_df: pd.DataFrame,
+    fill_values: dict[str, float],
+) -> pd.DataFrame:
+    df = feature_df.copy()
+    for col in df.columns:
+        df[col] = pd.to_numeric(df[col], errors="coerce")
+        df[col] = df[col].fillna(fill_values.get(col, 0.0)).astype(np.float32)
+    return df
+
+
+def _apply_clip_upper_bounds(
+    feature_df: pd.DataFrame,
+    clip_upper_bounds: dict[str, float] | None,
+) -> pd.DataFrame:
+    df = feature_df.copy()
+    if clip_upper_bounds is None:
+        clip_upper_bounds = _build_clip_upper_bounds(df)
+
+    for col in CLIP_COLS:
+        if col not in df.columns:
+            continue
+        upper = clip_upper_bounds.get(col)
+        if upper is not None and pd.notna(upper):
+            df[col] = df[col].clip(upper=float(upper))
+    return df
+
+
 def build_raw_feature_defaults(df_raw: pd.DataFrame) -> dict[str, object]:
     raw_source = _ensure_raw_columns(df_raw.copy())
     raw_source = _coerce_numeric(
@@ -298,12 +339,11 @@ def build_raw_feature_defaults(df_raw: pd.DataFrame) -> dict[str, object]:
     return defaults
 
 
-def prepare_features(
+def _build_engineered_feature_frame(
     df: pd.DataFrame,
     *,
     raw_defaults: dict | None = None,
     feature_columns: list[str] | None = None,
-    fill_values: dict[str, float] | None = None,
 ) -> pd.DataFrame:
     df = _ensure_raw_columns(df)
     df = _coerce_numeric(df, RAW_NUMERIC_COLS + [TARGET_COLUMN, *AUXILIARY_LABEL_COLUMNS])
@@ -331,20 +371,28 @@ def prepare_features(
     if feature_columns is not None:
         df = df.reindex(columns=feature_columns)
 
+    return df
+
+
+def prepare_features(
+    df: pd.DataFrame,
+    *,
+    raw_defaults: dict | None = None,
+    feature_columns: list[str] | None = None,
+    fill_values: dict[str, float] | None = None,
+    clip_upper_bounds: dict[str, float] | None = None,
+) -> pd.DataFrame:
+    df = _build_engineered_feature_frame(
+        df,
+        raw_defaults=raw_defaults,
+        feature_columns=feature_columns,
+    )
+
     if fill_values is None:
         fill_values = _build_fill_values(df)
 
-    for col in df.columns:
-        df[col] = pd.to_numeric(df[col], errors="coerce")
-        df[col] = df[col].fillna(fill_values.get(col, 0.0)).astype(np.float32)
-
-    for col in CLIP_COLS:
-        if col in df.columns:
-            upper = df[col].quantile(0.999)
-            if pd.notna(upper):
-                df[col] = df[col].clip(upper=float(upper))
-
-    return df
+    df = _apply_feature_fill_values(df, fill_values)
+    return _apply_clip_upper_bounds(df, clip_upper_bounds)
 
 
 def clean_and_engineer(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.Series]:
@@ -368,7 +416,11 @@ def build_inference_reference(df_raw: pd.DataFrame) -> dict:
         "length_medians_by_type_risk": length_defaults,
     }
 
-    feature_df = prepare_features(raw_source, raw_defaults=raw_defaults)
+    feature_df = _build_engineered_feature_frame(raw_source, raw_defaults=raw_defaults)
+    feature_fill_values = _build_fill_values(feature_df)
+    filled_feature_df = _apply_feature_fill_values(feature_df, feature_fill_values)
+    clip_upper_bounds = _build_clip_upper_bounds(filled_feature_df)
+
     return {
         "feature_engineering_version": FEATURE_ENGINEERING_VERSION,
         "feature_engineering_strategy": FEATURE_ENGINEERING_STRATEGY,
@@ -377,7 +429,8 @@ def build_inference_reference(df_raw: pd.DataFrame) -> dict:
         "raw_feature_columns": RAW_FEATURE_COLS.copy(),
         "raw_feature_defaults": build_raw_feature_defaults(raw_source),
         "feature_columns": feature_df.columns.tolist(),
-        "feature_fill_values": _build_fill_values(feature_df),
+        "feature_fill_values": feature_fill_values,
+        "clip_upper_bounds": clip_upper_bounds,
         "raw_defaults": raw_defaults,
     }
 
@@ -386,18 +439,20 @@ def validate_inference_reference(reference: dict) -> dict:
     if not isinstance(reference, dict):
         raise TypeError("Inference reference must be a dictionary")
 
+    version = reference.get("feature_engineering_version")
     required_keys = {"feature_columns", "feature_fill_values", "raw_defaults"}
+    if version == FEATURE_ENGINEERING_VERSION:
+        required_keys.add("clip_upper_bounds")
     missing_keys = sorted(required_keys.difference(reference))
     if missing_keys:
         raise ValueError(
             f"Inference reference is missing required fields: {', '.join(missing_keys)}"
         )
 
-    version = reference.get("feature_engineering_version")
     strategy = reference.get("feature_engineering_strategy")
     observation_date_column = reference.get("observation_date_column")
     if (
-        version != FEATURE_ENGINEERING_VERSION
+        version not in {FEATURE_ENGINEERING_VERSION, *LEGACY_FEATURE_ENGINEERING_VERSIONS}
         or strategy != FEATURE_ENGINEERING_STRATEGY
         or observation_date_column != OBSERVATION_DATE_COL
     ):
@@ -415,6 +470,7 @@ def clean_and_engineer_for_inference(df: pd.DataFrame, reference: dict) -> pd.Da
         raw_defaults=validated_reference["raw_defaults"],
         feature_columns=validated_reference["feature_columns"],
         fill_values=validated_reference["feature_fill_values"],
+        clip_upper_bounds=validated_reference.get("clip_upper_bounds"),
     )
 
 
@@ -453,35 +509,45 @@ def build_dataloaders(
     scaler_path.parent.mkdir(parents=True, exist_ok=True)
     reference_path.parent.mkdir(parents=True, exist_ok=True)
 
-    print(f"[1/5] Loading training table: {table_name}")
+    if val_ratio <= 0 or test_ratio <= 0 or val_ratio + test_ratio >= 1.0:
+        raise ValueError("val_ratio and test_ratio must be positive and sum to less than 1.0")
+
+    print(f"[1/6] Loading training table: {table_name}")
     df_raw = load_training_dataframe(table_name)
 
-    with open(reference_path, "wb") as file:
-        pickle.dump(build_inference_reference(df_raw), file)
-
-    print("[2/5] Data cleaning and feature engineering")
-    feature_df, labels = clean_and_engineer(df_raw)
-    features = feature_df.to_numpy(dtype=np.float32)
+    if TARGET_COLUMN not in df_raw.columns:
+        raise KeyError(f"Missing target column: {TARGET_COLUMN}")
+    labels = pd.to_numeric(df_raw[TARGET_COLUMN], errors="coerce").fillna(0).gt(0).astype(np.float32)
     labels_np = labels.to_numpy(dtype=np.float32)
 
-    print("[3/5] Splitting dataset")
-    x_trainval, x_test, y_trainval, y_test = train_test_split(
-        features,
+    print("[2/6] Splitting dataset before fitting preprocessing reference")
+    df_trainval, df_test, y_trainval, y_test = train_test_split(
+        df_raw,
         labels_np,
         test_size=test_ratio,
         random_state=random_seed,
         stratify=labels_np,
     )
     val_size = val_ratio / (1 - test_ratio)
-    x_train, x_val, y_train, y_val = train_test_split(
-        x_trainval,
+    df_train, df_val, y_train, y_val = train_test_split(
+        df_trainval,
         y_trainval,
         test_size=val_size,
         random_state=random_seed,
         stratify=y_trainval,
     )
 
-    print("[4/5] Feature scaling")
+    print("[3/6] Fitting preprocessing reference on training split only")
+    inference_reference = build_inference_reference(df_train)
+    with open(reference_path, "wb") as file:
+        pickle.dump(inference_reference, file)
+
+    print("[4/6] Applying feature engineering with the training reference")
+    x_train = clean_and_engineer_for_inference(df_train, inference_reference).to_numpy(dtype=np.float32)
+    x_val = clean_and_engineer_for_inference(df_val, inference_reference).to_numpy(dtype=np.float32)
+    x_test = clean_and_engineer_for_inference(df_test, inference_reference).to_numpy(dtype=np.float32)
+
+    print("[5/6] Feature scaling")
     scaler = StandardScaler()
     x_train = scaler.fit_transform(x_train).astype(np.float32)
     x_val = scaler.transform(x_val).astype(np.float32)
@@ -490,7 +556,7 @@ def build_dataloaders(
     with open(scaler_path, "wb") as file:
         pickle.dump(scaler, file)
 
-    print("[5/5] Building dataloaders")
+    print("[6/6] Building dataloaders")
     train_ds = InsuranceDataset(x_train, y_train)
     val_ds = InsuranceDataset(x_val, y_val)
     test_ds = InsuranceDataset(x_test, y_test)
@@ -577,6 +643,7 @@ __all__ = [
     "AUXILIARY_LABEL_COLUMNS",
     "FEATURE_ENGINEERING_STRATEGY",
     "FEATURE_ENGINEERING_VERSION",
+    "LEGACY_FEATURE_ENGINEERING_VERSIONS",
     "OBSERVATION_DATE_COL",
     "RAW_FEATURE_COLS",
     "RAW_CATEGORICAL_COLS",
