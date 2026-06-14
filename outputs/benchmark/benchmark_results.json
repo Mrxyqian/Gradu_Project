@@ -1,0 +1,28 @@
+{
+  "timestamp": "2026-05-21T19:16:29",
+  "results": {
+    "Residual MLP": {
+      "AUC": 0.96121,
+      "PR-AUC": 0.866925,
+      "F1": 0.766751,
+      "Precision": 0.700168,
+      "Recall": 0.847328,
+      "Accuracy": 0.904045,
+      "Balanced Acc": 0.882172,
+      "Epochs": 37,
+      "Threshold": 0.619849
+    },
+    "FT-Transformer": {
+      "AUC": 0.971328,
+      "PR-AUC": 0.900676,
+      "F1": 0.800574,
+      "Precision": 0.755074,
+      "Recall": 0.851908,
+      "Accuracy": 0.921,
+      "Balanced Acc": 0.894355,
+      "Epochs": 0,
+      "Threshold": 0.678643,
+      "Params": 755137
+    }
+  }
+}

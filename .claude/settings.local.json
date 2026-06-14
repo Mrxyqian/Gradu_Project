@@ -3,7 +3,8 @@
     "allow": [
       "Bash(python -c ' *)",
       "Bash(python *)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(where conda *)"
     ]
   }
 }
